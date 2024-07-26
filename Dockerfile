@@ -64,7 +64,7 @@ RUN yarn run build
 # which runs Nginx using Alpine Linux
 FROM nginxinc/nginx-unprivileged:1.25-alpine as final
 #RUN apk add --no-cache bash
-ENV PORT=80
+# ENV PORT=80
 RUN rm /etc/nginx/conf.d/default.conf
 USER nginx
 COPY --chown=nginx:nginx .docker/Viewer-v3.x /usr/src
@@ -72,6 +72,13 @@ RUN chmod 777 /usr/src/entrypoint.sh
 COPY --from=builder /usr/src/app/platform/app/dist /usr/share/nginx/html
 # In entrypoint.sh, app-config.js might be overwritten, so chmod it to be writeable.
 # The nginx user cannot chmod it, so change to root.
+
+# New configuration commands
+RUN mkdir /etc/nginx/enabled-sites
+COPY ohif-static.conf /etc/nginx/enabled-sites/
+ADD ohif-nginx-http.conf /etc/nginx/conf.d/default.conf
+COPY default-app-config.js /usr/share/nginx/html/app-config.js
+
 USER root
 RUN chmod 666 /usr/share/nginx/html/app-config.js
 USER nginx
