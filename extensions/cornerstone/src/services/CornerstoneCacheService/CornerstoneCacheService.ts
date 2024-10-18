@@ -32,7 +32,7 @@ class CornerstoneCacheService {
   }
 
   public async createViewportData(
-    displaySets: unknown[],
+    displaySets: Types.DisplaySet[],
     viewportOptions: Record<string, unknown>,
     dataSource: unknown,
     initialImageIndex?: number
@@ -55,23 +55,29 @@ class CornerstoneCacheService {
       viewportOptions.viewportType = viewportType;
     }
 
-    const cs3DViewportType = getCornerstoneViewportType(viewportType);
+    const cs3DViewportType = getCornerstoneViewportType(viewportType, displaySets);
     let viewportData: StackViewportData | VolumeViewportData;
-
-    if (cs3DViewportType === Enums.ViewportType.STACK) {
-      viewportData = await this._getStackViewportData(
-        dataSource,
-        displaySets,
-        initialImageIndex,
-        cs3DViewportType
-      );
-    }
 
     if (
       cs3DViewportType === Enums.ViewportType.ORTHOGRAPHIC ||
       cs3DViewportType === Enums.ViewportType.VOLUME_3D
     ) {
       viewportData = await this._getVolumeViewportData(dataSource, displaySets, cs3DViewportType);
+    } else if (cs3DViewportType === Enums.ViewportType.STACK) {
+      // Everything else looks like a stack
+      viewportData = await this._getStackViewportData(
+        dataSource,
+        displaySets,
+        initialImageIndex,
+        cs3DViewportType
+      );
+    } else {
+      viewportData = await this._getOtherViewportData(
+        dataSource,
+        displaySets,
+        initialImageIndex,
+        cs3DViewportType
+      );
     }
 
     viewportData.viewportType = cs3DViewportType;
@@ -143,6 +149,25 @@ class CornerstoneCacheService {
     return newViewportData;
   }
 
+  private async _getOtherViewportData(
+    dataSource,
+    displaySets,
+    _initialImageIndex,
+    viewportType: Enums.ViewportType
+  ): Promise<StackViewportData> {
+    // TODO - handle overlays and secondary display sets, but for now assume
+    // the 1st display set is the one of interest
+    const [displaySet] = displaySets;
+    if (!displaySet.imageIds) {
+      displaySet.imagesIds = this._getCornerstoneStackImageIds(displaySet, dataSource);
+    }
+    const { imageIds: data, viewportType: dsViewportType } = displaySet;
+    return {
+      viewportType: dsViewportType || viewportType,
+      data: displaySets,
+    };
+  }
+
   private async _getStackViewportData(
     dataSource,
     displaySets,
@@ -162,6 +187,12 @@ class CornerstoneCacheService {
     }
 
     const displaySet = nonOverlayDisplaySets[0];
+
+    if (displaySet.load && displaySet.load instanceof Function) {
+      const { userAuthenticationService } = this.servicesManager.services;
+      const headers = userAuthenticationService.getAuthorizationHeader();
+      await displaySet.load({ headers });
+    }
 
     let stackImageIds = this.stackImageIds.get(displaySet.displaySetInstanceUID);
 
@@ -200,6 +231,9 @@ class CornerstoneCacheService {
     const volumeData = [];
 
     for (const displaySet of displaySets) {
+      const { Modality } = displaySet;
+      const isParametricMap = Modality === 'PMAP';
+
       // Don't create volumes for the displaySets that have custom load
       // function (e.g., SEG, RT, since they rely on the reference volumes
       // and they take care of their own loading after they are created in their
@@ -210,24 +244,27 @@ class CornerstoneCacheService {
         const headers = userAuthenticationService.getAuthorizationHeader();
         await displaySet.load({ headers });
 
-        volumeData.push({
-          studyInstanceUID: displaySet.StudyInstanceUID,
-          displaySetInstanceUID: displaySet.displaySetInstanceUID,
-        });
+        // Parametric maps have a `load` method but it should not be loaded in the
+        // same way as SEG and RTSTRUCT but like a normal volume
+        if (!isParametricMap) {
+          volumeData.push({
+            studyInstanceUID: displaySet.StudyInstanceUID,
+            displaySetInstanceUID: displaySet.displaySetInstanceUID,
+          });
 
-        // Todo: do some cache check and empty the cache if needed
-        continue;
+          // Todo: do some cache check and empty the cache if needed
+          continue;
+        }
       }
 
       const volumeLoaderSchema = displaySet.volumeLoaderSchema ?? VOLUME_LOADER_SCHEME;
-
       const volumeId = `${volumeLoaderSchema}:${displaySet.displaySetInstanceUID}`;
-
       let volumeImageIds = this.volumeImageIds.get(displaySet.displaySetInstanceUID);
-
       let volume = cs3DCache.getVolume(volumeId);
 
-      if (!volumeImageIds || !volume) {
+      // Parametric maps do not have image ids but they already have volume data
+      // therefore a new volume should not be created.
+      if (!isParametricMap && (!volumeImageIds || !volume)) {
         volumeImageIds = this._getCornerstoneVolumeImageIds(displaySet, dataSource);
 
         volume = await volumeLoader.createAndCacheVolume(volumeId, {
