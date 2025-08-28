@@ -35,7 +35,6 @@ const sopClassUids = [
   sopClassDictionary.BasicTextSR,
   sopClassDictionary.EnhancedSR,
   sopClassDictionary.ComprehensiveSR,
-  sopClassDictionary.Comprehensive3DSR,
 ];
 
 const validateSameStudyUID = (uid: string, instances): void => {
@@ -54,7 +53,7 @@ const validateSameStudyUID = (uid: string, instances): void => {
  * @param instances is a list of instances from THIS series that are not
  *     in this DICOM SR Display Set already.
  */
-function addInstances(instances: InstanceMetadata[], _displaySetService: DisplaySetService) {
+function addInstances(instances: InstanceMetadata[], displaySetService: DisplaySetService) {
   this.instances.push(...instances);
   utils.sortStudyInstances(this.instances);
   // The last instance is the newest one, so is the one most interesting.
@@ -289,8 +288,6 @@ function _checkIfCanAddMeasurementsToDisplaySet(
       is3DMeasurement &&
       _measurementBelongsToDisplaySet({ measurement, displaySet: newDisplaySet })
     ) {
-      _measurementBelongsToDisplaySet({ measurement, displaySet: newDisplaySet })
-
       addSRAnnotation(measurement, null, null);
       measurement.loaded = true;
       measurement.displaySetInstanceUID = newDisplaySet.displaySetInstanceUID;

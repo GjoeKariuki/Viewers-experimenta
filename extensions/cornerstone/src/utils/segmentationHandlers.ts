@@ -16,12 +16,9 @@ export function setupSegmentationDataModifiedHandler({
   const { unsubscribe: debouncedUnsubscribe } = segmentationService.subscribeDebounced(
     segmentationService.EVENTS.SEGMENTATION_DATA_MODIFIED,
     async ({ segmentationId }) => {
-
-      const disableUpdateSegmentationStats = customizationService.getCustomization('panelSegmentation.disableUpdateSegmentationStats');
-
       const segmentation = segmentationService.getSegmentation(segmentationId);
 
-      if (!segmentation || disableUpdateSegmentationStats) {
+      if (!segmentation) {
         return;
       }
 

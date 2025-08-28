@@ -6,15 +6,7 @@
  * @returns
  */
 export default function getSourceDisplaySet(allDisplaySets, microscopySRDisplaySet) {
-  const { ReferencedFrameOfReferenceUID, metadata } = microscopySRDisplaySet;
-
-  if (metadata.ReferencedSeriesSequence) {
-    const { ReferencedSeriesSequence } = metadata;
-    const referencedSeries = ReferencedSeriesSequence[0];
-    const { SeriesInstanceUID } = referencedSeries;
-    const displaySets = allDisplaySets.filter(ds => ds.SeriesInstanceUID === SeriesInstanceUID);
-    return displaySets[0];
-  }
+  const { ReferencedFrameOfReferenceUID } = microscopySRDisplaySet;
 
   const otherDisplaySets = allDisplaySets.filter(
     ds => ds.displaySetInstanceUID !== microscopySRDisplaySet.displaySetInstanceUID
