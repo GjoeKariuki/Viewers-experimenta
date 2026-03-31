@@ -80,6 +80,11 @@ module.exports = (env, argv) => {
         // Hoisted Yarn Workspace Modules
         path.resolve(__dirname, '../../../node_modules'),
         SRC_DIR,
+
+        path.resolve(
+          __dirname,
+          '/home/megatron/Documents/codez/pacsmed/ohif/customized/Viewers-experimenta/myextensions/test-mip/node_modules'
+        ),
       ],
     },
     plugins: [
@@ -116,6 +121,14 @@ module.exports = (env, argv) => {
           {
             from: `${PUBLIC_DIR}/${APP_CONFIG}`,
             to: `${DIST_DIR}/app-config.js`,
+          },
+          // Copy Dicom Microscopy Viewer build files
+          {
+            from: '../../../node_modules/dicom-microscopy-viewer/dist/dynamic-import',
+            to: DIST_DIR,
+            globOptions: {
+              ignore: ['**/*.min.js.map'],
+            },
           },
         ],
       }),
@@ -156,6 +169,12 @@ module.exports = (env, argv) => {
       proxy: [
         {
           '/dicomweb': 'http://localhost:5000',
+          '/dicom-microscopy-viewer': {
+            target: 'http://localhost:3000',
+            pathRewrite: {
+              '^/dicom-microscopy-viewer': `/${PUBLIC_URL}/dicom-microscopy-viewer`,
+            },
+          },
         },
       ],
       static: [

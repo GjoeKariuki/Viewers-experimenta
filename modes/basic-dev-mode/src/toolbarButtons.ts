@@ -168,6 +168,7 @@ const toolbarButtons: Button[] = [
       evaluate: 'evaluate.action',
     },
   },
+
   {
     id: 'RotateRight',
     uiType: 'ohif.toolButton',

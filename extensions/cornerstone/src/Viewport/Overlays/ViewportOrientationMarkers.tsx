@@ -1,6 +1,12 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import classNames from 'classnames';
-import { metaData, Enums, getEnabledElement } from '@cornerstonejs/core';
+import {
+  metaData,
+  Enums,
+  Types,
+  getEnabledElement,
+  utilities as coreUtilities,
+} from '@cornerstonejs/core';
 import { utilities } from '@cornerstonejs/tools';
 import { vec3 } from 'gl-matrix';
 
@@ -16,36 +22,75 @@ function ViewportOrientationMarkers({
   servicesManager,
   orientationMarkers = ['top', 'left'],
 }: withAppTypes) {
-  const [cameraModifiedTime, setCameraModifiedTime] = useState(0);
+  // Rotation is in degrees
+  const [rotation, setRotation] = useState(0);
+  const [flipHorizontal, setFlipHorizontal] = useState(false);
+  const [flipVertical, setFlipVertical] = useState(false);
   const { isViewportBackgroundLight: isLight } = useViewportRendering(viewportId);
   const { cornerstoneViewportService } = servicesManager.services;
 
+  // Store initial viewUp and viewRight for volume viewports
+  const initialVolumeOrientationRef = useRef<{
+    initialViewUp: number[] | null;
+    initialViewRight: number[] | null;
+  }>({
+    initialViewUp: null,
+    initialViewRight: null,
+  });
+
   useEffect(() => {
-    const cameraModifiedListener = () => setCameraModifiedTime(Date.now());
+    initialVolumeOrientationRef.current.initialViewUp = null;
+    initialVolumeOrientationRef.current.initialViewRight = null;
+
+    if (viewportData?.viewportType !== 'stack' && element && getEnabledElement(element)) {
+      const { viewport } = getEnabledElement(element);
+      const { viewUp, viewPlaneNormal } = viewport.getCamera();
+
+      const viewRight = vec3.create();
+      vec3.cross(viewRight, viewUp, viewPlaneNormal);
+
+      initialVolumeOrientationRef.current.initialViewUp = [...viewUp];
+      initialVolumeOrientationRef.current.initialViewRight = [...viewRight];
+    }
+  }, [element, viewportData]);
+
+  useEffect(() => {
+    const cameraModifiedListener = (evt: Types.EventTypes.CameraModifiedEvent) => {
+      const { previousCamera, camera } = evt.detail;
+
+      const { rotation } = camera;
+      if (rotation !== undefined) {
+        setRotation(rotation);
+      }
+
+      if (
+        camera.flipHorizontal !== undefined &&
+        previousCamera.flipHorizontal !== camera.flipHorizontal
+      ) {
+        setFlipHorizontal(camera.flipHorizontal);
+      }
+
+      if (
+        camera.flipVertical !== undefined &&
+        previousCamera.flipVertical !== camera.flipVertical
+      ) {
+        setFlipVertical(camera.flipVertical);
+      }
+    };
+
     element.addEventListener(Enums.Events.CAMERA_MODIFIED, cameraModifiedListener);
 
     return () => {
       element.removeEventListener(Enums.Events.CAMERA_MODIFIED, cameraModifiedListener);
     };
-  }, [element]);
+  }, []);
 
   const markers = useMemo(() => {
-    if (!viewportData || cameraModifiedTime === 0) {
+    if (!viewportData) {
       return '';
     }
 
-    if (!element || !getEnabledElement(element)) {
-      console.log(`ViewportOrientationMarkers :: Viewport element not enabled (${viewportId})`);
-      return '';
-    }
-
-    const ohifViewport = cornerstoneViewportService.getViewportInfo(viewportId);
-
-    if (!ohifViewport) {
-      console.log(`ViewportOrientationMarkers :: No viewport (${viewportId})`);
-      return '';
-    }
-
+    let rowCosines, columnCosines, isDefaultValueSetForRowCosine, isDefaultValueSetForColumnCosine;
     if (viewportData.viewportType === 'stack') {
       const imageIndex = imageSliceData.imageIndex;
       const imageId = viewportData.data[0].imageIds?.[imageIndex];
@@ -55,25 +100,58 @@ function ViewportOrientationMarkers({
         return false;
       }
 
-      const { isDefaultValueSetForRowCosine, isDefaultValueSetForColumnCosine } =
-        metaData.get('imagePlaneModule', imageId) || {};
+      ({
+        rowCosines,
+        columnCosines,
+        isDefaultValueSetForColumnCosine,
+        isDefaultValueSetForColumnCosine,
+      } = metaData.get('imagePlaneModule', imageId) || {});
+    } else {
+      if (!element || !getEnabledElement(element)) {
+        return '';
+      }
 
-      if (isDefaultValueSetForColumnCosine || isDefaultValueSetForRowCosine) {
+      if (
+        initialVolumeOrientationRef.current.initialViewUp &&
+        initialVolumeOrientationRef.current.initialViewRight
+      ) {
+        // Use initial orientation values for consistency, even as the camera changes
+        columnCosines = [
+          -initialVolumeOrientationRef.current.initialViewUp[0],
+          -initialVolumeOrientationRef.current.initialViewUp[1],
+          -initialVolumeOrientationRef.current.initialViewUp[2],
+        ];
+        rowCosines = initialVolumeOrientationRef.current.initialViewRight;
+      } else {
+        console.warn('ViewportOrientationMarkers::No initial orientation values');
         return '';
       }
     }
 
-    const { viewport } = getEnabledElement(element);
-    const p00 = viewport.canvasToWorld([0, 0]);
-    const p10 = viewport.canvasToWorld([1, 0]);
-    const p01 = viewport.canvasToWorld([0, 1]);
-    const rowCosines = vec3.sub(vec3.create(), p10, p00);
-    const columnCosines = vec3.sub(vec3.create(), p01, p00);
+    if (
+      !rowCosines ||
+      !columnCosines ||
+      rotation === undefined ||
+      isDefaultValueSetForRowCosine ||
+      isDefaultValueSetForColumnCosine
+    ) {
+      return '';
+    }
 
-    vec3.normalize(rowCosines, rowCosines);
-    vec3.normalize(columnCosines, columnCosines);
+    const markers = _getOrientationMarkers(
+      rowCosines,
+      columnCosines,
+      rotation,
+      flipVertical,
+      flipHorizontal
+    );
 
-    const markers = _getOrientationMarkers(rowCosines, columnCosines);
+    const ohifViewport = cornerstoneViewportService.getViewportInfo(viewportId);
+
+    if (!ohifViewport) {
+      console.log('ViewportOrientationMarkers::No viewport');
+      return null;
+    }
 
     return orientationMarkers.map((m, index) => (
       <div
@@ -90,7 +168,16 @@ function ViewportOrientationMarkers({
         <div className="orientation-marker-value">{markers[m]}</div>
       </div>
     ));
-  }, [viewportData, imageSliceData, cameraModifiedTime, orientationMarkers, element, isLight]);
+  }, [
+    viewportData,
+    imageSliceData,
+    rotation,
+    flipVertical,
+    flipHorizontal,
+    orientationMarkers,
+    element,
+    isLight,
+  ]);
 
   return <div className="ViewportOrientationMarkers select-none">{markers}</div>;
 }
@@ -102,12 +189,17 @@ function ViewportOrientationMarkers({
  *
  * @param {*} rowCosines
  * @param {*} columnCosines
+ * @param {*} rotation in degrees
+ * @returns
  */
-function _getOrientationMarkers(rowCosines, columnCosines) {
+function _getOrientationMarkers(rowCosines, columnCosines, rotation, flipVertical, flipHorizontal) {
   const rowString = getOrientationStringLPS(rowCosines);
   const columnString = getOrientationStringLPS(columnCosines);
   const oppositeRowString = invertOrientationStringLPS(rowString);
   const oppositeColumnString = invertOrientationStringLPS(columnString);
+
+  // Round to 4 decimal places (after rotate right 3 times and flip horizontally -> rotation is 90.00000000000001)
+  rotation = Math.round(rotation * 10000) / 10000;
 
   const markers = {
     top: oppositeColumnString,
@@ -115,6 +207,43 @@ function _getOrientationMarkers(rowCosines, columnCosines) {
     right: rowString,
     bottom: columnString,
   };
+
+  // If any vertical or horizontal flips are applied, change the orientation strings ahead of
+  // the rotation applications
+  if (flipVertical) {
+    markers.top = invertOrientationStringLPS(markers.top);
+    markers.bottom = invertOrientationStringLPS(markers.bottom);
+  }
+
+  if (flipHorizontal) {
+    markers.left = invertOrientationStringLPS(markers.left);
+    markers.right = invertOrientationStringLPS(markers.right);
+  }
+
+  // Swap the labels accordingly if the viewport has been rotated
+  // This could be done in a more complex way for intermediate rotation values (e.g. 45 degrees)
+  if (rotation === 90 || rotation === -270) {
+    return {
+      top: markers.left,
+      left: invertOrientationStringLPS(markers.top),
+      right: invertOrientationStringLPS(markers.bottom),
+      bottom: markers.right, // left
+    };
+  } else if (rotation === -90 || rotation === 270) {
+    return {
+      top: invertOrientationStringLPS(markers.left),
+      left: markers.top,
+      bottom: markers.left,
+      right: markers.bottom,
+    };
+  } else if (rotation === 180 || rotation === -180) {
+    return {
+      top: invertOrientationStringLPS(markers.top),
+      left: invertOrientationStringLPS(markers.left),
+      bottom: invertOrientationStringLPS(markers.bottom),
+      right: invertOrientationStringLPS(markers.right),
+    };
+  }
 
   return markers;
 }
