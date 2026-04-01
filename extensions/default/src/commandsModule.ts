@@ -1,4 +1,5 @@
 import { Types, DicomMetadataStore } from '@ohif/core';
+import { getShouldUseCPURendering } from '@cornerstonejs/core';
 
 import { ContextMenuController } from './CustomizableContextMenu';
 import DicomTagBrowser from './DicomTagBrowser/DicomTagBrowser';
@@ -55,6 +56,41 @@ const commandsModule = ({
 
   // Define a context menu controller for use with any context menus
   const contextMenuController = new ContextMenuController(servicesManager, commandsManager);
+
+  const protocolRequiresGPU = protocol => {
+    const viewportOptions = [
+      protocol?.defaultViewport?.viewportOptions,
+      ...(protocol?.stages || []).flatMap(stage =>
+        (stage?.viewports || []).map(viewport => viewport?.viewportOptions)
+      ),
+    ];
+
+    return viewportOptions.some(viewportOptions =>
+      ['volume', 'volume3d'].includes(viewportOptions?.viewportType)
+    );
+  };
+
+  const getBlockedProtocolForCPURendering = protocolId => {
+    if (!protocolId || !getShouldUseCPURendering()) {
+      return null;
+    }
+
+    try {
+      const protocol = hangingProtocolService.getProtocolById(protocolId);
+      return protocolRequiresGPU(protocol) ? protocol : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const notifyGPURequired = protocol => {
+    uiNotificationService.show({
+      title: 'GPU Rendering Required',
+      message: `${protocol?.name || protocol?.id || 'This layout'} requires GPU rendering and cannot be applied while CPU rendering is enabled.`,
+      type: 'info',
+      duration: 3000,
+    });
+  };
 
   const actions = {
     /**
@@ -357,6 +393,12 @@ const commandsModule = ({
           // Re-set the same stage as was previously used
           const hangingId = `${toUseStudyInstanceUID || hpInfo.activeStudyUID}:${protocolId}`;
           stageIndex = hangingProtocolStageIndexMap[hangingId]?.stageIndex;
+        }
+
+        const blockedProtocol = getBlockedProtocolForCPURendering(protocolId);
+        if (blockedProtocol) {
+          notifyGPURequired(blockedProtocol);
+          return false;
         }
 
         const useStageIdx =

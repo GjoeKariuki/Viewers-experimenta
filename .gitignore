@@ -10,6 +10,7 @@ src/version.js
 junit.xml
 coverage/
 .docz/
+.codex
 .yarn/
 .nx/
 addOns/yarn.lock

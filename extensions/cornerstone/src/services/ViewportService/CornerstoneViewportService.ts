@@ -5,7 +5,9 @@ import {
   RenderingEngine,
   StackViewport,
   Types,
+  getConfiguration,
   getRenderingEngine,
+  getShouldUseCPURendering,
   utilities as csUtils,
   VolumeViewport,
   VolumeViewport3D,
@@ -115,17 +117,20 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
    * @returns {RenderingEngine} rendering engine
    */
   public getRenderingEngine() {
-    // get renderingEngine from cache if it exists
-    const renderingEngine = getRenderingEngine(RENDERING_ENGINE_ID);
+    const renderingEngine = getRenderingEngine(RENDERING_ENGINE_ID) || this.renderingEngine;
 
-    if (renderingEngine) {
+    if (renderingEngine && this._isRenderingEngineConsistent(renderingEngine)) {
       this.renderingEngine = renderingEngine;
       return this.renderingEngine;
     }
 
-    if (!renderingEngine || renderingEngine.hasBeenDestroyed) {
-      this.renderingEngine = new RenderingEngine(RENDERING_ENGINE_ID);
-    }
+    this._destroyRenderingEngine(renderingEngine);
+
+    // Creating the wrapper registers the concrete implementation in
+    // Cornerstone's rendering-engine cache, so prefer the cached instance
+    // after construction to keep our service pointed at the real engine.
+    this.renderingEngine = new RenderingEngine(RENDERING_ENGINE_ID) as unknown as Types.IRenderingEngine;
+    this.renderingEngine = getRenderingEngine(RENDERING_ENGINE_ID) || this.renderingEngine;
 
     return this.renderingEngine;
   }
@@ -183,14 +188,18 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
   public destroy() {
     this._removeResizeObserver();
     this.viewportGridResizeObserver = null;
-    try {
-      this.renderingEngine?.destroy?.();
-    } catch (e) {
-      console.warn('Rendering engine not destroyed', e);
-    }
+    this.viewportsById.clear();
     this.viewportsDisplaySets.clear();
-    this.renderingEngine = null;
+    this.beforeResizePositionPresentations.clear();
+    this.resizeQueue = [];
+    clearTimeout(this.viewportResizeTimer);
+    clearTimeout(this.gridResizeTimeOut);
+    this._destroyRenderingEngine();
     cache.purgeCache();
+  }
+
+  public onModeExit(): void {
+    this.destroy();
   }
 
   /**
@@ -209,6 +218,10 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     // clean up
     this.viewportsById.delete(viewportId);
     this.viewportsDisplaySets.delete(viewportId);
+
+    if (this.viewportsById.size === 0) {
+      this._destroyRenderingEngine();
+    }
   }
 
   /**
@@ -1391,6 +1404,76 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     this.gridResizeTimeOut = setTimeout(() => {
       this.gridResizeTimeOut = null;
     }, this.gridResizeDelay);
+  }
+
+  private _destroyRenderingEngine(renderingEngine = this.renderingEngine): void {
+    if (!renderingEngine) {
+      this.renderingEngine = null;
+      return;
+    }
+
+    try {
+      renderingEngine.destroy?.();
+    } catch (e) {
+      console.warn('Rendering engine not destroyed', e);
+    }
+
+    this.renderingEngine = null;
+  }
+
+  private _isRenderingEngineConsistent(renderingEngine: Types.IRenderingEngine): boolean {
+    const implementation = this._getRenderingEngineImplementation(renderingEngine);
+
+    if (!implementation || implementation.hasBeenDestroyed) {
+      return false;
+    }
+
+    const shouldUseCPURendering = getShouldUseCPURendering();
+    if (implementation.useCPURendering !== shouldUseCPURendering) {
+      return false;
+    }
+
+    if (shouldUseCPURendering) {
+      return true;
+    }
+
+    const renderingEngineMode =
+      getConfiguration().rendering?.renderingEngineMode ??
+      csEnums.RenderingEngineModeEnum.ContextPool;
+
+    if (renderingEngineMode === csEnums.RenderingEngineModeEnum.ContextPool) {
+      return Boolean(implementation.contextPool);
+    }
+
+    return Boolean(
+      implementation.offscreenMultiRenderWindow && implementation.offScreenCanvasContainer
+    );
+  }
+
+  private _getRenderingEngineImplementation(renderingEngine: Types.IRenderingEngine) {
+    return (
+      (renderingEngine as Types.IRenderingEngine & {
+        _implementation?: Types.IRenderingEngine & {
+          useCPURendering?: boolean;
+          contextPool?: unknown;
+          offscreenMultiRenderWindow?: unknown;
+          offScreenCanvasContainer?: unknown;
+          hasBeenDestroyed?: boolean;
+        };
+        useCPURendering?: boolean;
+        contextPool?: unknown;
+        offscreenMultiRenderWindow?: unknown;
+        offScreenCanvasContainer?: unknown;
+        hasBeenDestroyed?: boolean;
+      })._implementation ||
+      (renderingEngine as Types.IRenderingEngine & {
+        useCPURendering?: boolean;
+        contextPool?: unknown;
+        offscreenMultiRenderWindow?: unknown;
+        offScreenCanvasContainer?: unknown;
+        hasBeenDestroyed?: boolean;
+      })
+    );
   }
 
   private _setLutPresentation(

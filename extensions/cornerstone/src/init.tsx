@@ -66,8 +66,17 @@ export default async function init({
     peerImport: appConfig.peerImport,
   });
 
-  // For debugging e2e tests that are failing on CI
-  cornerstone.setUseCPURendering(Boolean(appConfig.useCPURendering));
+  // Clear any stale rendering-engine state before we apply the rendering mode
+  // for this session. This is especially important in dev/HMR flows.
+  servicesManager.services.cornerstoneViewportService?.destroy?.();
+
+  // Respect an explicit override, otherwise re-run Cornerstone's built-in
+  // CPU/GPU detection for the current browser/runtime.
+  if (typeof appConfig.useCPURendering === 'boolean') {
+    cornerstone.setUseCPURendering(appConfig.useCPURendering, false);
+  } else {
+    cornerstone.resetUseCPURendering();
+  }
 
   cornerstone.setConfiguration({
     ...cornerstone.getConfiguration(),
@@ -90,7 +99,6 @@ export default async function init({
   const {
     userAuthenticationService,
     customizationService,
-    uiModalService,
     uiNotificationService,
     cornerstoneViewportService,
     hangingProtocolService,
@@ -115,10 +123,6 @@ export default async function init({
   window.services = servicesManager.services;
   window.extensionManager = extensionManager;
   window.commandsManager = commandsManager;
-
-  if (appConfig.showCPUFallbackMessage && cornerstone.getShouldUseCPURendering()) {
-    _showCPURenderingModal(uiModalService, hangingProtocolService);
-  }
   const { getPresentationId: getLutPresentationId } = useLutPresentationStore.getState();
 
   const { getPresentationId: getSegmentationPresentationId } =
@@ -342,39 +346,3 @@ const createMetadataWrappedStrategy = (strategyFn: (args: any) => any) => {
     }
   };
 };
-
-function CPUModal() {
-  return (
-    <div>
-      <p>
-        Your computer does not have enough GPU power to support the default GPU rendering mode. OHIF
-        has switched to CPU rendering mode. Please note that CPU rendering does not support all
-        features such as Volume Rendering, Multiplanar Reconstruction, and Segmentation Overlays.
-      </p>
-    </div>
-  );
-}
-
-function _showCPURenderingModal(uiModalService, hangingProtocolService) {
-  const callback = progress => {
-    if (progress === 100) {
-      uiModalService.show({
-        content: CPUModal,
-        title: 'OHIF Fell Back to CPU Rendering',
-      });
-
-      return true;
-    }
-  };
-
-  const { unsubscribe } = hangingProtocolService.subscribe(
-    hangingProtocolService.EVENTS.PROTOCOL_CHANGED,
-    () => {
-      const done = callback(100);
-
-      if (done) {
-        unsubscribe();
-      }
-    }
-  );
-}

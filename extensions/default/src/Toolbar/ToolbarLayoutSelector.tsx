@@ -2,6 +2,7 @@
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { CommandsManager } from '@ohif/core';
+import { getShouldUseCPURendering } from '@cornerstonejs/core';
 
 import { LayoutSelector } from '@ohif/ui-next';
 import { useTranslation } from 'react-i18next';
@@ -13,8 +14,30 @@ function ToolbarLayoutSelectorWithServices({
   columns = 4,
   ...props
 }) {
-  const { customizationService } = servicesManager.services;
+  const { customizationService, hangingProtocolService } = servicesManager.services;
   const { t } = useTranslation('ToolbarLayoutSelector');
+
+  const presetRequiresGPU = protocolId => {
+    if (!protocolId || !getShouldUseCPURendering()) {
+      return false;
+    }
+
+    try {
+      const protocol = hangingProtocolService?.getProtocolById?.(protocolId);
+      const viewportOptions = [
+        protocol?.defaultViewport?.viewportOptions,
+        ...(protocol?.stages || []).flatMap(stage =>
+          (stage?.viewports || []).map(viewport => viewport?.viewportOptions)
+        ),
+      ];
+
+      return viewportOptions.some(viewportOptions =>
+        ['volume', 'volume3d'].includes(viewportOptions?.viewportType)
+      );
+    } catch {
+      return false;
+    }
+  };
 
   // Get the presets from the customization service
   const commonPresets = customizationService?.getCustomization('layoutSelector.commonPresets') || [
@@ -54,7 +77,7 @@ function ToolbarLayoutSelectorWithServices({
   );
 
   // Generate the advanced presets
-  const advancedPresets = advancedPresetsGenerator
+  const rawAdvancedPresets = advancedPresetsGenerator
     ? advancedPresetsGenerator({ servicesManager })
     : [
         {
@@ -107,6 +130,18 @@ function ToolbarLayoutSelectorWithServices({
           },
         },
       ];
+
+  const advancedPresets = rawAdvancedPresets.map(preset => {
+    const protocolId = preset?.commandOptions?.protocolId;
+    if (!presetRequiresGPU(protocolId)) {
+      return preset;
+    }
+
+    return {
+      ...preset,
+      disabled: true,
+    };
+  });
 
   // Unified selection handler that dispatches to the appropriate command
   const handleSelectionChange = useCallback(
