@@ -65,6 +65,8 @@ const CornerstoneViewportDownloadForm = ({
     }, {});
 
     return () => {
+      toolGroup?.removeViewports(renderingEngineId, VIEWPORT_ID);
+
       Object.keys(toolModeAndBindings).forEach(toolName => {
         const { mode, bindings } = toolModeAndBindings[toolName];
         try {
@@ -82,6 +84,10 @@ const CornerstoneViewportDownloadForm = ({
       return;
     }
 
+    // The capture preview is for viewing/export only, so it should not receive
+    // tool interaction events from the source viewport's tool group.
+    viewportElement.style.pointerEvents = 'none';
+
     const { viewport } = getEnabledElement(activeViewportElement);
 
     const viewportInput = {
@@ -98,6 +104,7 @@ const CornerstoneViewportDownloadForm = ({
   };
 
   const handleDisableViewport = async () => {
+    toolGroup?.removeViewports(renderingEngineId, VIEWPORT_ID);
     renderingEngine.disableElement(VIEWPORT_ID);
   };
 

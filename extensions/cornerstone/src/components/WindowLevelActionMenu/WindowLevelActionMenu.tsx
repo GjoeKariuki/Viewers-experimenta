@@ -94,7 +94,7 @@ export function WindowLevelActionMenuContent({
         {isOrthographicVolume && (
           <AllInOneMenu.SubMenu
             key="projectionControls"
-            itemLabel={t('Projection')}
+            itemLabel={t('MIP / Projection')}
             itemIcon="icon-mpr"
           >
             <ProjectionMenu viewportId={viewportId} />

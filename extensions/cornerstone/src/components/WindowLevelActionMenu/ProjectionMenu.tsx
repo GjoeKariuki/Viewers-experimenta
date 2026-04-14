@@ -65,9 +65,9 @@ export function ProjectionMenu({ viewportId, className }: ProjectionMenuProps) {
 
   return (
     <div className={className}>
-      <div className="bg-popover w-80 rounded-lg p-4 shadow-md">
+      <div className="bg-popover/70 border-input/60 w-80 rounded-lg border p-4 shadow-md backdrop-blur-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <span className="text-muted-foreground text-base">{t('Projection')}</span>
+          <span className="text-muted-foreground text-base">{t('MIP / Projection')}</span>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -172,7 +172,7 @@ function formatThickness(value: number): string {
 function getProjectionModeLabel(mode: ProjectionMode): string {
   switch (mode) {
     case PROJECTION_MODES.MIP:
-      return 'MaxIP';
+      return 'MIP (MaxIP)';
     case PROJECTION_MODES.MINIP:
       return 'MinIP';
     case PROJECTION_MODES.AVG:

@@ -60,6 +60,7 @@ function ViewportDownloadFormNew({
               height: dimensions.height,
               width: dimensions.width,
               position: 'relative',
+              pointerEvents: 'none',
             }}
             data-viewport-uid={viewportId}
             ref={setViewportElement}

@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/Dialog/Dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../components/Dialog/Dialog';
 import { cn } from '../lib/utils';
 
 type Position = {
@@ -53,6 +59,7 @@ const ManagedDialog = forwardRef<ManagedDialogRef, ManagedDialogProps>(
       id,
       isOpen,
       title,
+      description,
       content: DialogContentComponent,
       contentProps,
       isDraggable,
@@ -127,6 +134,7 @@ const ManagedDialog = forwardRef<ManagedDialogRef, ManagedDialogProps>(
           ref={contentRef}
           className={cn(unstyled ? 'p-0' : '', containerClassName, contentVisibility)}
           unstyled={unstyled}
+          {...(!description ? { 'aria-describedby': undefined } : {})}
           style={{
             ...(currentPosition
               ? {
@@ -141,7 +149,12 @@ const ManagedDialog = forwardRef<ManagedDialogRef, ManagedDialogProps>(
               : {}),
           }}
         >
-          {!unstyled && <DialogHeader>{title && <DialogTitle>{title}</DialogTitle>}</DialogHeader>}
+          {!unstyled && (
+            <DialogHeader>
+              {title && <DialogTitle>{title}</DialogTitle>}
+              {description && <DialogDescription>{description}</DialogDescription>}
+            </DialogHeader>
+          )}
           <DialogContentComponent
             {...contentProps}
             hide={() => onClose(id)}

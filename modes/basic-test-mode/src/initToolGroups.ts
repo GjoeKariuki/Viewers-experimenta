@@ -240,6 +240,51 @@ function initMPRToolGroup(extensionManager, toolGroupService, commandsManager) {
   toolGroupService.createToolGroupAndAddTools('mpr', tools);
 }
 
+function initMIPToolGroup(extensionManager, toolGroupService) {
+  const utilityModule = extensionManager.getModuleEntry(
+    '@ohif/extension-cornerstone.utilityModule.tools'
+  );
+
+  const { toolNames, Enums } = utilityModule.exports;
+
+  const tools = {
+    active: [
+      {
+        toolName: toolNames.WindowLevel,
+        bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
+      },
+      {
+        toolName: toolNames.Pan,
+        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+      },
+      {
+        toolName: toolNames.Zoom,
+        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+      },
+      {
+        toolName: toolNames.VolumeRotate,
+        bindings: [{ mouseButton: Enums.MouseBindings.Wheel }],
+        configuration: {
+          rotateIncrementDegrees: 5,
+        },
+      },
+    ],
+    enabled: [
+      {
+        toolName: toolNames.OrientationMarker,
+        configuration: {
+          orientationWidget: {
+            viewportCorner: 'BOTTOM_LEFT',
+          },
+        },
+      },
+    ],
+    disabled: [{ toolName: toolNames.ReferenceLines }],
+  };
+
+  toolGroupService.createToolGroupAndAddTools('mip', tools);
+}
+
 function initVolume3DToolGroup(extensionManager, toolGroupService) {
   const utilityModule = extensionManager.getModuleEntry(
     '@ohif/extension-cornerstone.utilityModule.tools'
@@ -271,6 +316,7 @@ function initToolGroups(extensionManager, toolGroupService, commandsManager) {
   initDefaultToolGroup(extensionManager, toolGroupService, commandsManager, 'default');
   initSRToolGroup(extensionManager, toolGroupService, commandsManager);
   initMPRToolGroup(extensionManager, toolGroupService, commandsManager);
+  initMIPToolGroup(extensionManager, toolGroupService);
   initVolume3DToolGroup(extensionManager, toolGroupService);
 }
 

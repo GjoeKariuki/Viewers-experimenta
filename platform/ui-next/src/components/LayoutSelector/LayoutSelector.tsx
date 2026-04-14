@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '../Popover/Popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../Tooltip';
 import { Button } from '../Button';
@@ -27,6 +27,10 @@ type LayoutSelectorContextType = {
   setIsOpen: (isOpen: boolean) => void;
   onSelection: (commandOptions: LayoutCommandOptions) => void;
   onSelectionPreset: (commandOptions: LayoutCommandOptions) => void;
+  handleTriggerMouseEnter: () => void;
+  handleTriggerMouseLeave: () => void;
+  handleContentMouseEnter: () => void;
+  handleContentMouseLeave: () => void;
 };
 
 const LayoutSelectorContext = createContext<LayoutSelectorContextType | undefined>(undefined);
@@ -60,10 +64,37 @@ const LayoutSelector = ({
   tooltipDisabled,
 }: LayoutSelectorProps) => {
   const [isOpenInternal, setIsOpenInternal] = useState(false);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : isOpenInternal;
   const setIsOpen = isControlled ? onOpenChange! : setIsOpenInternal;
+
+  const clearCloseTimeout = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  }, []);
+
+  const openOnHover = useCallback(() => {
+    clearCloseTimeout();
+    setIsOpen(true);
+  }, [clearCloseTimeout, setIsOpen]);
+
+  const closeOnHoverLeave = useCallback(() => {
+    clearCloseTimeout();
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+      closeTimeoutRef.current = null;
+    }, 150);
+  }, [clearCloseTimeout, setIsOpen]);
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimeout();
+    };
+  }, [clearCloseTimeout]);
 
   const handleSelection = useCallback(
     (commandOptions: LayoutCommandOptions) => {
@@ -94,6 +125,10 @@ const LayoutSelector = ({
         setIsOpen,
         onSelection: handleSelection,
         onSelectionPreset: handlePresetSelection,
+        handleTriggerMouseEnter: openOnHover,
+        handleTriggerMouseLeave: closeOnHoverLeave,
+        handleContentMouseEnter: clearCloseTimeout,
+        handleContentMouseLeave: closeOnHoverLeave,
       }}
     >
       <Popover
@@ -122,9 +157,18 @@ const Trigger = ({
   disabled = false,
   disabledText,
 }: TriggerProps) => {
-  const { isOpen } = useLayoutSelector();
+  const {
+    isOpen,
+    handleTriggerMouseEnter,
+    handleTriggerMouseLeave,
+  } = useLayoutSelector();
 
   const hasTooltip = tooltip || (disabled && disabledText);
+  const handleMouseEnter = () => {
+    if (!disabled) {
+      handleTriggerMouseEnter();
+    }
+  };
 
   const button = (
     <Button
@@ -141,6 +185,8 @@ const Trigger = ({
       size="icon"
       aria-label={tooltip}
       disabled={disabled}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleTriggerMouseLeave}
     >
       <Icons.ByName
         name="tool-layout"
@@ -156,7 +202,12 @@ const Trigger = ({
         asChild
         className={className}
       >
-        {children}
+        <span
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleTriggerMouseLeave}
+        >
+          {children}
+        </span>
       </PopoverTrigger>
     );
   }
@@ -192,11 +243,15 @@ type ContentProps = {
 };
 
 const Content = ({ children, className, align = 'center', sideOffset = 8 }: ContentProps) => {
+  const { handleContentMouseEnter, handleContentMouseLeave } = useLayoutSelector();
+
   return (
     <PopoverContent
       align={align}
       sideOffset={sideOffset}
       className={cn('w-auto rounded-lg border-none p-0 shadow-lg', className)}
+      onMouseEnter={handleContentMouseEnter}
+      onMouseLeave={handleContentMouseLeave}
     >
       <div className="flex">{children}</div>
     </PopoverContent>
