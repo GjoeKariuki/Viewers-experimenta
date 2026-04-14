@@ -16,6 +16,19 @@ To run the container use the following command:
 docker-compose up
 ```
 
+# Troubleshooting
+
+If the builder fails with `/bin/sh: 1: cross-env: not found`, the build stage is
+installing production-only dependencies. The OHIF viewer build needs workspace
+devDependencies during image creation, so use:
+
+```bash
+yarn install --frozen-lockfile --production=false
+```
+
+This keeps build-time packages such as `cross-env` and webpack plugins
+available before `yarn run build`.
+
 
 # Routes
 

@@ -11,9 +11,10 @@ RUN apt-get update && apt-get install -y build-essential python3
 # Copy the entire project
 COPY ./ /usr/src/app/
 
-# Install node dependencies
+# Install build-time dependencies. The viewer build depends on workspace
+# devDependencies such as cross-env and webpack plugins, so do not prune them.
 RUN yarn config set workspaces-experimental true
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --production=false
 
 # Set the environment for the build
 ENV APP_CONFIG=config/docker-nginx-dcm4chee-keycloak.js
