@@ -616,6 +616,22 @@ const toolbarButtons: Button[] = [
     },
   },
   {
+    id: 'MPR',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'icon-mpr',
+      label: i18n.t('Buttons:MPR'),
+      tooltip: i18n.t('Buttons:MPR'),
+      commands: {
+        commandName: 'toggleHangingProtocol',
+        commandOptions: {
+          protocolId: 'mpr',
+        },
+      },
+      evaluate: 'evaluate.displaySetIsReconstructable',
+    },
+  },
+  {
     id: 'Capture',
     uiType: 'ohif.toolButton',
     props: {

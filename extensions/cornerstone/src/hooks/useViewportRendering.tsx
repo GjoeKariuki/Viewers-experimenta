@@ -15,6 +15,15 @@ import { ColorbarPositionType, ColorbarOptions, ColorbarProperties } from '../ty
 import { VolumeRenderingConfig } from '../types/VolumeRenderingConfig';
 import { VolumeLightingParams } from '../types';
 import { ButtonLocation } from '@ohif/core/src/services/ToolBarService/ToolbarService';
+import {
+  PROJECTION_MODES,
+  ProjectionMode,
+  ProjectionSlabThicknessRange,
+  blendModeToProjectionMode,
+  clampProjectionSlabThickness,
+  getProjectionSlabThicknessRange,
+  projectionModeToBlendMode,
+} from '../utils/projectionUtils';
 
 interface ViewportRenderingOptions {
   location?: number;
@@ -29,10 +38,14 @@ interface PixelValueRange {
 interface WindowLevelHook {
   // Viewport information
   is3DVolume: boolean;
+  isOrthographicVolume: boolean;
   isViewportBackgroundLight: boolean;
   viewportDisplaySets: AppTypes.DisplaySet[] | undefined;
   voiRange: { lower: number; upper: number } | undefined;
   windowLevel: { windowWidth: number; windowCenter: number } | undefined;
+  projectionMode: ProjectionMode;
+  slabThickness: number;
+  slabThicknessRange: ProjectionSlabThicknessRange;
 
   // Window level functions
   setWindowLevel: (preset: {
@@ -41,6 +54,8 @@ interface WindowLevelHook {
     immediate?: boolean;
   }) => void;
   setVOIRange: (params: { lower: number; upper: number }) => void;
+  setProjectionMode: (mode: ProjectionMode) => void;
+  setSlabThickness: (thickness: number) => void;
   windowLevelPresets: WindowLevelPreset[];
   allWindowLevelPresets: Array<{
     displaySetInstanceUID: string;
@@ -137,6 +152,18 @@ export function useViewportRendering(
   const [opacityLinear, setOpacityLinearState] = useState<number | undefined>();
   const [threshold, setThresholdState] = useState<number | undefined>();
   const [pixelValueRange, setPixelValueRange] = useState<PixelValueRange>({ min: 0, max: 255 });
+  const [isOrthographicVolume, setIsOrthographicVolume] = useState(false);
+  const [projectionMode, setProjectionModeState] = useState<ProjectionMode>(
+    PROJECTION_MODES.COMPOSITE
+  );
+  const [slabThickness, setSlabThicknessState] = useState(0.1);
+  const [slabThicknessRange, setSlabThicknessRange] = useState<ProjectionSlabThicknessRange>({
+    min: 0.1,
+    max: 0.1,
+    step: 0.1,
+  });
+  const slabThicknessRef = React.useRef(0.1);
+  const projectionModeRef = React.useRef<ProjectionMode>(PROJECTION_MODES.COMPOSITE);
 
   const { viewportDisplaySets } = useViewportDisplaySets(viewportId);
   const { displaySetService } = servicesManager.services;
@@ -153,6 +180,85 @@ export function useViewportRendering(
 
     return undefined;
   }, [options?.displaySetInstanceUID, viewportDisplaySets]);
+
+  const getProjectionViewportContext = useCallback(() => {
+    const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+    if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+      return {
+        viewport,
+        actorEntry: undefined,
+        actorUIDs: undefined,
+        volumeId: undefined,
+      };
+    }
+
+    const volumeIds = viewport.getAllVolumeIds();
+    const volumeId =
+      volumeIds.find(id => id.includes(activeDisplaySetInstanceUID)) ?? volumeIds[0] ?? undefined;
+    const actorEntry = viewport
+      .getActors()
+      .find(
+        actor =>
+          actor.referencedId === volumeId ||
+          (!!volumeId && actor.referencedId?.includes(volumeId)) ||
+          (!!activeDisplaySetInstanceUID &&
+            actor.referencedId?.includes(activeDisplaySetInstanceUID))
+      );
+    const actorUIDs = actorEntry?.uid ? [actorEntry.uid] : undefined;
+
+    return {
+      viewport,
+      actorEntry,
+      actorUIDs,
+      volumeId,
+    };
+  }, [activeDisplaySetInstanceUID, cornerstoneViewportService, viewportId]);
+
+  const syncProjectionState = useCallback(
+    (preserveSelectedThickness = false) => {
+      const { viewport, actorEntry, volumeId } = getProjectionViewportContext();
+      const supportsProjection =
+        viewport instanceof BaseVolumeViewport && !(viewport instanceof VolumeViewport3D);
+
+      setIsOrthographicVolume(supportsProjection);
+
+      if (!supportsProjection || !volumeId) {
+        setProjectionModeState(PROJECTION_MODES.COMPOSITE);
+        projectionModeRef.current = PROJECTION_MODES.COMPOSITE;
+        return;
+      }
+
+      const range = getProjectionSlabThicknessRange(
+        viewport.getImageData(volumeId),
+        viewport.getSlabThickness?.() || slabThicknessRef.current
+      );
+      const mapper = actorEntry?.actor?.getMapper?.();
+      const nextProjectionMode = blendModeToProjectionMode(
+        mapper?.getBlendMode?.() ?? viewport.getBlendMode?.()
+      );
+
+      setSlabThicknessRange(range);
+      setProjectionModeState(nextProjectionMode);
+      projectionModeRef.current = nextProjectionMode;
+
+      if (preserveSelectedThickness && nextProjectionMode === PROJECTION_MODES.COMPOSITE) {
+        const clampedThickness = clampProjectionSlabThickness(slabThicknessRef.current, range);
+        slabThicknessRef.current = clampedThickness;
+        setSlabThicknessState(clampedThickness);
+        return;
+      }
+
+      const nextThickness = clampProjectionSlabThickness(
+        mapper?.getSlabThickness?.() ?? viewport.getSlabThickness?.() ?? range.min,
+        range
+      );
+
+      slabThicknessRef.current = nextThickness;
+      setSlabThicknessState(nextThickness);
+    },
+    [getProjectionViewportContext]
+  );
 
   const viewportInfo = viewportId ? cornerstoneViewportService.getViewportInfo(viewportId) : null;
 
@@ -241,6 +347,7 @@ export function useViewportRendering(
 
   useEffect(() => {
     setIs3DVolume(is3DViewport({ viewportId, cornerstoneViewportService }));
+    syncProjectionState();
 
     const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
 
@@ -288,7 +395,7 @@ export function useViewportRendering(
         console.error('Error initializing VOI range:', error);
       }
     }
-  }, [cornerstoneViewportService, viewportId, activeDisplaySetInstanceUID]);
+  }, [cornerstoneViewportService, viewportId, activeDisplaySetInstanceUID, syncProjectionState]);
 
   useEffect(() => {
     if (!viewportId) {
@@ -370,6 +477,29 @@ export function useViewportRendering(
       element.removeEventListener(Enums.Events.COLORMAP_MODIFIED, updateColormap);
     };
   }, [viewportId, activeDisplaySetInstanceUID, cornerstoneViewportService, opacityToLinear]);
+
+  useEffect(() => {
+    if (!viewportId) {
+      return;
+    }
+
+    const { viewport } = getProjectionViewportContext();
+    const element = viewport?.element;
+
+    if (!element) {
+      return;
+    }
+
+    const updateProjectionState = () => {
+      syncProjectionState(projectionModeRef.current === PROJECTION_MODES.COMPOSITE);
+    };
+
+    element.addEventListener(Enums.Events.CAMERA_MODIFIED, updateProjectionState);
+
+    return () => {
+      element.removeEventListener(Enums.Events.CAMERA_MODIFIED, updateProjectionState);
+    };
+  }, [viewportId, getProjectionViewportContext, syncProjectionState]);
 
   const validateActiveDisplaySet = useCallback(() => {
     if (!activeDisplaySetInstanceUID) {
@@ -456,6 +586,60 @@ export function useViewportRendering(
       }
     },
     [viewportId, commandsManager, validateActiveDisplaySet]
+  );
+
+  const setProjectionMode = useCallback(
+    (mode: ProjectionMode) => {
+      const { viewport, actorUIDs } = getProjectionViewportContext();
+
+      if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+        return;
+      }
+
+      const nextBlendMode = projectionModeToBlendMode(mode);
+      const nextThickness = clampProjectionSlabThickness(
+        slabThicknessRef.current,
+        slabThicknessRange
+      );
+
+      viewport.setBlendMode(nextBlendMode, actorUIDs, false);
+
+      if (mode === PROJECTION_MODES.COMPOSITE) {
+        viewport.setSlabThickness(slabThicknessRange.min, actorUIDs);
+      } else {
+        viewport.setSlabThickness(nextThickness, actorUIDs);
+        slabThicknessRef.current = nextThickness;
+        setSlabThicknessState(nextThickness);
+      }
+
+      viewport.render();
+      projectionModeRef.current = mode;
+      setProjectionModeState(mode);
+    },
+    [getProjectionViewportContext, slabThicknessRange]
+  );
+
+  const setSlabThickness = useCallback(
+    (nextThickness: number) => {
+      const clampedThickness = clampProjectionSlabThickness(nextThickness, slabThicknessRange);
+
+      slabThicknessRef.current = clampedThickness;
+      setSlabThicknessState(clampedThickness);
+
+      if (projectionModeRef.current === PROJECTION_MODES.COMPOSITE) {
+        return;
+      }
+
+      const { viewport, actorUIDs } = getProjectionViewportContext();
+
+      if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+        return;
+      }
+
+      viewport.setSlabThickness(clampedThickness, actorUIDs);
+      viewport.render();
+    },
+    [getProjectionViewportContext, slabThicknessRange]
   );
 
   const toggleColorbar = useCallback(
@@ -795,6 +979,7 @@ export function useViewportRendering(
 
   return {
     is3DVolume,
+    isOrthographicVolume,
     isViewportBackgroundLight,
 
     // Window level functions
@@ -802,6 +987,11 @@ export function useViewportRendering(
     setVOIRange,
     voiRange,
     windowLevel: utilities.windowLevel.toWindowLevel(voiRange?.lower, voiRange?.upper),
+    projectionMode,
+    setProjectionMode,
+    slabThickness,
+    setSlabThickness,
+    slabThicknessRange,
 
     // Colorbar functions
     hasColorbar,

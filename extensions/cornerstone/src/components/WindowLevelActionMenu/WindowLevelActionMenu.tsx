@@ -6,6 +6,7 @@ import { Colorbar } from './Colorbar';
 import { WindowLevel } from './WindowLevel';
 import { VolumeRenderingPresets } from './VolumeRenderingPresets';
 import { VolumeRenderingOptions } from './VolumeRenderingOptions';
+import ProjectionMenu from './ProjectionMenu';
 import { useViewportRendering } from '../../hooks/useViewportRendering';
 import i18n from 'i18next';
 
@@ -49,6 +50,7 @@ export function WindowLevelActionMenuContent({
 
   const {
     is3DVolume,
+    isOrthographicVolume,
     colorbarProperties,
     windowLevelPresets,
     volumeRenderingPresets,
@@ -86,6 +88,16 @@ export function WindowLevelActionMenuContent({
             itemIcon="viewport-window-level"
           >
             <WindowLevel viewportId={viewportId} />
+          </AllInOneMenu.SubMenu>
+        )}
+
+        {isOrthographicVolume && (
+          <AllInOneMenu.SubMenu
+            key="projectionControls"
+            itemLabel={t('Projection')}
+            itemIcon="icon-mpr"
+          >
+            <ProjectionMenu viewportId={viewportId} />
           </AllInOneMenu.SubMenu>
         )}
 

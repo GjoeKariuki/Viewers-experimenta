@@ -7,5 +7,6 @@ export * from './VolumeRenderingOptions';
 export * from './VolumeRenderingPresets';
 export * from './VolumeRenderingQuality';
 export * from './VolumeLighting';
+export * from './ProjectionMenu';
 export * from './VolumeShade';
 export * from './VolumeShift';
