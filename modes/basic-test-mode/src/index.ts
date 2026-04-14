@@ -99,7 +99,6 @@ function modeFactory() {
         'Pan',
         'Capture',
         'Layout',
-        'MPR',
         'Crosshairs',
         'MoreTools',
       ]);

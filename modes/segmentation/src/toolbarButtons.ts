@@ -7,7 +7,7 @@ import { MIN_SEGMENTATION_DRAWING_RADIUS, MAX_SEGMENTATION_DRAWING_RADIUS } from
 const setToolActiveToolbar = {
   commandName: 'setToolActiveToolbar',
   commandOptions: {
-    toolGroupIds: ['default', 'mpr', 'SRToolGroup', 'volume3d'],
+    toolGroupIds: ['default', 'mpr', 'SRToolGroup', 'volume3d', 'mip'],
   },
 };
 

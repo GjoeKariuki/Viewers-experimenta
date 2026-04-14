@@ -284,8 +284,17 @@ function initMIPToolGroup(extensionManager, toolGroupService) {
   const tools = {
     active: [
       {
-        toolName: toolNames.WindowLevel,
+        toolName: toolNames.TrackballRotateTool,
         bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
+      },
+      {
+        toolName: toolNames.WindowLevel,
+        bindings: [
+          {
+            mouseButton: Enums.MouseBindings.Primary,
+            modifierKey: Enums.KeyboardBindings.Shift,
+          },
+        ],
       },
       {
         toolName: toolNames.Pan,

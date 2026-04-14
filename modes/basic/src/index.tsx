@@ -214,7 +214,6 @@ export const toolbarSections = {
     'Zoom',
     'Pan',
     'TrackballRotate',
-    'MPR',
     'WindowLevel',
     'Capture',
     'Layout',

@@ -38,7 +38,7 @@ function _createWwwcPreset(preset, title, subtitle) {
 export const setToolActiveToolbar = {
   commandName: 'setToolActiveToolbar',
   commandOptions: {
-    toolGroupIds: ['default', 'mpr', 'SRToolGroup'],
+    toolGroupIds: ['default', 'mpr', 'SRToolGroup', 'mip'],
   },
 };
 
@@ -320,22 +320,6 @@ const toolbarButtons: Button[] = [
       tooltip: i18n.t('Buttons:Pan'),
       commands: setToolActiveToolbar,
       evaluate: 'evaluate.cornerstoneTool',
-    },
-  },
-  {
-    id: 'MPR',
-    uiType: 'ohif.toolButton',
-    props: {
-      icon: 'icon-mpr',
-      label: i18n.t('Buttons:MPR'),
-      tooltip: i18n.t('Buttons:MPR'),
-      commands: {
-        commandName: 'toggleHangingProtocol',
-        commandOptions: {
-          protocolId: 'mpr',
-        },
-      },
-      evaluate: 'evaluate.displaySetIsReconstructable',
     },
   },
   {

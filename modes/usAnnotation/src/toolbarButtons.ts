@@ -16,7 +16,7 @@ const callbacks = (toolName: string) => [
 export const setToolActiveToolbar = {
   commandName: 'setToolActiveToolbar',
   commandOptions: {
-    toolGroupIds: ['default', 'mpr', 'SRToolGroup', 'volume3d'],
+    toolGroupIds: ['default', 'mpr', 'SRToolGroup', 'volume3d', 'mip'],
   },
 };
 

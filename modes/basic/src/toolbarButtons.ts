@@ -16,7 +16,7 @@ const callbacks = (toolName: string) => [
 export const setToolActiveToolbar = {
   commandName: 'setToolActiveToolbar',
   commandOptions: {
-    toolGroupIds: ['default', 'mpr', 'SRToolGroup', 'volume3d'],
+    toolGroupIds: ['default', 'mpr', 'SRToolGroup', 'volume3d', 'mip'],
   },
 };
 
@@ -613,22 +613,6 @@ const toolbarButtons: Button[] = [
         name: 'evaluate.cornerstoneTool',
         disabledText: i18n.t('Buttons:Select a 3D viewport to enable this tool'),
       },
-    },
-  },
-  {
-    id: 'MPR',
-    uiType: 'ohif.toolButton',
-    props: {
-      icon: 'icon-mpr',
-      label: i18n.t('Buttons:MPR'),
-      tooltip: i18n.t('Buttons:MPR'),
-      commands: {
-        commandName: 'toggleHangingProtocol',
-        commandOptions: {
-          protocolId: 'mpr',
-        },
-      },
-      evaluate: 'evaluate.displaySetIsReconstructable',
     },
   },
   {
