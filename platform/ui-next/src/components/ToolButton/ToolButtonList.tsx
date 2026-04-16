@@ -1,12 +1,7 @@
 import React from 'react';
 import { Button } from '../Button';
 import { Icons } from '../Icons';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../DropdownMenu';
+import { Popover, PopoverContent, PopoverTrigger } from '../Popover';
 import { cn } from '../../lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../Tooltip';
 
@@ -90,36 +85,186 @@ interface ToolButtonListDropDownProps {
 }
 
 const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDropDownProps>(
-  ({ children, className, ...props }, ref) => (
-    <DropdownMenu {...props}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            'text-foreground/80 hover:bg-background hover:text-highlight border-primary',
-            'inline-flex h-10 w-5 items-center justify-center',
-            '!rounded-tr-lg !rounded-br-lg !rounded-tl-none !rounded-bl-none',
-            'bg-transparent',
-            className
-          )}
-        >
-          <Icons.ByName
-            name="chevron-down"
-            className="text-primary h-5 w-5"
-          />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        ref={ref}
-        side="bottom"
-        align="start"
-        alignOffset={-40}
+  ({ children, className, ...props }, ref) => {
+    const [open, setOpen] = React.useState(false);
+    const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+    const contentRef = React.useRef<HTMLDivElement | null>(null);
+    const closeTimeoutRef = React.useRef<number | null>(null);
+
+    const clearCloseTimeout = React.useCallback(() => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+    }, []);
+
+    const scheduleClose = React.useCallback(() => {
+      if (closeTimeoutRef.current !== null) {
+        return;
+      }
+
+      closeTimeoutRef.current = window.setTimeout(() => {
+        setOpen(false);
+        closeTimeoutRef.current = null;
+      }, 120);
+    }, []);
+
+    const isWithinDropdown = React.useCallback((target: EventTarget | null) => {
+      if (!(target instanceof Node)) {
+        return false;
+      }
+
+      return (
+        triggerRef.current?.contains(target) ||
+        contentRef.current?.contains(target) ||
+        false
+      );
+    }, []);
+
+    const setContentNode = React.useCallback(
+      (node: HTMLDivElement | null) => {
+        contentRef.current = node;
+
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      },
+      [ref]
+    );
+
+    React.useEffect(() => {
+      return () => {
+        clearCloseTimeout();
+      };
+    }, [clearCloseTimeout]);
+
+    React.useEffect(() => {
+      if (!open) {
+        return;
+      }
+
+      const handlePointerMove = (event: PointerEvent) => {
+        const hoverTarget = document.elementFromPoint(event.clientX, event.clientY);
+
+        if (isWithinDropdown(hoverTarget ?? event.target)) {
+          clearCloseTimeout();
+          return;
+        }
+
+        clearCloseTimeout();
+        setOpen(false);
+      };
+
+      const handleWindowBlur = () => {
+        clearCloseTimeout();
+        setOpen(false);
+      };
+
+      document.addEventListener('pointermove', handlePointerMove, true);
+      window.addEventListener('blur', handleWindowBlur);
+
+      return () => {
+        document.removeEventListener('pointermove', handlePointerMove, true);
+        window.removeEventListener('blur', handleWindowBlur);
+      };
+    }, [open, clearCloseTimeout, isWithinDropdown, scheduleClose]);
+
+    return (
+      <Popover
+        modal={false}
+        open={open}
+        onOpenChange={nextOpen => {
+          clearCloseTimeout();
+          setOpen(nextOpen);
+        }}
+        {...props}
       >
-        {children}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+        <PopoverTrigger asChild>
+          <Button
+            ref={triggerRef}
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'text-foreground/80 hover:bg-background hover:text-highlight border-primary',
+              'inline-flex h-10 w-7 items-center justify-center',
+              '!rounded-tr-lg !rounded-br-lg !rounded-tl-none !rounded-bl-none',
+              'bg-transparent',
+              className
+            )}
+            onPointerEnter={() => {
+              clearCloseTimeout();
+              if (!open) {
+                setOpen(true);
+              }
+            }}
+            onPointerLeave={event => {
+              if (isWithinDropdown(event.relatedTarget)) {
+                clearCloseTimeout();
+                return;
+              }
+
+              scheduleClose();
+            }}
+            onMouseLeave={event => {
+              if (isWithinDropdown(event.relatedTarget)) {
+                clearCloseTimeout();
+                return;
+              }
+
+              scheduleClose();
+            }}
+            onFocus={() => {
+              clearCloseTimeout();
+              if (!open) {
+                setOpen(true);
+              }
+            }}
+          >
+            <Icons.ByName
+              name="chevron-down"
+              className="text-primary h-5 w-5"
+            />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          ref={setContentNode}
+          side="bottom"
+          align="start"
+          sideOffset={2}
+          className="border-input/50 w-auto min-w-[8rem] overflow-hidden rounded border p-1 shadow-md"
+          onInteractOutside={() => {
+            clearCloseTimeout();
+            setOpen(false);
+          }}
+          onFocusOutside={() => {
+            clearCloseTimeout();
+            setOpen(false);
+          }}
+          onPointerEnter={clearCloseTimeout}
+          onPointerLeave={event => {
+            if (isWithinDropdown(event.relatedTarget)) {
+              clearCloseTimeout();
+              return;
+            }
+
+            scheduleClose();
+          }}
+          onMouseLeave={event => {
+            if (isWithinDropdown(event.relatedTarget)) {
+              clearCloseTimeout();
+              return;
+            }
+
+            scheduleClose();
+          }}
+        >
+          {children}
+        </PopoverContent>
+      </Popover>
+    );
+  }
 );
 ToolButtonListDropDown.displayName = 'ToolButtonListDropDown';
 
@@ -128,25 +273,44 @@ ToolButtonListDropDown.displayName = 'ToolButtonListDropDown';
  * Individual item in the dropdown menu
  * -----------------------------------------------
  */
-interface ToolButtonListItemProps extends React.ComponentProps<typeof DropdownMenuItem> {
+interface ToolButtonListItemProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: string;
   children?: React.ReactNode;
   className?: string;
   disabledText?: string;
   tooltip?: string;
+  onSelect?: () => void;
 }
 
 const ToolButtonListItem = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuItem>,
+  HTMLButtonElement,
   ToolButtonListItemProps
->(({ className, children, icon, disabledText, tooltip, disabled, ...props }, ref) => {
+>(({ className, children, icon, disabledText, tooltip, disabled, onSelect, onClick, ...props }, ref) => {
   const defaultTooltip = tooltip || (typeof children === 'string' ? children : undefined);
 
   const menuItem = (
-    <DropdownMenuItem
+    <button
+      type="button"
       ref={ref}
-      className={cn('flex items-center space-x-2', className)}
       disabled={disabled}
+      onClick={event => {
+        onClick?.(event);
+
+        if (!event.defaultPrevented) {
+          onSelect?.();
+        }
+      }}
+      onKeyDown={event => {
+        if ((event.key === 'Enter' || event.key === ' ') && !disabled) {
+          event.preventDefault();
+          onSelect?.();
+        }
+      }}
+      aria-disabled={disabled}
+      className={cn(
+        'focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default select-none items-center rounded px-1 py-1 text-base outline-none transition-colors disabled:pointer-events-none disabled:opacity-50',
+        className
+      )}
       {...props}
     >
       {icon && (
@@ -156,7 +320,7 @@ const ToolButtonListItem = React.forwardRef<
         />
       )}
       {children}
-    </DropdownMenuItem>
+    </button>
   );
 
   // Todo: there is a weird issue where i can't control the duration of the delay
