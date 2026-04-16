@@ -685,6 +685,18 @@ const toolbarButtons: Button[] = [
     },
   },
   {
+    id: 'ProjectionControlsMenu',
+    uiType: 'ohif.projectionMenu',
+    props: {
+      icon: 'icon-mpr',
+      label: i18n.t('WindowLevelActionMenu:MIP / Projection'),
+      tooltip: i18n.t('WindowLevelActionMenu:MIP / Projection'),
+      evaluate: {
+        name: 'evaluate.projectionMenu',
+      },
+    },
+  },
+  {
     id: 'MIPLayout',
     uiType: 'ohif.toolButton',
     props: {

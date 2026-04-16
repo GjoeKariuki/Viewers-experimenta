@@ -5,6 +5,7 @@ import { utils } from '@ohif/ui-next';
 import { ViewportDataOverlayMenuWrapper } from './components/ViewportDataOverlaySettingMenu/ViewportDataOverlayMenuWrapper';
 import { ViewportOrientationMenuWrapper } from './components/ViewportOrientationMenu/ViewportOrientationMenuWrapper';
 import { WindowLevelActionMenuWrapper } from './components/WindowLevelActionMenu/WindowLevelActionMenuWrapper';
+import { ProjectionMenuWrapper } from './components/WindowLevelActionMenu/ProjectionMenuWrapper';
 import { VOIManualControlMenuWrapper } from './components/VOIManualControlMenu';
 import { ThresholdMenuWrapper } from './components/ThresholdMenu/ThresholdMenuWrapper';
 import { OpacityMenuWrapper } from './components/OpacityMenu/OpacityMenuWrapper';
@@ -228,6 +229,10 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
       },
     },
     {
+      name: 'ohif.projectionMenu',
+      defaultComponent: ProjectionMenuWrapper,
+    },
+    {
       name: 'ohif.windowLevelMenu',
       defaultComponent: WindowLevelActionMenuWrapper,
     },
@@ -254,6 +259,27 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
     {
       name: 'ohif.opacityMenu',
       defaultComponent: OpacityMenuWrapper,
+    },
+    {
+      name: 'evaluate.projectionMenu',
+      evaluate: ({ viewportId }) => {
+        const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+        if (!viewport || viewport.type !== 'orthographic') {
+          return {
+            disabled: true,
+          };
+        }
+
+        const displaySetUIDs = viewportGridService.getDisplaySetsUIDsForViewport(viewportId);
+        const displaySets = displaySetUIDs.map(displaySetService.getDisplaySetByUID);
+
+        const hasReconstructableDisplaySet = displaySets.some(displaySet => displaySet?.isReconstructable);
+
+        return {
+          disabled: !hasReconstructableDisplaySet,
+        };
+      },
     },
     {
       name: 'evaluate.windowLevelMenu',
