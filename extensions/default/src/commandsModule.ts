@@ -1,4 +1,5 @@
 import { Types, DicomMetadataStore } from '@ohif/core';
+import { getShouldUseCPURendering } from '@cornerstonejs/core';
 
 import { ContextMenuController } from './CustomizableContextMenu';
 import DicomTagBrowser from './DicomTagBrowser/DicomTagBrowser';
@@ -38,6 +39,22 @@ export type UpdateViewportDisplaySetParams = {
   excludeNonImageModalities?: boolean;
 };
 
+const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
+
+const getSafeActiveViewportId = (viewportGridService, fallbackViewportId) => {
+  const { activeViewportId, viewports } = viewportGridService.getState();
+
+  if (activeViewportId && viewports?.has(activeViewportId)) {
+    return activeViewportId;
+  }
+
+  if (fallbackViewportId && viewports?.has(fallbackViewportId)) {
+    return fallbackViewportId;
+  }
+
+  return viewports?.keys?.().next?.().value;
+};
+
 const commandsModule = ({
   servicesManager,
   commandsManager,
@@ -55,6 +72,41 @@ const commandsModule = ({
 
   // Define a context menu controller for use with any context menus
   const contextMenuController = new ContextMenuController(servicesManager, commandsManager);
+
+  const protocolRequiresGPU = protocol => {
+    const viewportOptions = [
+      protocol?.defaultViewport?.viewportOptions,
+      ...(protocol?.stages || []).flatMap(stage =>
+        (stage?.viewports || []).map(viewport => viewport?.viewportOptions)
+      ),
+    ];
+
+    return viewportOptions.some(viewportOptions =>
+      ['volume', 'volume3d'].includes(viewportOptions?.viewportType)
+    );
+  };
+
+  const getBlockedProtocolForCPURendering = protocolId => {
+    if (!protocolId || !getShouldUseCPURendering()) {
+      return null;
+    }
+
+    try {
+      const protocol = hangingProtocolService.getProtocolById(protocolId);
+      return protocolRequiresGPU(protocol) ? protocol : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const notifyGPURequired = protocol => {
+    uiNotificationService.show({
+      title: 'GPU Rendering Required',
+      message: `${protocol?.name || protocol?.id || 'This layout'} requires GPU rendering and cannot be applied while CPU rendering is enabled.`,
+      type: 'info',
+      duration: 3000,
+    });
+  };
 
   const actions = {
     /**
@@ -359,6 +411,12 @@ const commandsModule = ({
           stageIndex = hangingProtocolStageIndexMap[hangingId]?.stageIndex;
         }
 
+        const blockedProtocol = getBlockedProtocolForCPURendering(protocolId);
+        if (blockedProtocol) {
+          notifyGPURequired(blockedProtocol);
+          return false;
+        }
+
         const useStageIdx =
           stageIndex ??
           hangingProtocolService.getStageIndex(protocolId, {
@@ -419,6 +477,14 @@ const commandsModule = ({
           `${toUseStudyInstanceUID || hpInfo.activeStudyUID}:activeDisplaySet:0`,
           null
         );
+
+        if (protocolId === 'mpr') {
+          commandsManager.run('setToolActiveToolbar', {
+            toolName: 'Crosshairs',
+            toolGroupIds: ['mpr'],
+          });
+        }
+
         return true;
       } catch (e) {
         console.error(e);
@@ -736,25 +802,59 @@ const commandsModule = ({
         return;
       }
 
-      const { displaySetInstanceUID } = currentDisplaySets[displaySetIndexToShow];
+      const displaySetToShow = currentDisplaySets[displaySetIndexToShow];
+      const { displaySetInstanceUID } = displaySetToShow;
+      const activeProtocolId = hangingProtocolService.getState()?.protocolId;
+
+      if (PROJECTION_PROTOCOL_IDS.includes(activeProtocolId) && !displaySetToShow?.isReconstructable) {
+        actions.setHangingProtocol({
+          protocolId: 'default',
+          StudyInstanceUID: displaySetToShow?.StudyInstanceUID,
+          reset: true,
+        });
+      }
 
       let updatedViewports = [];
+      let viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
 
       try {
         updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
-          activeViewportId,
+          viewportIdToUse,
           displaySetInstanceUID,
-          isHangingProtocolLayout
+          viewportGridService.getState().isHangingProtocolLayout
         );
       } catch (error) {
         console.warn(error);
-        uiNotificationService.show({
-          title: 'Navigate Viewport Display Set',
-          message:
-            'The requested display sets could not be added to the viewport due to a mismatch in the Hanging Protocol rules.',
-          type: 'info',
-          duration: 3000,
+
+        const didReset = actions.setHangingProtocol({
+          protocolId: 'default',
+          StudyInstanceUID: currentDisplaySets[displaySetIndexToShow]?.StudyInstanceUID,
+          reset: true,
         });
+
+        if (didReset) {
+          viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
+
+          try {
+            updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+              viewportIdToUse,
+              displaySetInstanceUID,
+              viewportGridService.getState().isHangingProtocolLayout
+            );
+          } catch (retryError) {
+            console.warn(retryError);
+          }
+        }
+
+        if (!updatedViewports.length) {
+          uiNotificationService.show({
+            title: 'Navigate Viewport Display Set',
+            message:
+              'The requested series could not use the current layout, and the viewer could not be reset automatically.',
+            type: 'info',
+            duration: 3000,
+          });
+        }
       }
 
       commandsManager.run('setDisplaySetsForViewports', { viewportsToUpdate: updatedViewports });

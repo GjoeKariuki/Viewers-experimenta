@@ -1,31 +1,109 @@
 import { utils } from '@ohif/core';
+import i18n from '@ohif/i18n';
 const { formatDate } = utils;
+
+const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
+
+function getSafeActiveViewportId(viewportGridService, fallbackViewportId) {
+  const { activeViewportId, viewports } = viewportGridService.getState();
+
+  if (activeViewportId && viewports?.has(activeViewportId)) {
+    return activeViewportId;
+  }
+
+  if (fallbackViewportId && viewports?.has(fallbackViewportId)) {
+    return fallbackViewportId;
+  }
+
+  return viewports?.keys?.().next?.().value;
+}
+
+function getUpdatedViewportsForDisplaySet({
+  activeViewportId,
+  displaySetInstanceUID,
+  servicesManager,
+  commandsManager,
+  isHangingProtocolLayout,
+}) {
+  const { displaySetService, hangingProtocolService, viewportGridService } = servicesManager.services;
+  const displaySet = displaySetService.getDisplaySetByUID(displaySetInstanceUID);
+  const protocolId = hangingProtocolService.getState()?.protocolId;
+
+  if (PROJECTION_PROTOCOL_IDS.includes(protocolId) && !displaySet?.isReconstructable) {
+    const didReset = commandsManager.run('setHangingProtocol', {
+      protocolId: 'default',
+      StudyInstanceUID: displaySet?.StudyInstanceUID,
+      reset: true,
+    });
+
+    if (didReset === false) {
+      throw new Error('Failed to reset hanging protocol before loading unsupported display set.');
+    }
+
+    const recoveredViewportId = getSafeActiveViewportId(viewportGridService, activeViewportId);
+
+    return hangingProtocolService.getViewportsRequireUpdate(
+      recoveredViewportId,
+      displaySetInstanceUID,
+      viewportGridService.getState().isHangingProtocolLayout
+    );
+  }
+
+  try {
+    return hangingProtocolService.getViewportsRequireUpdate(
+      activeViewportId,
+      displaySetInstanceUID,
+      isHangingProtocolLayout
+    );
+  } catch (error) {
+    console.warn(error);
+
+    const studyInstanceUID = displaySetService.getDisplaySetByUID(displaySetInstanceUID)?.StudyInstanceUID;
+    const didReset = commandsManager.run('setHangingProtocol', {
+      protocolId: 'default',
+      StudyInstanceUID: studyInstanceUID,
+      reset: true,
+    });
+
+    if (didReset === false) {
+      throw error;
+    }
+
+    const recoveredViewportId = getSafeActiveViewportId(viewportGridService, activeViewportId);
+
+    return hangingProtocolService.getViewportsRequireUpdate(
+      recoveredViewportId,
+      displaySetInstanceUID,
+      viewportGridService.getState().isHangingProtocolLayout
+    );
+  }
+}
 
 export default {
   'studyBrowser.studyMenuItems': [],
   'studyBrowser.thumbnailMenuItems': [
     {
       id: 'tagBrowser',
-      label: 'Tag Browser',
+      label: i18n.t('StudyBrowser:Tag Browser'),
       iconName: 'DicomTagBrowser',
       commands: 'openDICOMTagViewer',
     },
     {
       id: 'addAsLayer',
-      label: 'Add as Layer',
+      label: i18n.t('StudyBrowser:Add as Layer'),
       iconName: 'ViewportViews',
       commands: 'addDisplaySetAsLayer',
     },
   ],
   'studyBrowser.sortFunctions': [
     {
-      label: 'Series Number',
+      label: i18n.t('StudyBrowser:Series Number'),
       sortFunction: (a, b) => {
         return a?.SeriesNumber - b?.SeriesNumber;
       },
     },
     {
-      label: 'Series Date',
+      label: i18n.t('StudyBrowser:Series Date'),
       sortFunction: (a, b) => {
         const dateA = new Date(formatDate(a?.SeriesDate));
         const dateB = new Date(formatDate(b?.SeriesDate));
@@ -55,24 +133,30 @@ export default {
           const viewportId = activeViewportId;
 
           try {
-            updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
-              viewportId,
+            updatedViewports = getUpdatedViewportsForDisplaySet({
+              activeViewportId: viewportId,
               displaySetInstanceUID,
-              isHangingProtocolLayout
-            );
+              servicesManager,
+              commandsManager,
+              isHangingProtocolLayout,
+            });
           } catch (error) {
             console.warn(error);
             uiNotificationService.show({
-              title: 'Thumbnail Double Click',
-              message: 'The selected display sets could not be added to the viewport.',
+              title: i18n.t('StudyBrowser:Thumbnail Double Click'),
+              message: i18n.t(
+                'StudyBrowser:The selected series could not use the current layout, so the viewer was reset before loading it.'
+              ),
               type: 'error',
               duration: 3000,
             });
           }
 
-          commandsManager.run('setDisplaySetsForViewports', {
-            viewportsToUpdate: updatedViewports,
-          });
+          if (updatedViewports.length) {
+            commandsManager.run('setDisplaySetsForViewports', {
+              viewportsToUpdate: updatedViewports,
+            });
+          }
         },
     ],
   },
