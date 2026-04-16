@@ -39,6 +39,22 @@ export type UpdateViewportDisplaySetParams = {
   excludeNonImageModalities?: boolean;
 };
 
+const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
+
+const getSafeActiveViewportId = (viewportGridService, fallbackViewportId) => {
+  const { activeViewportId, viewports } = viewportGridService.getState();
+
+  if (activeViewportId && viewports?.has(activeViewportId)) {
+    return activeViewportId;
+  }
+
+  if (fallbackViewportId && viewports?.has(fallbackViewportId)) {
+    return fallbackViewportId;
+  }
+
+  return viewports?.keys?.().next?.().value;
+};
+
 const commandsModule = ({
   servicesManager,
   commandsManager,
@@ -461,6 +477,14 @@ const commandsModule = ({
           `${toUseStudyInstanceUID || hpInfo.activeStudyUID}:activeDisplaySet:0`,
           null
         );
+
+        if (protocolId === 'mpr') {
+          commandsManager.run('setToolActiveToolbar', {
+            toolName: 'Crosshairs',
+            toolGroupIds: ['mpr'],
+          });
+        }
+
         return true;
       } catch (e) {
         console.error(e);
@@ -778,15 +802,26 @@ const commandsModule = ({
         return;
       }
 
-      const { displaySetInstanceUID } = currentDisplaySets[displaySetIndexToShow];
+      const displaySetToShow = currentDisplaySets[displaySetIndexToShow];
+      const { displaySetInstanceUID } = displaySetToShow;
+      const activeProtocolId = hangingProtocolService.getState()?.protocolId;
+
+      if (PROJECTION_PROTOCOL_IDS.includes(activeProtocolId) && !displaySetToShow?.isReconstructable) {
+        actions.setHangingProtocol({
+          protocolId: 'default',
+          StudyInstanceUID: displaySetToShow?.StudyInstanceUID,
+          reset: true,
+        });
+      }
 
       let updatedViewports = [];
+      let viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
 
       try {
         updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
-          activeViewportId,
+          viewportIdToUse,
           displaySetInstanceUID,
-          isHangingProtocolLayout
+          viewportGridService.getState().isHangingProtocolLayout
         );
       } catch (error) {
         console.warn(error);
@@ -798,9 +833,11 @@ const commandsModule = ({
         });
 
         if (didReset) {
+          viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
+
           try {
             updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
-              activeViewportId,
+              viewportIdToUse,
               displaySetInstanceUID,
               viewportGridService.getState().isHangingProtocolLayout
             );

@@ -2,6 +2,22 @@ import { utils } from '@ohif/core';
 import i18n from '@ohif/i18n';
 const { formatDate } = utils;
 
+const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
+
+function getSafeActiveViewportId(viewportGridService, fallbackViewportId) {
+  const { activeViewportId, viewports } = viewportGridService.getState();
+
+  if (activeViewportId && viewports?.has(activeViewportId)) {
+    return activeViewportId;
+  }
+
+  if (fallbackViewportId && viewports?.has(fallbackViewportId)) {
+    return fallbackViewportId;
+  }
+
+  return viewports?.keys?.().next?.().value;
+}
+
 function getUpdatedViewportsForDisplaySet({
   activeViewportId,
   displaySetInstanceUID,
@@ -10,6 +26,28 @@ function getUpdatedViewportsForDisplaySet({
   isHangingProtocolLayout,
 }) {
   const { displaySetService, hangingProtocolService, viewportGridService } = servicesManager.services;
+  const displaySet = displaySetService.getDisplaySetByUID(displaySetInstanceUID);
+  const protocolId = hangingProtocolService.getState()?.protocolId;
+
+  if (PROJECTION_PROTOCOL_IDS.includes(protocolId) && !displaySet?.isReconstructable) {
+    const didReset = commandsManager.run('setHangingProtocol', {
+      protocolId: 'default',
+      StudyInstanceUID: displaySet?.StudyInstanceUID,
+      reset: true,
+    });
+
+    if (didReset === false) {
+      throw new Error('Failed to reset hanging protocol before loading unsupported display set.');
+    }
+
+    const recoveredViewportId = getSafeActiveViewportId(viewportGridService, activeViewportId);
+
+    return hangingProtocolService.getViewportsRequireUpdate(
+      recoveredViewportId,
+      displaySetInstanceUID,
+      viewportGridService.getState().isHangingProtocolLayout
+    );
+  }
 
   try {
     return hangingProtocolService.getViewportsRequireUpdate(
@@ -31,8 +69,10 @@ function getUpdatedViewportsForDisplaySet({
       throw error;
     }
 
+    const recoveredViewportId = getSafeActiveViewportId(viewportGridService, activeViewportId);
+
     return hangingProtocolService.getViewportsRequireUpdate(
-      activeViewportId,
+      recoveredViewportId,
       displaySetInstanceUID,
       viewportGridService.getState().isHangingProtocolLayout
     );
@@ -112,9 +152,11 @@ export default {
             });
           }
 
-          commandsManager.run('setDisplaySetsForViewports', {
-            viewportsToUpdate: updatedViewports,
-          });
+          if (updatedViewports.length) {
+            commandsManager.run('setDisplaySetsForViewports', {
+              viewportsToUpdate: updatedViewports,
+            });
+          }
         },
     ],
   },
