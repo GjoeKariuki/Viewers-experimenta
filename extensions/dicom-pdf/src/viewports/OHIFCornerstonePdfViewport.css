@@ -6,6 +6,21 @@
 
 .pdf-yes-click {
   pointer-events: auto;
+
+  .pdf-viewport-outer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pdf-viewport-inner {
+    width: 100%;
+    height: 100%;
+  }
   height: 100%;
   width: 100%;
 }

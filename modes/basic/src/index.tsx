@@ -207,11 +207,16 @@ export const toolbarSections = {
     'WindowLevel',
     'Capture',
     'Layout',
+    'MIPLayout',
     'Crosshairs',
     'MoreTools',
   ],
 
-  [TOOLBAR_SECTIONS.viewportActionMenu.topLeft]: ['orientationMenu', 'dataOverlayMenu'],
+  [TOOLBAR_SECTIONS.viewportActionMenu.topLeft]: [
+    'orientationMenu',
+    'dataOverlayMenu',
+    'ProjectionMIP',
+  ],
 
   [TOOLBAR_SECTIONS.viewportActionMenu.bottomMiddle]: ['AdvancedRenderingControls'],
 
@@ -247,6 +252,10 @@ export const toolbarSections = {
     'Reset',
     'rotate-right',
     'flipHorizontal',
+    'CTAThinMIPPreset',
+    'CTAThickMIPPreset',
+    'MRAThinMIPPreset',
+    'PETFullMIPPreset',
     'ImageSliceSync',
     'ReferenceLines',
     'ImageOverlayViewer',

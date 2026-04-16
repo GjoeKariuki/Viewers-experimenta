@@ -1,5 +1,7 @@
 import { fourUp } from './hps/fourUp';
 import { main3D } from './hps/main3D';
+import { mip } from './hps/mip';
+import { mipAndMpr } from './hps/mipAndMpr';
 import { mpr } from './hps/mpr';
 import { mprAnd3DVolumeViewport } from './hps/mprAnd3DVolumeViewport';
 import { only3D } from './hps/only3D';
@@ -12,6 +14,14 @@ function getHangingProtocolModule() {
     {
       name: mpr.id,
       protocol: mpr,
+    },
+    {
+      name: mip.id,
+      protocol: mip,
+    },
+    {
+      name: mipAndMpr.id,
+      protocol: mipAndMpr,
     },
     {
       name: mprAnd3DVolumeViewport.id,
