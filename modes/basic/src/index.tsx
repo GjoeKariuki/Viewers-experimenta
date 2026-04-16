@@ -219,6 +219,7 @@ export const toolbarSections = {
     'Layout',
     'ProjectionMIP',
     'MPRLayout',
+    'ProjectionControlsMenu',
     'Crosshairs',
     'MoreTools',
   ],
