@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import classnames from 'classnames';
 import { useDrag } from 'react-dnd';
 import { Icons } from '../Icons';
-import { DisplaySetMessageListTooltip } from '../DisplaySetMessageListTooltip';
 import { TooltipTrigger, TooltipContent, Tooltip } from '../Tooltip';
 
 /**
@@ -98,10 +97,6 @@ const Thumbnail = ({
 
             {/* top right */}
             <div className="absolute top-0 right-0 flex items-center gap-[4px]">
-              <DisplaySetMessageListTooltip
-                messages={messages}
-                id={`display-set-tooltip-${displaySetInstanceUID}`}
-              />
               {isTracked && (
                 <Tooltip>
                   <TooltipTrigger>
@@ -224,10 +219,6 @@ const Thumbnail = ({
           </div>
         </div>
         <div className="flex h-full items-center gap-[4px]">
-          <DisplaySetMessageListTooltip
-            messages={messages}
-            id={`display-set-tooltip-${displaySetInstanceUID}`}
-          />
           {isTracked && (
             <Tooltip>
               <TooltipTrigger>

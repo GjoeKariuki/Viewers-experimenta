@@ -140,8 +140,37 @@ const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDr
       };
     }, [clearCloseTimeout]);
 
+    React.useEffect(() => {
+      if (!open) {
+        return;
+      }
+
+      const handlePointerMove = (event: PointerEvent) => {
+        if (isWithinDropdown(event.target)) {
+          clearCloseTimeout();
+          return;
+        }
+
+        scheduleClose();
+      };
+
+      const handleWindowBlur = () => {
+        clearCloseTimeout();
+        setOpen(false);
+      };
+
+      document.addEventListener('pointermove', handlePointerMove, true);
+      window.addEventListener('blur', handleWindowBlur);
+
+      return () => {
+        document.removeEventListener('pointermove', handlePointerMove, true);
+        window.removeEventListener('blur', handleWindowBlur);
+      };
+    }, [open, clearCloseTimeout, isWithinDropdown, scheduleClose]);
+
     return (
       <Popover
+        modal={false}
         open={open}
         onOpenChange={nextOpen => {
           clearCloseTimeout();

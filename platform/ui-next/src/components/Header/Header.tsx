@@ -1,5 +1,4 @@
 import React, { ReactNode } from 'react';
-import classNames from 'classnames';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -51,6 +50,11 @@ function Header({
     }
   };
 
+  const hasReturnButton = isReturnEnabled && onClickReturnButton;
+  const hasUndoRedo = Boolean(UndoRedo);
+  const hasPatientInfo = Boolean(PatientInfo);
+  const secondaryOffsetClass = hasReturnButton ? 'left-[44px]' : 'left-0';
+
   return (
     <IconPresentationProvider
       size="large"
@@ -61,30 +65,31 @@ function Header({
         {...props}
       >
         <div className="relative h-[48px] items-center">
-          <div className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center">
-            <div
-              className={classNames(
-                'mr-3 inline-flex items-center',
-                isReturnEnabled && 'cursor-pointer'
-              )}
-              onClick={onClickReturn}
-              data-cy="return-to-work-list"
-            >
-              {isReturnEnabled && <Icons.ArrowLeft className="text-primary ml-1 h-7 w-7" />}
-              <div className="ml-1">
-                {WhiteLabeling?.createLogoComponentFn?.(React, props) || <Icons.OHIFLogo />}
-              </div>
+          {hasReturnButton && (
+            <div className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center">
+              <button
+                type="button"
+                className="text-primary hover:bg-primary-dark ml-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded"
+                onClick={onClickReturn}
+                data-cy="return-to-work-list"
+              >
+                <Icons.ArrowLeft className="h-7 w-7" />
+              </button>
             </div>
+          )}
+          <div className={`absolute top-1/2 ${secondaryOffsetClass} h-8 -translate-y-1/2`}>
+            {Secondary}
           </div>
-          <div className="absolute top-1/2 left-[250px] h-8 -translate-y-1/2">{Secondary}</div>
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform">
             <div className="flex items-center justify-center space-x-2">{children}</div>
           </div>
           <div className="absolute right-0 top-1/2 flex -translate-y-1/2 select-none items-center">
             {UndoRedo}
-            <div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>
+            {hasUndoRedo && hasPatientInfo && (
+              <div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>
+            )}
             {PatientInfo}
-            <div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>
+            {hasPatientInfo && <div className="border-primary-dark mx-1.5 h-[25px] border-r"></div>}
             <div className="flex-shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

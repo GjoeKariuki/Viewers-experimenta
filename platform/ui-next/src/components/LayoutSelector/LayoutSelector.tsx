@@ -31,6 +31,8 @@ type LayoutSelectorContextType = {
   handleTriggerMouseLeave: () => void;
   handleContentMouseEnter: () => void;
   handleContentMouseLeave: () => void;
+  setTriggerNode: (node: HTMLElement | null) => void;
+  setContentNode: (node: HTMLDivElement | null) => void;
 };
 
 const LayoutSelectorContext = createContext<LayoutSelectorContextType | undefined>(undefined);
@@ -65,6 +67,8 @@ const LayoutSelector = ({
 }: LayoutSelectorProps) => {
   const [isOpenInternal, setIsOpenInternal] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : isOpenInternal;
@@ -75,6 +79,14 @@ const LayoutSelector = ({
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
     }
+  }, []);
+
+  const isWithinSelector = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof Node)) {
+      return false;
+    }
+
+    return triggerRef.current?.contains(target) || contentRef.current?.contains(target) || false;
   }, []);
 
   const openOnHover = useCallback(() => {
@@ -95,6 +107,34 @@ const LayoutSelector = ({
       clearCloseTimeout();
     };
   }, [clearCloseTimeout]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (isWithinSelector(event.target)) {
+        clearCloseTimeout();
+        return;
+      }
+
+      closeOnHoverLeave();
+    };
+
+    const handleWindowBlur = () => {
+      clearCloseTimeout();
+      setIsOpen(false);
+    };
+
+    document.addEventListener('pointermove', handlePointerMove, true);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove, true);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [isOpen, clearCloseTimeout, closeOnHoverLeave, isWithinSelector, setIsOpen]);
 
   const handleSelection = useCallback(
     (commandOptions: LayoutCommandOptions) => {
@@ -129,9 +169,16 @@ const LayoutSelector = ({
         handleTriggerMouseLeave: closeOnHoverLeave,
         handleContentMouseEnter: clearCloseTimeout,
         handleContentMouseLeave: closeOnHoverLeave,
+        setTriggerNode: node => {
+          triggerRef.current = node;
+        },
+        setContentNode: node => {
+          contentRef.current = node;
+        },
       }}
     >
       <Popover
+        modal={false}
         open={isOpen}
         onOpenChange={setIsOpen}
       >
@@ -161,6 +208,7 @@ const Trigger = ({
     isOpen,
     handleTriggerMouseEnter,
     handleTriggerMouseLeave,
+    setTriggerNode,
   } = useLayoutSelector();
 
   const hasTooltip = tooltip || (disabled && disabledText);
@@ -203,6 +251,7 @@ const Trigger = ({
         className={className}
       >
         <span
+          ref={setTriggerNode}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleTriggerMouseLeave}
         >
@@ -217,7 +266,12 @@ const Trigger = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <span data-cy="layout-button">{button}</span>
+            <span
+              ref={setTriggerNode}
+              data-cy="layout-button"
+            >
+              {button}
+            </span>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="bottom">
@@ -230,7 +284,12 @@ const Trigger = ({
 
   return (
     <PopoverTrigger asChild>
-      <span data-cy="layout-button">{button}</span>
+      <span
+        ref={setTriggerNode}
+        data-cy="layout-button"
+      >
+        {button}
+      </span>
     </PopoverTrigger>
   );
 };
@@ -243,15 +302,19 @@ type ContentProps = {
 };
 
 const Content = ({ children, className, align = 'center', sideOffset = 8 }: ContentProps) => {
-  const { handleContentMouseEnter, handleContentMouseLeave } = useLayoutSelector();
+  const { handleContentMouseEnter, handleContentMouseLeave, setContentNode, setIsOpen } =
+    useLayoutSelector();
 
   return (
     <PopoverContent
+      ref={setContentNode}
       align={align}
       sideOffset={sideOffset}
       className={cn('w-auto rounded-lg border-none p-0 shadow-lg', className)}
       onMouseEnter={handleContentMouseEnter}
       onMouseLeave={handleContentMouseLeave}
+      onInteractOutside={() => setIsOpen(false)}
+      onFocusOutside={() => setIsOpen(false)}
     >
       <div className="flex">{children}</div>
     </PopoverContent>
