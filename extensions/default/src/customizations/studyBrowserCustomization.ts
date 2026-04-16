@@ -28,6 +28,14 @@ function getUpdatedViewportsForDisplaySet({
   const { displaySetService, hangingProtocolService, viewportGridService } = servicesManager.services;
   const displaySet = displaySetService.getDisplaySetByUID(displaySetInstanceUID);
   const protocolId = hangingProtocolService.getState()?.protocolId;
+  let viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
+
+  const getRequiredViewports = () =>
+    hangingProtocolService.getViewportsRequireUpdate(
+      viewportIdToUse,
+      displaySetInstanceUID,
+      viewportGridService.getState().isHangingProtocolLayout
+    );
 
   if (PROJECTION_PROTOCOL_IDS.includes(protocolId) && !displaySet?.isReconstructable) {
     const didReset = commandsManager.run('setHangingProtocol', {
@@ -40,21 +48,12 @@ function getUpdatedViewportsForDisplaySet({
       throw new Error('Failed to reset hanging protocol before loading unsupported display set.');
     }
 
-    const recoveredViewportId = getSafeActiveViewportId(viewportGridService, activeViewportId);
-
-    return hangingProtocolService.getViewportsRequireUpdate(
-      recoveredViewportId,
-      displaySetInstanceUID,
-      viewportGridService.getState().isHangingProtocolLayout
-    );
+    viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
+    return getRequiredViewports();
   }
 
   try {
-    return hangingProtocolService.getViewportsRequireUpdate(
-      activeViewportId,
-      displaySetInstanceUID,
-      isHangingProtocolLayout
-    );
+    return getRequiredViewports();
   } catch (error) {
     console.warn(error);
 
@@ -69,13 +68,18 @@ function getUpdatedViewportsForDisplaySet({
       throw error;
     }
 
-    const recoveredViewportId = getSafeActiveViewportId(viewportGridService, activeViewportId);
+    viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
 
-    return hangingProtocolService.getViewportsRequireUpdate(
-      recoveredViewportId,
-      displaySetInstanceUID,
-      viewportGridService.getState().isHangingProtocolLayout
-    );
+    try {
+      return getRequiredViewports();
+    } catch (retryError) {
+      console.warn(retryError);
+      return hangingProtocolService.getViewportsRequireUpdate(
+        viewportIdToUse,
+        displaySetInstanceUID,
+        false
+      );
+    }
   }
 }
 

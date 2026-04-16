@@ -146,12 +146,15 @@ const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDr
       }
 
       const handlePointerMove = (event: PointerEvent) => {
-        if (isWithinDropdown(event.target)) {
+        const hoverTarget = document.elementFromPoint(event.clientX, event.clientY);
+
+        if (isWithinDropdown(hoverTarget ?? event.target)) {
           clearCloseTimeout();
           return;
         }
 
-        scheduleClose();
+        clearCloseTimeout();
+        setOpen(false);
       };
 
       const handleWindowBlur = () => {
@@ -204,6 +207,14 @@ const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDr
 
               scheduleClose();
             }}
+            onMouseLeave={event => {
+              if (isWithinDropdown(event.relatedTarget)) {
+                clearCloseTimeout();
+                return;
+              }
+
+              scheduleClose();
+            }}
             onFocus={() => {
               clearCloseTimeout();
               if (!open) {
@@ -233,6 +244,14 @@ const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDr
           }}
           onPointerEnter={clearCloseTimeout}
           onPointerLeave={event => {
+            if (isWithinDropdown(event.relatedTarget)) {
+              clearCloseTimeout();
+              return;
+            }
+
+            scheduleClose();
+          }}
+          onMouseLeave={event => {
             if (isWithinDropdown(event.relatedTarget)) {
               clearCloseTimeout();
               return;
