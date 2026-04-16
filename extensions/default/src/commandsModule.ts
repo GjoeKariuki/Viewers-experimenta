@@ -790,13 +790,34 @@ const commandsModule = ({
         );
       } catch (error) {
         console.warn(error);
-        uiNotificationService.show({
-          title: 'Navigate Viewport Display Set',
-          message:
-            'The requested display sets could not be added to the viewport due to a mismatch in the Hanging Protocol rules.',
-          type: 'info',
-          duration: 3000,
+
+        const didReset = actions.setHangingProtocol({
+          protocolId: 'default',
+          StudyInstanceUID: currentDisplaySets[displaySetIndexToShow]?.StudyInstanceUID,
+          reset: true,
         });
+
+        if (didReset) {
+          try {
+            updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+              activeViewportId,
+              displaySetInstanceUID,
+              viewportGridService.getState().isHangingProtocolLayout
+            );
+          } catch (retryError) {
+            console.warn(retryError);
+          }
+        }
+
+        if (!updatedViewports.length) {
+          uiNotificationService.show({
+            title: 'Navigate Viewport Display Set',
+            message:
+              'The requested series could not use the current layout, and the viewer could not be reset automatically.',
+            type: 'info',
+            duration: 3000,
+          });
+        }
       }
 
       commandsManager.run('setDisplaySetsForViewports', { viewportsToUpdate: updatedViewports });

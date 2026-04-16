@@ -2,6 +2,43 @@ import { utils } from '@ohif/core';
 import i18n from '@ohif/i18n';
 const { formatDate } = utils;
 
+function getUpdatedViewportsForDisplaySet({
+  activeViewportId,
+  displaySetInstanceUID,
+  servicesManager,
+  commandsManager,
+  isHangingProtocolLayout,
+}) {
+  const { displaySetService, hangingProtocolService, viewportGridService } = servicesManager.services;
+
+  try {
+    return hangingProtocolService.getViewportsRequireUpdate(
+      activeViewportId,
+      displaySetInstanceUID,
+      isHangingProtocolLayout
+    );
+  } catch (error) {
+    console.warn(error);
+
+    const studyInstanceUID = displaySetService.getDisplaySetByUID(displaySetInstanceUID)?.StudyInstanceUID;
+    const didReset = commandsManager.run('setHangingProtocol', {
+      protocolId: 'default',
+      StudyInstanceUID: studyInstanceUID,
+      reset: true,
+    });
+
+    if (didReset === false) {
+      throw error;
+    }
+
+    return hangingProtocolService.getViewportsRequireUpdate(
+      activeViewportId,
+      displaySetInstanceUID,
+      viewportGridService.getState().isHangingProtocolLayout
+    );
+  }
+}
+
 export default {
   'studyBrowser.studyMenuItems': [],
   'studyBrowser.thumbnailMenuItems': [
@@ -56,17 +93,19 @@ export default {
           const viewportId = activeViewportId;
 
           try {
-            updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
-              viewportId,
+            updatedViewports = getUpdatedViewportsForDisplaySet({
+              activeViewportId: viewportId,
               displaySetInstanceUID,
-              isHangingProtocolLayout
-            );
+              servicesManager,
+              commandsManager,
+              isHangingProtocolLayout,
+            });
           } catch (error) {
             console.warn(error);
             uiNotificationService.show({
               title: i18n.t('StudyBrowser:Thumbnail Double Click'),
               message: i18n.t(
-                'StudyBrowser:The selected display sets could not be added to the viewport.'
+                'StudyBrowser:The selected series could not use the current layout, so the viewer was reset before loading it.'
               ),
               type: 'error',
               duration: 3000,

@@ -665,19 +665,35 @@ const toolbarButtons: Button[] = [
     id: 'ProjectionMIP',
     uiType: 'ohif.toolButton',
     props: {
-      icon: 'icon-mpr',
+      icon: 'layout-advanced-3d-only',
       label: i18n.t('Hps:MIP'),
-      tooltip: i18n.t('WindowLevelActionMenu:MIP / Projection'),
+      tooltip: i18n.t('Hps:MIP'),
       commands: {
-        commandName: 'toggleViewportProjection',
+        commandName: 'setHangingProtocol',
         commandOptions: {
-          mode: 'mip',
-          slabThickness: 'fullVolume',
+          protocolId: 'mip',
         },
       },
       evaluate: {
-        name: 'evaluate.viewportProjection.toggle',
-        mode: 'mip',
+        name: 'evaluate.displaySetIsReconstructable',
+      },
+    },
+  },
+  {
+    id: 'MPRLayout',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'layout-advanced-mpr',
+      label: i18n.t('Hps:MPR'),
+      tooltip: i18n.t('Hps:MPR'),
+      commands: {
+        commandName: 'setHangingProtocol',
+        commandOptions: {
+          protocolId: 'mpr',
+        },
+      },
+      evaluate: {
+        name: 'evaluate.displaySetIsReconstructable',
       },
     },
   },

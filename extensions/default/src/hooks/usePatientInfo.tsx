@@ -14,9 +14,22 @@ const formatAge = age => {
   }
 
   const [, value, unit] = match;
-  const normalizedValue = String(parseInt(value, 10));
+  const numericValue = parseInt(value, 10);
+  const normalizedValue = String(numericValue);
   const normalizedUnit = unit.toUpperCase();
-  return `${normalizedValue}${normalizedUnit}`;
+  const unitLabels = {
+    D: ['day', 'days'],
+    W: ['week', 'weeks'],
+    M: ['month', 'months'],
+    Y: ['year', 'years'],
+  };
+
+  const [singular, plural] = unitLabels[normalizedUnit] || [];
+  if (!singular || !plural) {
+    return age;
+  }
+
+  return `${normalizedValue} ${numericValue === 1 ? singular : plural}`;
 };
 
 function usePatientInfo() {
@@ -47,7 +60,7 @@ function usePatientInfo() {
     setIsMixedPatients(isMixedPatients);
   };
 
-  const updatePatientInfo = ({ displaySetsAdded }) => {
+  const updatePatientInfo = ({ displaySetsAdded }: { displaySetsAdded: any[] }) => {
     if (!displaySetsAdded.length) {
       return;
     }
@@ -70,7 +83,7 @@ function usePatientInfo() {
   useEffect(() => {
     const subscription = displaySetService.subscribe(
       displaySetService.EVENTS.DISPLAY_SETS_ADDED,
-      props => updatePatientInfo(props)
+      props => updatePatientInfo(props as { displaySetsAdded: any[] })
     );
     return () => subscription.unsubscribe();
   }, []);
