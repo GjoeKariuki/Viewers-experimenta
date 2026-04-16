@@ -238,6 +238,7 @@ function CustomizableViewportOverlay({
         scale,
         instanceNumber,
         viewportId,
+        servicesManager,
         toolGroupService,
         isLight,
       };
