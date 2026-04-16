@@ -3,6 +3,22 @@ import { utils, useSystem } from '@ohif/core';
 
 const { formatPN, formatDate } = utils;
 
+const formatAge = age => {
+  if (!age) {
+    return null;
+  }
+
+  const match = `${age}`.match(/^(\d+)([DWMY])$/i);
+  if (!match) {
+    return age;
+  }
+
+  const [, value, unit] = match;
+  const normalizedValue = String(parseInt(value, 10));
+  const normalizedUnit = unit.toUpperCase();
+  return `${normalizedValue}${normalizedUnit}`;
+};
+
 function usePatientInfo() {
   const { servicesManager } = useSystem();
   const { displaySetService } = servicesManager.services;
@@ -12,6 +28,7 @@ function usePatientInfo() {
     PatientID: '',
     PatientSex: '',
     PatientDOB: '',
+    PatientAge: '',
   });
   const [isMixedPatients, setIsMixedPatients] = useState(false);
 
@@ -45,6 +62,7 @@ function usePatientInfo() {
       PatientName: instance.PatientName ? formatPN(instance.PatientName) : null,
       PatientSex: instance.PatientSex || null,
       PatientDOB: formatDate(instance.PatientBirthDate) || null,
+      PatientAge: formatAge(instance.PatientAge) || null,
     });
     checkMixedPatients(instance.PatientID || null);
   };

@@ -4,9 +4,9 @@ const collapsedOutsideBorderSize = 4;
 const collapsedWidth = 25;
 
 const getPanelGroupDefinition = ({
-  leftPanelInitialExpandedWidth = 282,
+  leftPanelInitialExpandedWidth = 153,
   rightPanelInitialExpandedWidth = 280,
-  leftPanelMinimumExpandedWidth = 145,
+  leftPanelMinimumExpandedWidth = 153,
   rightPanelMinimumExpandedWidth = 280,
 }) => {
   return {

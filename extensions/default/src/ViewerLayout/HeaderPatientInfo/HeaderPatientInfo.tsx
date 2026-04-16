@@ -37,6 +37,7 @@ function HeaderPatientInfo({ servicesManager, appConfig }: withAppTypes) {
 
   const formattedPatientName = formatWithEllipsis(patientInfo.PatientName, 27);
   const formattedPatientID = formatWithEllipsis(patientInfo.PatientID, 15);
+  const patientDobOrAge = patientInfo.PatientDOB || patientInfo.PatientAge;
 
   return (
     <div
@@ -57,7 +58,7 @@ function HeaderPatientInfo({ servicesManager, appConfig }: withAppTypes) {
             <div className="text-aqua-pale flex gap-2 text-[11px]">
               <div>{formattedPatientID}</div>
               <div>{patientInfo.PatientSex}</div>
-              <div>{patientInfo.PatientDOB}</div>
+              <div>{patientDobOrAge}</div>
             </div>
           </>
         ) : (
