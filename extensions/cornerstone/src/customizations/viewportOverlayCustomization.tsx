@@ -1,3 +1,27 @@
+import { PROJECTION_MODES, blendModeToProjectionMode } from '../utils/projectionUtils';
+
+function getProjectionModeLabel(viewportId, servicesManager) {
+  const { cornerstoneViewportService } = servicesManager.services;
+  const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+  if (!viewport?.getBlendMode) {
+    return null;
+  }
+
+  const mode = blendModeToProjectionMode(viewport.getBlendMode());
+
+  switch (mode) {
+    case PROJECTION_MODES.MIP:
+      return 'MIP';
+    case PROJECTION_MODES.MINIP:
+      return 'MinIP';
+    case PROJECTION_MODES.AVG:
+      return 'AvgIP';
+    default:
+      return null;
+  }
+}
+
 export default {
   'viewportOverlay.topLeft': [
     {
@@ -20,7 +44,18 @@ export default {
       contentF: ({ referenceInstance }) => referenceInstance.SeriesDescription,
     },
   ],
-  'viewportOverlay.topRight': [],
+  'viewportOverlay.topRight': [
+    {
+      id: 'ProjectionMode',
+      inheritsFrom: 'ohif.overlayItem',
+      label: '',
+      title: 'Projection mode',
+      condition: ({ viewportId, servicesManager }) =>
+        !!getProjectionModeLabel(viewportId, servicesManager),
+      contentF: ({ viewportId, servicesManager }) =>
+        getProjectionModeLabel(viewportId, servicesManager),
+    },
+  ],
   'viewportOverlay.bottomLeft': [
     {
       id: 'WindowLevel',

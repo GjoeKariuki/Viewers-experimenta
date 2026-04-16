@@ -156,5 +156,18 @@
   "Shapes": "Test Shapes",
   "Create new segmentation to enable shapes tool.": "Test Create new segmentation to enable shapes tool.",
   "US Pleura B-line Annotation": "Test US Pleura B-line Annotation",
-  "Arrow Annotate Tool": "Test Arrow Annotate Tool"
+  "Arrow Annotate Tool": "Test Arrow Annotate Tool",
+  "CTA Thin MIP": "Test CTA Thin MIP",
+  "CTA Thick MIP": "Test CTA Thick MIP",
+  "MRA Thin MIP": "Test MRA Thin MIP",
+  "PET Full MIP": "Test PET Full MIP",
+  "Apply CTA thin-slab MIP preset": "Test Apply CTA thin-slab MIP preset",
+  "Apply CTA thick-slab MIP preset": "Test Apply CTA thick-slab MIP preset",
+  "Apply MRA thin-slab MIP preset": "Test Apply MRA thin-slab MIP preset",
+  "Apply PET full-volume MIP preset": "Test Apply PET full-volume MIP preset",
+  "Select a CT volume to enable CTA thin MIP": "Test Select a CT volume to enable CTA thin MIP",
+  "Select a CT volume to enable CTA thick MIP": "Test Select a CT volume to enable CTA thick MIP",
+  "Select an MR volume to enable MRA thin MIP": "Test Select an MR volume to enable MRA thin MIP",
+  "Select a PT volume to enable PET MIP": "Test Select a PT volume to enable PET MIP",
+  "Tools that depend on a single source plane are disabled in projection views": "Test Tools that depend on a single source plane are disabled in projection views"
 }

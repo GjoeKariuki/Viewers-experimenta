@@ -49,6 +49,7 @@ function TrackedMeasurementsContextProvider(
     displaySetService,
     customizationService,
     trackedMeasurementsService,
+    uiNotificationService,
   } = servicesManager.services as AppTypes.Services;
 
   const machineOptions = Object.assign({}, defaultOptions);
@@ -179,13 +180,27 @@ function TrackedMeasurementsContextProvider(
     updatedViewports: (ctx, evt) => {
       const { hangingProtocolService } = servicesManager.services;
       const { displaySetInstanceUID, viewportId } = evt.data ?? evt;
+      const { isHangingProtocolLayout } = viewportGridService.getState();
 
-      const updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
-        viewportId,
-        displaySetInstanceUID
-      );
+      try {
+        const updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+          viewportId,
+          displaySetInstanceUID,
+          isHangingProtocolLayout
+        );
 
-      viewportGridService.setDisplaySetsForViewports(updatedViewports);
+        if (updatedViewports?.length) {
+          viewportGridService.setDisplaySetsForViewports(updatedViewports);
+        }
+      } catch (error) {
+        console.warn(error);
+        uiNotificationService.show({
+          title: 'Measurement Tracking',
+          message: 'The selected display set could not be shown in the current layout.',
+          type: 'info',
+          duration: 3000,
+        });
+      }
     },
   });
   machineOptions.services = Object.assign({}, machineOptions.services, {

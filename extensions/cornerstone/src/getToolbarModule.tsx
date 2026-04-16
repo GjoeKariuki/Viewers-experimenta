@@ -1,4 +1,5 @@
 import { Enums } from '@cornerstonejs/tools';
+import { BaseVolumeViewport, VolumeViewport3D } from '@cornerstonejs/core';
 import i18n from '@ohif/i18n';
 import { utils } from '@ohif/ui-next';
 import { ViewportDataOverlayMenuWrapper } from './components/ViewportDataOverlaySettingMenu/ViewportDataOverlayMenuWrapper';
@@ -12,6 +13,7 @@ import NavigationComponent from './components/NavigationComponent/NavigationComp
 import TrackingStatus from './components/TrackingStatus/TrackingStatus';
 import ViewportColorbarsContainer from './components/ViewportColorbar';
 import AdvancedRenderingControls from './components/AdvancedRenderingControls';
+import { PROJECTION_MODES, blendModeToProjectionMode } from './utils/projectionUtils';
 
 const getDisabledState = (disabledText?: string) => ({
   disabled: true,
@@ -551,6 +553,63 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
         return {
           disabled: false,
         };
+      },
+    },
+    {
+      name: 'evaluate.viewportProjection.toggle',
+      evaluate: ({
+        viewportId,
+        mode = PROJECTION_MODES.MIP,
+        disabledText = 'Select a reconstructable orthographic volume viewport to enable MIP',
+      }) => {
+        const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+        if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+          return getDisabledState(disabledText);
+        }
+
+        const displaySetUIDs = viewportGridService.getDisplaySetsUIDsForViewport(viewportId) || [];
+        if (!displaySetUIDs.length) {
+          return getDisabledState(disabledText);
+        }
+
+        const displaySets = displaySetUIDs.map(displaySetService.getDisplaySetByUID);
+        const areReconstructable = displaySets.every(displaySet => displaySet?.isReconstructable);
+
+        if (!areReconstructable) {
+          return getDisabledState(disabledText);
+        }
+
+        const currentMode = blendModeToProjectionMode(viewport.getBlendMode?.());
+
+        return {
+          disabled: false,
+          className: utils.getToggledClassName(currentMode === mode),
+        };
+      },
+    },
+    {
+      name: 'evaluate.viewportProjection.measurement',
+      evaluate: ({
+        viewportId,
+        disabledText = 'Tools that depend on a single source plane are disabled in projection views',
+      }) => {
+        const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+        if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+          return {
+            disabled: false,
+          };
+        }
+
+        const currentMode = blendModeToProjectionMode(viewport.getBlendMode?.());
+        if (currentMode === PROJECTION_MODES.COMPOSITE) {
+          return {
+            disabled: false,
+          };
+        }
+
+        return getDisabledState(disabledText);
       },
     },
   ];

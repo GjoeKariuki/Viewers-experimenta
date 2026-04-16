@@ -326,7 +326,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Probe'),
       tooltip: i18n.t('Buttons:Probe'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -354,7 +354,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Angle'),
       tooltip: i18n.t('Buttons:Angle'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -365,7 +365,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Cobb Angle'),
       tooltip: i18n.t('Buttons:Cobb Angle'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -395,6 +395,7 @@ const toolbarButtons: Button[] = [
       commands: setToolActiveToolbar,
       evaluate: [
         'evaluate.cornerstoneTool',
+        'evaluate.viewportProjection.measurement',
         {
           name: 'evaluate.viewport.supported',
           unsupportedViewportTypes: ['video'],
@@ -456,6 +457,7 @@ const toolbarButtons: Button[] = [
       commands: setToolActiveToolbar,
       evaluate: [
         'evaluate.cornerstoneTool',
+        'evaluate.viewportProjection.measurement',
         {
           name: 'evaluate.viewport.supported',
           unsupportedViewportTypes: ['video'],
@@ -471,7 +473,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Length'),
       tooltip: i18n.t('Buttons:Length Tool'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -482,7 +484,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Bidirectional'),
       tooltip: i18n.t('Buttons:Bidirectional Tool'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -504,7 +506,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Ellipse'),
       tooltip: i18n.t('Buttons:Ellipse ROI'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -515,7 +517,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Rectangle'),
       tooltip: i18n.t('Buttons:Rectangle ROI'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -526,7 +528,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Circle'),
       tooltip: i18n.t('Buttons:Circle Tool'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -537,7 +539,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Freehand ROI'),
       tooltip: i18n.t('Buttons:Freehand ROI'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -548,7 +550,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Spline ROI'),
       tooltip: i18n.t('Buttons:Spline ROI'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   {
@@ -559,7 +561,7 @@ const toolbarButtons: Button[] = [
       label: i18n.t('Buttons:Livewire tool'),
       tooltip: i18n.t('Buttons:Livewire tool'),
       commands: setToolActiveToolbar,
-      evaluate: 'evaluate.cornerstoneTool',
+      evaluate: ['evaluate.cornerstoneTool', 'evaluate.viewportProjection.measurement'],
     },
   },
   // Window Level
@@ -657,6 +659,136 @@ const toolbarButtons: Button[] = [
         name: 'evaluate.cornerstoneTool',
         disabledText: i18n.t('Buttons:Select an MPR viewport to enable this tool'),
       },
+    },
+  },
+  {
+    id: 'ProjectionMIP',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'icon-mpr',
+      label: i18n.t('Hps:MIP'),
+      tooltip: i18n.t('WindowLevelActionMenu:MIP / Projection'),
+      commands: {
+        commandName: 'toggleViewportProjection',
+        commandOptions: {
+          mode: 'mip',
+          slabThickness: 'fullVolume',
+        },
+      },
+      evaluate: {
+        name: 'evaluate.viewportProjection.toggle',
+        mode: 'mip',
+      },
+    },
+  },
+  {
+    id: 'MIPLayout',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'layout-advanced-3d-four-up',
+      label: i18n.t('Hps:MIP + MPR'),
+      tooltip: i18n.t('Hps:MIP + MPR'),
+      commands: {
+        commandName: 'setHangingProtocol',
+        commandOptions: {
+          protocolId: 'mipAndMpr',
+        },
+      },
+      evaluate: {
+        name: 'evaluate.displaySetIsReconstructable',
+      },
+    },
+  },
+  {
+    id: 'CTAThinMIPPreset',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'CT-MIP',
+      label: i18n.t('Buttons:CTA Thin MIP'),
+      tooltip: i18n.t('Buttons:Apply CTA thin-slab MIP preset'),
+      commands: {
+        commandName: 'applyClinicalMipPreset',
+        commandOptions: {
+          presetId: 'ctaThin',
+        },
+      },
+      evaluate: [
+        'evaluate.displaySetIsReconstructable',
+        {
+          name: 'evaluate.modality.supported',
+          supportedModalities: ['CT'],
+          disabledText: i18n.t('Buttons:Select a CT volume to enable CTA thin MIP'),
+        },
+      ],
+    },
+  },
+  {
+    id: 'CTAThickMIPPreset',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'CT-MIP',
+      label: i18n.t('Buttons:CTA Thick MIP'),
+      tooltip: i18n.t('Buttons:Apply CTA thick-slab MIP preset'),
+      commands: {
+        commandName: 'applyClinicalMipPreset',
+        commandOptions: {
+          presetId: 'ctaThick',
+        },
+      },
+      evaluate: [
+        'evaluate.displaySetIsReconstructable',
+        {
+          name: 'evaluate.modality.supported',
+          supportedModalities: ['CT'],
+          disabledText: i18n.t('Buttons:Select a CT volume to enable CTA thick MIP'),
+        },
+      ],
+    },
+  },
+  {
+    id: 'MRAThinMIPPreset',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'MR-MIP',
+      label: i18n.t('Buttons:MRA Thin MIP'),
+      tooltip: i18n.t('Buttons:Apply MRA thin-slab MIP preset'),
+      commands: {
+        commandName: 'applyClinicalMipPreset',
+        commandOptions: {
+          presetId: 'mraThin',
+        },
+      },
+      evaluate: [
+        'evaluate.displaySetIsReconstructable',
+        {
+          name: 'evaluate.modality.supported',
+          supportedModalities: ['MR'],
+          disabledText: i18n.t('Buttons:Select an MR volume to enable MRA thin MIP'),
+        },
+      ],
+    },
+  },
+  {
+    id: 'PETFullMIPPreset',
+    uiType: 'ohif.toolButton',
+    props: {
+      icon: 'tool-window-level',
+      label: i18n.t('Buttons:PET Full MIP'),
+      tooltip: i18n.t('Buttons:Apply PET full-volume MIP preset'),
+      commands: {
+        commandName: 'applyClinicalMipPreset',
+        commandOptions: {
+          presetId: 'petFull',
+        },
+      },
+      evaluate: [
+        'evaluate.displaySetIsReconstructable',
+        {
+          name: 'evaluate.modality.supported',
+          supportedModalities: ['PT'],
+          disabledText: i18n.t('Buttons:Select a PT volume to enable PET MIP'),
+        },
+      ],
     },
   },
   {

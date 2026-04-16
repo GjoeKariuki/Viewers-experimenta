@@ -2,6 +2,7 @@ import {
   getEnabledElement,
   StackViewport,
   VolumeViewport,
+  VolumeViewport3D,
   utilities as csUtils,
   Enums as CoreEnums,
   Types as CoreTypes,
@@ -55,6 +56,14 @@ import { EasingFunctionEnum } from './utils/transitions';
 import { createSegmentationForViewport } from './utils/createSegmentationForViewport';
 import { utilities as segmentationUtilities } from '@cornerstonejs/tools/segmentation';
 import i18n from '@ohif/i18n';
+import {
+  PROJECTION_MODES,
+  ProjectionMode,
+  blendModeToProjectionMode,
+  clampProjectionSlabThickness,
+  getProjectionSlabThicknessRange,
+  projectionModeToBlendMode,
+} from './utils/projectionUtils';
 
 const { add, intersect, subtract, copy } = cstUtils.contourSegmentation;
 
@@ -148,6 +157,141 @@ function commandsModule({
     return toolGroupService.getToolGroupForViewport(viewport.id);
   }
 
+  function _getProjectionViewportContext(viewportId?: string, displaySetInstanceUID?: string) {
+    const targetViewportId = viewportId ?? viewportGridService.getActiveViewportId();
+    const viewport = cornerstoneViewportService.getCornerstoneViewport(targetViewportId);
+
+    if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+      return {
+        viewport,
+        actorEntry: undefined,
+        actorUIDs: undefined,
+        volumeId: undefined,
+        viewportId: targetViewportId,
+      };
+    }
+
+    const viewportDisplaySetUIDs =
+      viewportGridService.getDisplaySetsUIDsForViewport(targetViewportId) || [];
+    const activeDisplaySetUID = displaySetInstanceUID ?? viewportDisplaySetUIDs[0];
+    const volumeIds = viewport.getAllVolumeIds();
+    const volumeId =
+      volumeIds.find(id => id.includes(activeDisplaySetUID)) ?? volumeIds[0] ?? undefined;
+    const actorEntry = viewport
+      .getActors()
+      .find(
+        actor =>
+          actor.referencedId === volumeId ||
+          (!!volumeId && actor.referencedId?.includes(volumeId)) ||
+          (!!activeDisplaySetUID && actor.referencedId?.includes(activeDisplaySetUID))
+      );
+
+    return {
+      viewport,
+      actorEntry,
+      actorUIDs: actorEntry?.uid ? [actorEntry.uid] : undefined,
+      volumeId,
+      viewportId: targetViewportId,
+    };
+  }
+
+  function _setViewportProjectionMode({
+    viewportId,
+    displaySetInstanceUID,
+    mode = PROJECTION_MODES.MIP,
+    slabThickness = 'preserve',
+  }: {
+    viewportId?: string;
+    displaySetInstanceUID?: string;
+    mode?: ProjectionMode;
+    slabThickness?: number | 'fullVolume' | 'preserve';
+  }) {
+    const {
+      viewport,
+      actorEntry,
+      actorUIDs,
+      volumeId,
+      viewportId: targetViewportId,
+    } = _getProjectionViewportContext(viewportId, displaySetInstanceUID);
+
+    if (
+      !(viewport instanceof BaseVolumeViewport) ||
+      viewport instanceof VolumeViewport3D ||
+      !volumeId
+    ) {
+      return false;
+    }
+
+    const range = getProjectionSlabThicknessRange(
+      viewport.getImageData(volumeId),
+      viewport.getSlabThickness?.() || 0.1
+    );
+    const mapper = actorEntry?.actor?.getMapper?.();
+    const currentThickness =
+      mapper?.getSlabThickness?.() ?? viewport.getSlabThickness?.() ?? range.min;
+    const nextBlendMode = projectionModeToBlendMode(mode);
+
+    viewport.setBlendMode(nextBlendMode, actorUIDs, false);
+
+    if (mode === PROJECTION_MODES.COMPOSITE) {
+      viewport.setSlabThickness(range.min, actorUIDs);
+    } else {
+      const nextThickness =
+        slabThickness === 'fullVolume'
+          ? range.max
+          : typeof slabThickness === 'number'
+            ? clampProjectionSlabThickness(slabThickness, range)
+            : clampProjectionSlabThickness(currentThickness, range);
+
+      viewport.setSlabThickness(nextThickness, actorUIDs);
+    }
+
+    viewport.render();
+    toolbarService.refreshToolbarState({ viewportId: targetViewportId });
+
+    return true;
+  }
+
+  function _getPreferredMipViewportId() {
+    const { protocolId } = hangingProtocolService.getState();
+    if (protocolId === 'mipAndMpr') {
+      return 'mip-overview';
+    }
+
+    return viewportGridService.getActiveViewportId();
+  }
+
+  function _getPreferredMipSourceViewportId(metadata?) {
+    const { protocolId } = hangingProtocolService.getState();
+    const activeViewportId = viewportGridService.getActiveViewportId();
+
+    if (protocolId !== 'mipAndMpr') {
+      return activeViewportId;
+    }
+
+    const sourceViewportIds = ['mpr-axial', 'mpr-sagittal', 'mpr-coronal'];
+
+    if (activeViewportId && activeViewportId !== 'mip-overview') {
+      return activeViewportId;
+    }
+
+    if (metadata) {
+      const compatibleViewportId = sourceViewportIds.find(id => {
+        const viewport = cornerstoneViewportService.getCornerstoneViewport(id);
+        return viewport?.isReferenceViewable(metadata, WITH_NAVIGATION);
+      });
+
+      if (compatibleViewportId) {
+        return compatibleViewportId;
+      }
+    }
+
+    return (
+      sourceViewportIds.find(id => cornerstoneViewportService.getCornerstoneViewport(id)) ??
+      activeViewportId
+    );
+  }
+
   function _getActiveSegmentationInfo() {
     const viewportId = viewportGridService.getActiveViewportId();
     const activeSegmentation = segmentationService.getActiveSegmentation(viewportId);
@@ -216,8 +360,12 @@ function commandsModule({
         activeViewportId,
         metadata
       );
-      if (viewportId) {
-        const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+      const targetViewportId =
+        viewportId === 'mip-overview' ? _getPreferredMipSourceViewportId(metadata) : viewportId;
+
+      if (targetViewportId) {
+        viewportGridService.setActiveViewportId(targetViewportId);
+        const viewport = cornerstoneViewportService.getCornerstoneViewport(targetViewportId);
         viewport.setViewReference(metadata);
         viewport.render();
 
@@ -737,7 +885,11 @@ function commandsModule({
      * Also marks any provided display measurements isActive value
      */
     jumpToMeasurement: ({ uid, displayMeasurements = [] }) => {
-      measurementService.jumpToMeasurement(viewportGridService.getActiveViewportId(), uid);
+      const targetViewportId = _getPreferredMipSourceViewportId();
+      if (targetViewportId) {
+        viewportGridService.setActiveViewportId(targetViewportId);
+      }
+      measurementService.jumpToMeasurement(targetViewportId, uid);
       for (const measurement of displayMeasurements) {
         measurement.isActive = measurement.uid === uid;
       }
@@ -1379,6 +1531,127 @@ function commandsModule({
       const renderingEngine = cornerstoneViewportService.getRenderingEngine();
       renderingEngine.render();
     },
+    setViewportProjectionMode: ({ viewportId, displaySetInstanceUID, mode, slabThickness }) => {
+      _setViewportProjectionMode({
+        viewportId,
+        displaySetInstanceUID,
+        mode,
+        slabThickness,
+      });
+    },
+    toggleViewportProjection: ({
+      viewportId,
+      displaySetInstanceUID,
+      mode = PROJECTION_MODES.MIP,
+      slabThickness = 'fullVolume',
+    }) => {
+      const { viewport, actorEntry } = _getProjectionViewportContext(
+        viewportId,
+        displaySetInstanceUID
+      );
+
+      if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+        return;
+      }
+
+      const mapper = actorEntry?.actor?.getMapper?.();
+      const currentMode = blendModeToProjectionMode(
+        mapper?.getBlendMode?.() ?? viewport.getBlendMode?.()
+      );
+
+      _setViewportProjectionMode({
+        viewportId,
+        displaySetInstanceUID,
+        mode: currentMode === mode ? PROJECTION_MODES.COMPOSITE : mode,
+        slabThickness,
+      });
+    },
+    applyClinicalMipPreset: ({ presetId, viewportId, displaySetInstanceUID }) => {
+      const presets = {
+        ctaThin: {
+          viewportId: viewportId ?? _getPreferredMipViewportId(),
+          modality: 'CT',
+          mode: PROJECTION_MODES.MIP,
+          slabThickness: 10,
+          windowWidth: 700,
+          windowCenter: 200,
+        },
+        ctaThick: {
+          viewportId: viewportId ?? _getPreferredMipViewportId(),
+          modality: 'CT',
+          mode: PROJECTION_MODES.MIP,
+          slabThickness: 40,
+          windowWidth: 700,
+          windowCenter: 200,
+        },
+        mraThin: {
+          viewportId: viewportId ?? _getPreferredMipViewportId(),
+          modality: 'MR',
+          mode: PROJECTION_MODES.MIP,
+          slabThickness: 20,
+          windowWidth: 1200,
+          windowCenter: 600,
+        },
+        mraFull: {
+          viewportId: viewportId ?? _getPreferredMipViewportId(),
+          modality: 'MR',
+          mode: PROJECTION_MODES.MIP,
+          slabThickness: 'fullVolume' as const,
+          windowWidth: 1200,
+          windowCenter: 600,
+        },
+        petFull: {
+          viewportId: viewportId ?? _getPreferredMipViewportId(),
+          modality: 'PT',
+          mode: PROJECTION_MODES.MIP,
+          slabThickness: 'fullVolume' as const,
+          windowWidth: 10,
+          windowCenter: 5,
+        },
+      };
+
+      const preset = presets[presetId];
+      if (!preset) {
+        return;
+      }
+
+      const targetViewportId = preset.viewportId;
+      const targetViewport = cornerstoneViewportService.getCornerstoneViewport(targetViewportId);
+      const targetDisplaySetUIDs =
+        viewportGridService.getDisplaySetsUIDsForViewport(targetViewportId) || [];
+      const targetDisplaySetUID = displaySetInstanceUID ?? targetDisplaySetUIDs[0];
+      const targetDisplaySet = targetDisplaySetUID
+        ? displaySetService.getDisplaySetByUID(targetDisplaySetUID)
+        : undefined;
+
+      if (targetDisplaySet?.Modality && targetDisplaySet.Modality !== preset.modality) {
+        uiNotificationService.show({
+          title: 'MIP preset unavailable',
+          message: `This preset requires a ${preset.modality} volume in the selected viewport.`,
+          type: 'info',
+          duration: 3000,
+        });
+        return;
+      }
+
+      if (!targetViewport) {
+        return;
+      }
+
+      _setViewportProjectionMode({
+        viewportId: targetViewportId,
+        displaySetInstanceUID,
+        mode: preset.mode,
+        slabThickness: preset.slabThickness,
+      });
+
+      actions.setViewportWindowLevel({
+        viewportId: targetViewportId,
+        displaySetInstanceUID,
+        windowWidth: preset.windowWidth,
+        windowCenter: preset.windowCenter,
+      });
+    },
     storePresentation: ({ viewportId }) => {
       cornerstoneViewportService.storePresentation({ viewportId });
     },
@@ -1515,6 +1788,9 @@ function commandsModule({
 
       const getCrosshairInstances = toolGroupId => {
         const toolGroup = toolGroupService.getToolGroup(toolGroupId);
+        if (!toolGroup?.hasTool('Crosshairs')) {
+          return;
+        }
         crosshairInstances.push(toolGroup.getToolInstance('Crosshairs'));
       };
 
@@ -1523,7 +1799,9 @@ function commandsModule({
         toolGroupIds.forEach(getCrosshairInstances);
       } else {
         const toolGroup = toolGroupService.getToolGroupForViewport(viewportId);
-        getCrosshairInstances(toolGroup.id);
+        if (toolGroup?.id) {
+          getCrosshairInstances(toolGroup.id);
+        }
       }
 
       crosshairInstances.forEach(ins => {
@@ -2584,6 +2862,15 @@ function commandsModule({
     },
     setViewportForToolConfiguration: {
       commandFn: actions.setViewportForToolConfiguration,
+    },
+    setViewportProjectionMode: {
+      commandFn: actions.setViewportProjectionMode,
+    },
+    toggleViewportProjection: {
+      commandFn: actions.toggleViewportProjection,
+    },
+    applyClinicalMipPreset: {
+      commandFn: actions.applyClinicalMipPreset,
     },
     storePresentation: {
       commandFn: actions.storePresentation,
