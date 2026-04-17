@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { useSystem } from '@ohif/core';
 import {
   Button,
@@ -23,6 +23,12 @@ export function ProjectionMenuWrapper(props: ProjectionMenuWrapperProps): ReactN
   const { viewportId, location, isOpen = false, onOpen, onClose, disabled, ...rest } = props;
   const { IconContainer, className: iconClassName, containerProps } = useIconPresentation();
 
+  useEffect(() => {
+    if (disabled && isOpen) {
+      onClose?.();
+    }
+  }, [disabled, isOpen, onClose]);
+
   const handleOpenChange = (openState: boolean) => {
     if (openState) {
       onOpen?.();
@@ -43,6 +49,29 @@ export function ProjectionMenuWrapper(props: ProjectionMenuWrapperProps): ReactN
     />
   );
 
+  const trigger = IconContainer ? (
+    <IconContainer
+      disabled={disabled}
+      icon="icon-mpr"
+      {...rest}
+      {...containerProps}
+    >
+      {Icon}
+    </IconContainer>
+  ) : (
+    <Button
+      variant="ghost"
+      size="icon"
+      disabled={disabled}
+    >
+      {Icon}
+    </Button>
+  );
+
+  if (disabled) {
+    return trigger;
+  }
+
   return (
     <Popover
       open={isOpen}
@@ -52,26 +81,7 @@ export function ProjectionMenuWrapper(props: ProjectionMenuWrapperProps): ReactN
         asChild
         className="flex items-center justify-center"
       >
-        <div>
-          {IconContainer ? (
-            <IconContainer
-              disabled={disabled}
-              icon="icon-mpr"
-              {...rest}
-              {...containerProps}
-            >
-              {Icon}
-            </IconContainer>
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={disabled}
-            >
-              {Icon}
-            </Button>
-          )}
-        </div>
+        {trigger}
       </PopoverTrigger>
       <PopoverContent
         className="border-none bg-transparent p-0 shadow-none"

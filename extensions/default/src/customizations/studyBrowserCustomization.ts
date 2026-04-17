@@ -24,10 +24,7 @@ function getActiveViewportDisplaySetInstanceUID(viewportGridService, viewportId)
   return activeViewport?.displaySetInstanceUIDs?.[0];
 }
 
-function buildFallbackViewportUpdate(viewportGridService, viewportId, displaySetInstanceUID) {
-  const { viewports } = viewportGridService.getState();
-  const viewport = viewports?.get(viewportId);
-
+function buildFallbackViewportUpdate(viewportId, displaySetInstanceUID) {
   if (!viewportId) {
     return [];
   }
@@ -36,13 +33,17 @@ function buildFallbackViewportUpdate(viewportGridService, viewportId, displaySet
     {
       viewportId,
       displaySetInstanceUIDs: [displaySetInstanceUID],
-      viewportOptions: viewport?.viewportOptions,
-      displaySetOptions: viewport?.displaySetOptions,
     },
   ];
 }
 
-function getUpdatedViewportsForDisplaySet({
+function waitForNextFrame() {
+  return new Promise(resolve => {
+    window.requestAnimationFrame(() => resolve(undefined));
+  });
+}
+
+async function getUpdatedViewportsForDisplaySet({
   activeViewportId,
   displaySetInstanceUID,
   servicesManager,
@@ -79,13 +80,14 @@ function getUpdatedViewportsForDisplaySet({
       throw new Error('Failed to reset hanging protocol before loading unsupported display set.');
     }
 
+    await waitForNextFrame();
     viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
 
     try {
       return getRequiredViewports();
     } catch (projectionRetryError) {
       console.warn(projectionRetryError);
-      return buildFallbackViewportUpdate(viewportGridService, viewportIdToUse, displaySetInstanceUID);
+      return buildFallbackViewportUpdate(viewportIdToUse, displaySetInstanceUID);
     }
   }
 
@@ -105,13 +107,14 @@ function getUpdatedViewportsForDisplaySet({
       throw error;
     }
 
+    await waitForNextFrame();
     viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
 
     try {
       return getRequiredViewports();
     } catch (retryError) {
       console.warn(retryError);
-      return buildFallbackViewportUpdate(viewportGridService, viewportIdToUse, displaySetInstanceUID);
+      return buildFallbackViewportUpdate(viewportIdToUse, displaySetInstanceUID);
     }
   }
 }
@@ -170,7 +173,7 @@ export default {
           const viewportId = activeViewportId;
 
           try {
-            updatedViewports = getUpdatedViewportsForDisplaySet({
+            updatedViewports = await getUpdatedViewportsForDisplaySet({
               activeViewportId: viewportId,
               displaySetInstanceUID,
               servicesManager,

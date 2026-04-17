@@ -35,6 +35,7 @@ export default function ToolButtonListWrapper({ buttonSection, id }: ToolButtonL
     toolbarButtons[0].componentProps;
 
   const items = toolbarButtons.map(button => button.componentProps);
+  const hasEnabledSecondaryItem = items.some(item => !item.disabled);
 
   return (
     <ToolButtonList>
@@ -55,7 +56,7 @@ export default function ToolButtonListWrapper({ buttonSection, id }: ToolButtonL
       </ToolButtonListDefault>
       <ToolButtonListDivider className={primary.isActive ? 'opacity-0' : 'opacity-100'} />
       <div data-cy={`${id}-split-button-secondary`}>
-        <ToolButtonListDropDown>
+        <ToolButtonListDropDown disabled={!hasEnabledSecondaryItem}>
           {items.map(item => {
             return (
               <ToolButtonListItem

@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { useSystem } from '@ohif/core';
 import {
   Button,
@@ -49,6 +49,12 @@ export function WindowLevelActionMenuWrapper(
   const { IconContainer, className: iconClassName, containerProps } = useIconPresentation();
   const { hasColorbar, toggleColorbar } = useViewportRendering(viewportId);
 
+  useEffect(() => {
+    if (disabled && isOpen) {
+      onClose?.();
+    }
+  }, [disabled, isOpen, onClose]);
+
   const handleOpenChange = (openState: boolean) => {
     const shouldToggleColorbar = hasColorbar && !isEmbedded;
 
@@ -85,6 +91,28 @@ export function WindowLevelActionMenuWrapper(
       <Icons.ViewportWindowLevel className={iconClassName} />
     );
 
+  const trigger = IconContainer ? (
+    <IconContainer
+      disabled={disabled}
+      {...rest}
+      {...containerProps}
+    >
+      {Icon}
+    </IconContainer>
+  ) : (
+    <Button
+      variant="ghost"
+      size="icon"
+      disabled={disabled}
+    >
+      {Icon}
+    </Button>
+  );
+
+  if (disabled) {
+    return trigger;
+  }
+
   return (
     <Popover
       open={isOpen}
@@ -94,25 +122,7 @@ export function WindowLevelActionMenuWrapper(
         asChild
         className="flex items-center justify-center"
       >
-        <div>
-          {IconContainer ? (
-            <IconContainer
-              disabled={disabled}
-              {...rest}
-              {...containerProps}
-            >
-              {Icon}
-            </IconContainer>
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={disabled}
-            >
-              {Icon}
-            </Button>
-          )}
-        </div>
+        {trigger}
       </PopoverTrigger>
       <PopoverContent
         className="border-none bg-transparent p-0 shadow-none"
