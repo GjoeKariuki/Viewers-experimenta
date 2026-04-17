@@ -82,32 +82,30 @@ ToolButtonListDefault.displayName = 'ToolButtonListDefault';
 interface ToolButtonListDropDownProps {
   children: React.ReactNode;
   className?: string;
+  disabled?: boolean;
 }
 
 const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDropDownProps>(
-  ({ children, className, ...props }, ref) => {
+  ({ children, className, disabled = false, ...props }, ref) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement | null>(null);
     const contentRef = React.useRef<HTMLDivElement | null>(null);
-    const closeTimeoutRef = React.useRef<number | null>(null);
+    const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const clearCloseTimeout = React.useCallback(() => {
       if (closeTimeoutRef.current !== null) {
-        window.clearTimeout(closeTimeoutRef.current);
+        clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
       }
     }, []);
 
     const scheduleClose = React.useCallback(() => {
-      if (closeTimeoutRef.current !== null) {
-        return;
-      }
-
-      closeTimeoutRef.current = window.setTimeout(() => {
+      clearCloseTimeout();
+      closeTimeoutRef.current = setTimeout(() => {
         setOpen(false);
         closeTimeoutRef.current = null;
       }, 120);
-    }, []);
+    }, [clearCloseTimeout]);
 
     const isWithinDropdown = React.useCallback((target: EventTarget | null) => {
       if (!(target instanceof Node)) {
@@ -141,20 +139,24 @@ const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDr
     }, [clearCloseTimeout]);
 
     React.useEffect(() => {
+      if (disabled && open) {
+        clearCloseTimeout();
+        setOpen(false);
+      }
+    }, [disabled, open, clearCloseTimeout]);
+
+    React.useEffect(() => {
       if (!open) {
         return;
       }
 
       const handlePointerMove = (event: PointerEvent) => {
-        const hoverTarget = document.elementFromPoint(event.clientX, event.clientY);
-
-        if (isWithinDropdown(hoverTarget ?? event.target)) {
+        if (isWithinDropdown(event.target)) {
           clearCloseTimeout();
           return;
         }
 
-        clearCloseTimeout();
-        setOpen(false);
+        scheduleClose();
       };
 
       const handleWindowBlur = () => {
@@ -171,6 +173,65 @@ const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDr
       };
     }, [open, clearCloseTimeout, isWithinDropdown, scheduleClose]);
 
+    const triggerButton = (
+      <Button
+        ref={triggerRef}
+        variant="ghost"
+        size="icon"
+        disabled={disabled}
+        className={cn(
+          'text-foreground/80 hover:bg-background hover:text-highlight border-primary',
+          'inline-flex h-10 w-7 items-center justify-center',
+          '!rounded-tr-lg !rounded-br-lg !rounded-tl-none !rounded-bl-none',
+          'bg-transparent disabled:cursor-not-allowed',
+          className
+        )}
+        onPointerEnter={() => {
+          if (disabled) {
+            return;
+          }
+
+          clearCloseTimeout();
+          if (!open) {
+            setOpen(true);
+          }
+        }}
+        onPointerLeave={event => {
+          if (disabled) {
+            return;
+          }
+
+          if (isWithinDropdown(event.relatedTarget)) {
+            clearCloseTimeout();
+            return;
+          }
+
+          scheduleClose();
+        }}
+        onMouseLeave={event => {
+          if (disabled) {
+            return;
+          }
+
+          if (isWithinDropdown(event.relatedTarget)) {
+            clearCloseTimeout();
+            return;
+          }
+
+          scheduleClose();
+        }}
+      >
+        <Icons.ByName
+          name="chevron-down"
+          className="text-primary h-5 w-5"
+        />
+      </Button>
+    );
+
+    if (disabled) {
+      return triggerButton;
+    }
+
     return (
       <Popover
         modal={false}
@@ -182,51 +243,7 @@ const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDr
         {...props}
       >
         <PopoverTrigger asChild>
-          <Button
-            ref={triggerRef}
-            variant="ghost"
-            size="icon"
-            className={cn(
-              'text-foreground/80 hover:bg-background hover:text-highlight border-primary',
-              'inline-flex h-10 w-7 items-center justify-center',
-              '!rounded-tr-lg !rounded-br-lg !rounded-tl-none !rounded-bl-none',
-              'bg-transparent',
-              className
-            )}
-            onPointerEnter={() => {
-              clearCloseTimeout();
-              if (!open) {
-                setOpen(true);
-              }
-            }}
-            onPointerLeave={event => {
-              if (isWithinDropdown(event.relatedTarget)) {
-                clearCloseTimeout();
-                return;
-              }
-
-              scheduleClose();
-            }}
-            onMouseLeave={event => {
-              if (isWithinDropdown(event.relatedTarget)) {
-                clearCloseTimeout();
-                return;
-              }
-
-              scheduleClose();
-            }}
-            onFocus={() => {
-              clearCloseTimeout();
-              if (!open) {
-                setOpen(true);
-              }
-            }}
-          >
-            <Icons.ByName
-              name="chevron-down"
-              className="text-primary h-5 w-5"
-            />
-          </Button>
+          {triggerButton}
         </PopoverTrigger>
         <PopoverContent
           ref={setContentNode}
@@ -234,6 +251,7 @@ const ToolButtonListDropDown = React.forwardRef<HTMLDivElement, ToolButtonListDr
           align="start"
           sideOffset={2}
           className="border-input/50 w-auto min-w-[8rem] overflow-hidden rounded border p-1 shadow-md"
+          onOpenAutoFocus={event => event.preventDefault()}
           onInteractOutside={() => {
             clearCloseTimeout();
             setOpen(false);
