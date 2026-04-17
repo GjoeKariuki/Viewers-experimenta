@@ -10,8 +10,7 @@ const onDoubleClickHandler = {
   callbacks: [
     ({ activeViewportId, servicesManager, isHangingProtocolLayout, appConfig }) =>
       async displaySetInstanceUID => {
-        const { hangingProtocolService, viewportGridService, uiNotificationService } =
-          servicesManager.services;
+        const { hangingProtocolService, viewportGridService } = servicesManager.services;
         let updatedViewports = [];
         const viewportId = activeViewportId;
         const haveDirtyMeasurementsInSimplifiedMode = checkHasDirtyAndSimplifiedMode({
@@ -31,12 +30,6 @@ const onDoubleClickHandler = {
           }
         } catch (error) {
           console.warn(error);
-          uiNotificationService.show({
-            title: 'Thumbnail Double Click',
-            message: 'The selected display sets could not be added to the viewport.',
-            type: 'error',
-            duration: 3000,
-          });
         }
       },
   ],

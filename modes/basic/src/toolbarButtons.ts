@@ -693,6 +693,7 @@ const toolbarButtons: Button[] = [
       tooltip: i18n.t('WindowLevelActionMenu:MIP / Projection'),
       evaluate: {
         name: 'evaluate.projectionMenu',
+        hideWhenDisabled: true,
       },
     },
   },

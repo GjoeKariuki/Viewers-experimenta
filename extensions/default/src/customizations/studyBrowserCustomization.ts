@@ -168,7 +168,6 @@ export default {
     callbacks: [
       ({ activeViewportId, servicesManager, commandsManager, isHangingProtocolLayout }) =>
         async displaySetInstanceUID => {
-          const { hangingProtocolService, uiNotificationService } = servicesManager.services;
           let updatedViewports = [];
           const viewportId = activeViewportId;
 
@@ -182,14 +181,6 @@ export default {
             });
           } catch (error) {
             console.warn(error);
-            uiNotificationService.show({
-              title: i18n.t('StudyBrowser:Thumbnail Double Click'),
-              message: i18n.t(
-                'StudyBrowser:The selected series could not use the current layout, so the viewer was reset before loading it.'
-              ),
-              type: 'error',
-              duration: 3000,
-            });
           }
 
           if (updatedViewports.length) {
