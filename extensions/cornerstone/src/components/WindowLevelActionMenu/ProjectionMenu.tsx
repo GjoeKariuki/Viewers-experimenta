@@ -7,6 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  cn,
 } from '@ohif/ui-next';
 import { useTranslation } from 'react-i18next';
 import { useViewportDisplaySets } from '../../hooks/useViewportDisplaySets';
@@ -17,6 +18,7 @@ import { PROJECTION_MODES, ProjectionMode } from '../../utils/projectionUtils';
 interface ProjectionMenuProps {
   viewportId: string;
   className?: string;
+  variant?: 'card' | 'toolbar';
 }
 
 const PROJECTION_MODE_ORDER: ProjectionMode[] = [
@@ -26,7 +28,11 @@ const PROJECTION_MODE_ORDER: ProjectionMode[] = [
   PROJECTION_MODES.AVG,
 ];
 
-export function ProjectionMenu({ viewportId, className }: ProjectionMenuProps) {
+export function ProjectionMenu({
+  viewportId,
+  className,
+  variant = 'card',
+}: ProjectionMenuProps) {
   const { t } = useTranslation('WindowLevelActionMenu');
   const { viewportDisplaySets } = useViewportDisplaySets(viewportId);
   const [selectedDisplaySetUID, setSelectedDisplaySetUID] = useState<string | undefined>(
@@ -61,6 +67,64 @@ export function ProjectionMenu({ viewportId, className }: ProjectionMenuProps) {
 
   if (!isOrthographicVolume) {
     return null;
+  }
+
+  if (variant === 'toolbar') {
+    return (
+      <div
+        className={cn(
+          'bg-popover/80 border-input/60 flex h-10 items-center gap-2 rounded-lg border px-2 shadow-sm backdrop-blur-sm',
+          className
+        )}
+      >
+        <Select
+          value={projectionMode}
+          onValueChange={value => setProjectionMode(value as ProjectionMode)}
+        >
+          <SelectTrigger className="h-8 w-[8.5rem]">
+            <SelectValue>{t(getProjectionModeLabel(projectionMode))}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {PROJECTION_MODE_ORDER.map(mode => (
+              <SelectItem
+                key={mode}
+                value={mode}
+              >
+                {t(getProjectionModeLabel(mode))}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Numeric.Container
+          mode="singleRange"
+          min={slabThicknessRange.min}
+          max={slabThicknessRange.max}
+          step={slabThicknessRange.step}
+          value={slabThickness}
+          className="min-w-0 flex-1"
+          onChange={(value: number | [number, number]) => {
+            if (typeof value === 'number') {
+              setSlabThickness(value);
+            }
+          }}
+        >
+          <div
+            className={cn(
+              'flex min-w-0 items-center gap-2',
+              projectionMode === PROJECTION_MODES.COMPOSITE && 'opacity-60'
+            )}
+          >
+            <span className="text-muted-foreground shrink-0 text-sm">{t('Slab Thickness')}</span>
+            <Numeric.SingleRange
+              showNumberInput
+              sliderClassName="min-w-[8rem]"
+              numberInputClassName="w-20"
+            />
+          </div>
+        </Numeric.Container>
+      </div>
+    );
   }
 
   return (
