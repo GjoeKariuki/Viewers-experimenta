@@ -61,3 +61,19 @@ export function reverseEaseInOutBellRelative(
   const y = easeInOutBellRelative(x, baseline, prevOutlineWidth);
   return y;
 }
+
+export enum EasingFunctionEnum {
+  EASE = 'ease',
+  EASE_IN = 'ease-in',
+  EASE_OUT = 'ease-out',
+  EASE_IN_OUT = 'ease-in-out',
+  LINEAR = 'linear',
+}
+
+export const EasingFunctionMap = new Map([
+  [EasingFunctionEnum.EASE, easeInOutBell],
+  [EasingFunctionEnum.EASE_IN, easeInOutBell],
+  [EasingFunctionEnum.EASE_OUT, reverseEaseInOutBell],
+  [EasingFunctionEnum.EASE_IN_OUT, easeInOutBell],
+  [EasingFunctionEnum.LINEAR, easeInOutBell],
+]);
