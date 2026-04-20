@@ -1,6 +1,10 @@
 import { PROJECTION_MODES, blendModeToProjectionMode } from '../utils/projectionUtils';
 
 function getProjectionModeLabel(viewportId, servicesManager) {
+  if (!viewportId || !servicesManager?.services?.cornerstoneViewportService) {
+    return null;
+  }
+
   const { cornerstoneViewportService } = servicesManager.services;
   const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
 

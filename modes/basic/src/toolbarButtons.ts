@@ -2,6 +2,7 @@ import type { Button } from '@ohif/core/types';
 
 import { EVENTS } from '@cornerstonejs/core';
 import { ViewportGridService } from '@ohif/core';
+import i18n from 'i18next';
 
 const callbacks = (toolName: string) => [
   {

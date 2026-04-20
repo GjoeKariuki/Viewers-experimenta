@@ -14,8 +14,12 @@ function initDefaultToolGroup(extensionManager, toolGroupService, commandsManage
   const utilityModule = extensionManager.getModuleEntry(
     '@ohif/extension-cornerstone.utilityModule.tools'
   );
+  const SRUtilityModule = extensionManager.getModuleEntry(
+    '@ohif/extension-cornerstone-dicom-sr.utilityModule.tools'
+  );
 
   const { toolNames, Enums } = utilityModule.exports;
+  const SRToolNames = SRUtilityModule?.exports?.toolNames;
 
   const tools = {
     active: [
@@ -85,9 +89,13 @@ function initDefaultToolGroup(extensionManager, toolGroupService, commandsManage
     enabled: [
       { toolName: toolNames.ImageOverlayViewer },
       { toolName: toolNames.ReferenceLines },
-      {
-        toolName: SRToolNames.SRSCOORD3DPoint,
-      },
+      ...(SRToolNames?.SRSCOORD3DPoint
+        ? [
+            {
+              toolName: SRToolNames.SRSCOORD3DPoint,
+            },
+          ]
+        : []),
     ],
     disabled: [
       {
