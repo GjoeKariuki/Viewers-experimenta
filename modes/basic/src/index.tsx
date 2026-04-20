@@ -219,14 +219,16 @@ export const toolbarSections = {
     'Layout',
     'ProjectionMIP',
     'MPRLayout',
-    'ProjectionControlsMenu',
     'Crosshairs',
     'MoreTools',
   ],
 
   [TOOLBAR_SECTIONS.viewportActionMenu.topLeft]: ['orientationMenu', 'dataOverlayMenu'],
 
-  [TOOLBAR_SECTIONS.viewportActionMenu.bottomMiddle]: ['AdvancedRenderingControls'],
+  [TOOLBAR_SECTIONS.viewportActionMenu.bottomMiddle]: [
+    'windowLevelMenuEmbedded',
+    'ProjectionControlsMenu',
+  ],
 
   AdvancedRenderingControls: [
     'windowLevelMenuEmbedded',

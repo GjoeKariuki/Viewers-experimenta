@@ -246,8 +246,22 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
     },
     {
       name: 'evaluate.windowLevelMenuEmbedded',
-      evaluate: () => {
+      evaluate: ({ viewportId }) => {
+        const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+        if (!viewport) {
+          return {
+            disabled: true,
+            isEmbedded: true,
+          };
+        }
+
+        const displaySetUIDs = viewportGridService.getDisplaySetsUIDsForViewport(viewportId);
+        const displaySets = displaySetUIDs.map(displaySetService.getDisplaySetByUID);
+        const supportWindowLevel = displaySets.some(displaySet => displaySet?.supportsWindowLevel);
+
         return {
+          disabled: !supportWindowLevel,
           isEmbedded: true,
         };
       },
@@ -273,11 +287,12 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
 
         const displaySetUIDs = viewportGridService.getDisplaySetsUIDsForViewport(viewportId);
         const displaySets = displaySetUIDs.map(displaySetService.getDisplaySetByUID);
-
         const hasReconstructableDisplaySet = displaySets.some(displaySet => displaySet?.isReconstructable);
+        const currentMode = blendModeToProjectionMode(viewport.getBlendMode?.());
+        const isProjectionModeActive = currentMode !== PROJECTION_MODES.COMPOSITE;
 
         return {
-          disabled: !hasReconstructableDisplaySet,
+          disabled: !hasReconstructableDisplaySet || !isProjectionModeActive,
         };
       },
     },

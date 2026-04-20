@@ -76,6 +76,8 @@ export function ProjectionMenu({
           'bg-popover/80 border-input/60 flex h-10 items-center gap-2 rounded-lg border px-2 shadow-sm backdrop-blur-sm',
           className
         )}
+        onPointerDown={event => event.stopPropagation()}
+        onClick={event => event.stopPropagation()}
       >
         <Select
           value={projectionMode}
@@ -236,11 +238,11 @@ function formatThickness(value: number): string {
 function getProjectionModeLabel(mode: ProjectionMode): string {
   switch (mode) {
     case PROJECTION_MODES.MIP:
-      return 'MIP (MaxIP)';
+      return 'MIP';
     case PROJECTION_MODES.MINIP:
-      return 'MinIP';
+      return 'MinMIP';
     case PROJECTION_MODES.AVG:
-      return 'AvgIP';
+      return 'AvgMIP';
     default:
       return 'Off';
   }

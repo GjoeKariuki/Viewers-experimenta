@@ -118,9 +118,14 @@ export function WindowLevelActionMenuWrapper(
     >
       <PopoverTrigger
         asChild
-        className="flex items-center justify-center"
       >
-        {trigger}
+        <div
+          className="flex items-center justify-center"
+          onPointerDown={event => event.stopPropagation()}
+          onClick={event => event.stopPropagation()}
+        >
+          {trigger}
+        </div>
       </PopoverTrigger>
       <PopoverContent
         className="border-none bg-transparent p-0 shadow-none"
