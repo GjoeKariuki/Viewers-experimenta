@@ -1,7 +1,7 @@
 import { measurementTrackingMode } from '../contexts/TrackedMeasurementsContext/promptBeginTracking';
 
 const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
-const PROJECTION_RESET_WAIT_FRAMES = 20;
+const PROJECTION_RESET_WAIT_FRAMES = 5;
 
 function waitForNextFrame() {
   return new Promise(resolve => {

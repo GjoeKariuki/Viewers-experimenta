@@ -3,7 +3,7 @@ import i18n from '@ohif/i18n';
 const { formatDate } = utils;
 
 const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
-const PROJECTION_RESET_WAIT_FRAMES = 20;
+const PROJECTION_RESET_WAIT_FRAMES = 5;
 
 function getSafeActiveViewportId(viewportGridService, fallbackViewportId) {
   const { activeViewportId, viewports } = viewportGridService.getState();
