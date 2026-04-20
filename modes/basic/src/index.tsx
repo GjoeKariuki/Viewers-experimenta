@@ -226,7 +226,6 @@ export const toolbarSections = {
   [TOOLBAR_SECTIONS.viewportActionMenu.topLeft]: ['orientationMenu', 'dataOverlayMenu'],
 
   [TOOLBAR_SECTIONS.viewportActionMenu.bottomMiddle]: [
-    'windowLevelMenuEmbedded',
     'ProjectionControlsMenu',
   ],
 
