@@ -79,6 +79,28 @@ test.describe('MIP workflow', () => {
     expect(Math.abs(thickSlabThickness - 40)).toBeLessThan(0.25);
   });
 
+  test('should reset from MIP to the default layout when double-clicking another series', async ({
+    page,
+    leftPanelPageObject,
+  }) => {
+    await page.getByTestId('MIPLayout').click();
+    await page.waitForTimeout(4000);
+
+    await leftPanelPageObject.loadSeriesByDescription('Body 4.0 CE', 1);
+    await page.waitForTimeout(4000);
+
+    await expect(page.locator('[data-cy="viewport-pane"]')).toHaveCount(1);
+
+    const viewportIds = await page.evaluate(() => {
+      return window.cornerstone
+        .getEnabledElements()
+        .map(({ viewport }) => viewport.id)
+        .sort();
+    });
+
+    expect(viewportIds).toEqual(['default']);
+  });
+
   test('should route measurement jumps from the MIP overview back to a source viewport', async ({
     page,
     DOMOverlayPageObject,
@@ -93,7 +115,7 @@ test.describe('MIP workflow', () => {
     await page.waitForTimeout(5000);
 
     await page.evaluate(() => {
-      const cornerstone = window.cornerstone;
+      const { cornerstone } = window;
       const viewport = cornerstone?.getEnabledElements?.()[0]?.viewport;
       viewport?.setImageIdIndex?.(20);
       viewport?.render?.();

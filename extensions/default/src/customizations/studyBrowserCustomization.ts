@@ -3,6 +3,7 @@ import i18n from '@ohif/i18n';
 const { formatDate } = utils;
 
 const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
+const PROJECTION_RESET_WAIT_FRAMES = 20;
 
 function getSafeActiveViewportId(viewportGridService, fallbackViewportId) {
   const { activeViewportId, viewports } = viewportGridService.getState();
@@ -43,6 +44,38 @@ function waitForNextFrame() {
   });
 }
 
+function getViewportIdAfterReset(viewportGridService, previousViewportId) {
+  const { activeViewportId, viewports } = viewportGridService.getState();
+  const viewportIds = Array.from(viewports?.keys?.() ?? []);
+
+  if (!viewportIds.length) {
+    return undefined;
+  }
+
+  if (
+    activeViewportId &&
+    activeViewportId !== previousViewportId &&
+    viewports?.has(activeViewportId)
+  ) {
+    return activeViewportId;
+  }
+
+  return viewportIds.find(viewportId => viewportId !== previousViewportId);
+}
+
+async function waitForViewportIdAfterReset(viewportGridService, previousViewportId) {
+  for (let i = 0; i < PROJECTION_RESET_WAIT_FRAMES; i++) {
+    const viewportId = getViewportIdAfterReset(viewportGridService, previousViewportId);
+    if (viewportId && viewportId !== previousViewportId) {
+      return viewportId;
+    }
+
+    await waitForNextFrame();
+  }
+
+  return undefined;
+}
+
 async function getUpdatedViewportsForDisplaySet({
   activeViewportId,
   displaySetInstanceUID,
@@ -80,15 +113,8 @@ async function getUpdatedViewportsForDisplaySet({
       throw new Error('Failed to reset hanging protocol before loading unsupported display set.');
     }
 
-    await waitForNextFrame();
-    viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
-
-    try {
-      return getRequiredViewports();
-    } catch (projectionRetryError) {
-      console.warn(projectionRetryError);
-      return buildFallbackViewportUpdate(viewportIdToUse, displaySetInstanceUID);
-    }
+    viewportIdToUse = await waitForViewportIdAfterReset(viewportGridService, viewportIdToUse);
+    return buildFallbackViewportUpdate(viewportIdToUse, displaySetInstanceUID);
   }
 
   try {
@@ -107,8 +133,7 @@ async function getUpdatedViewportsForDisplaySet({
       throw error;
     }
 
-    await waitForNextFrame();
-    viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
+    viewportIdToUse = await waitForViewportIdAfterReset(viewportGridService, viewportIdToUse);
 
     try {
       return getRequiredViewports();
