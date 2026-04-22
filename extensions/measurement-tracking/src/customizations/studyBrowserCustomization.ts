@@ -1,8 +1,8 @@
 import { measurementTrackingMode } from '../contexts/TrackedMeasurementsContext/promptBeginTracking';
 
 const DEFAULT_PROTOCOL_ID = 'default';
-const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
 const PROJECTION_RESET_WAIT_FRAMES = 5;
+const RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES = ['volume', 'volume3d'];
 
 function waitForNextFrame() {
   return new Promise(resolve => {
@@ -47,6 +47,28 @@ function getProtocolViewportIds(hangingProtocolService, protocolId = DEFAULT_PRO
       .filter(Boolean);
   } catch {
     return [];
+  }
+}
+
+function shouldResetToDefaultBeforeLoadingDisplaySet(hangingProtocolService, protocolId) {
+  if (!protocolId || protocolId === DEFAULT_PROTOCOL_ID) {
+    return false;
+  }
+
+  try {
+    const protocol = hangingProtocolService.getProtocolById(protocolId);
+    const viewportOptions = [
+      protocol?.defaultViewport?.viewportOptions,
+      ...(protocol?.stages || []).flatMap(stage =>
+        (stage?.viewports || []).map(viewport => viewport?.viewportOptions)
+      ),
+    ];
+
+    return viewportOptions.some(viewportOptions =>
+      RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES.includes(viewportOptions?.viewportType)
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -128,7 +150,7 @@ async function getUpdatedViewportsForDisplaySet({
     );
 
   if (
-    PROJECTION_PROTOCOL_IDS.includes(protocolId) &&
+    shouldResetToDefaultBeforeLoadingDisplaySet(hangingProtocolService, protocolId) &&
     currentViewportDisplaySetInstanceUID !== displaySetInstanceUID
   ) {
     const studyInstanceUID =
