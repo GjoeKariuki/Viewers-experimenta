@@ -60,28 +60,30 @@ function ViewportActionBar({
 
   return (
     <div
-      className="pointer-events-auto flex h-8 shrink-0 select-none items-center overflow-visible whitespace-nowrap px-2 text-base"
+      className="pointer-events-auto flex h-8 shrink-0 select-none items-center overflow-visible whitespace-nowrap px-2 text-base text-foreground"
       onDoubleClick={onDoubleClick}
     >
       {getStatusComponent()}
-      {!!label?.length && <span className="text-aqua-pale text-large ml-1">{label}</span>}
-      <div className="border-secondary-light mx-2 border-l py-2"></div>
+      {!!label?.length && <span className="text-primary ml-1 text-large">{label}</span>}
+      <div className="border-border mx-2 border-l py-2"></div>
       <span
         data-cy="studyDate"
-        className="text-white"
+        className="text-foreground"
       >
         {studyDate}
       </span>
-      <div className="border-secondary-light mx-2 border-l py-2"></div>
-      <span className="text-aqua-pale mr-1 overflow-hidden text-ellipsis">{seriesDescription}</span>
+      <div className="border-border mx-2 border-l py-2"></div>
+      <span className="text-muted-foreground mr-1 overflow-hidden text-ellipsis">
+        {seriesDescription}
+      </span>
       {/* Prev/Next icons */}
       <Icons.ByName
-        className="hover:text-primary-light ml-auto mr-2 cursor-pointer text-white"
+        className="text-foreground hover:text-primary ml-auto mr-2 cursor-pointer"
         name="chevron-prev"
         onClick={() => onArrowsClick('left')}
       />
       <Icons.ByName
-        className="hover:text-primary-light mr-2 cursor-pointer text-white"
+        className="text-foreground hover:text-primary mr-2 cursor-pointer"
         name="chevron-next"
         onClick={() => onArrowsClick('right')}
       />

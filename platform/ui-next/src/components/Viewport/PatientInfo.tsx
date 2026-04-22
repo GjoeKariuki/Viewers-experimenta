@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Icons, Tooltip, TooltipTrigger, TooltipContent } from '../../components';
 
 const classes = {
-  infoHeader: 'text-base text-primary-light',
-  infoText: 'text-base text-white max-w-24 truncate',
+  infoHeader: 'text-base text-muted-foreground',
+  infoText: 'text-base text-foreground max-w-24 truncate',
   firstRow: 'flex flex-col',
   row: 'flex flex-col ml-4',
 };
@@ -37,7 +37,7 @@ function PatientInfo({
     <div ref={showPatientInfoRef}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Icons.Info className="hover:text-primary-light cursor-pointer text-white" />
+          <Icons.Info className="text-foreground hover:text-primary cursor-pointer" />
         </TooltipTrigger>
         {isOpen && (
           <TooltipContent
@@ -46,16 +46,16 @@ function PatientInfo({
           >
             <div className="flex py-2">
               <div className="flex pt-1">
-                <Icons.InfoLink className="text-primary-main w-4" />
+                <Icons.InfoLink className="text-primary w-4" />
               </div>
               <div className="ml-2 flex flex-col">
                 <span
-                  className="text-base font-bold text-white"
+                  className="text-base font-bold text-foreground"
                   title={patientName}
                 >
                   {patientName}
                 </span>
-                <div className="border-secondary-main mt-4 mb-4 flex border-b pb-4">
+                <div className="border-border mt-4 mb-4 flex border-b pb-4">
                   <div className={classnames(classes.firstRow)}>
                     <span className={classnames(classes.infoHeader)}>{t('Sex')}</span>
                     <span
