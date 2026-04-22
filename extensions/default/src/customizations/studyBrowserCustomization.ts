@@ -9,7 +9,7 @@ const RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES = ['volume', 'volume3d'];
 function getSafeActiveViewportId(viewportGridService, fallbackViewportId) {
   const { activeViewportId, viewports } = viewportGridService.getState();
 
-  if (activeViewportId && viewports?.has(activeViewportId)) {
+  if (viewports?.has(activeViewportId)) {
     return activeViewportId;
   }
 
@@ -37,6 +37,20 @@ function buildFallbackViewportUpdate(viewportId, displaySetInstanceUID) {
       displaySetInstanceUIDs: [displaySetInstanceUID],
     },
   ];
+}
+
+function normalizeViewportUpdates(viewportsToUpdate, viewportGridService, fallbackViewportId, displaySetInstanceUID) {
+  const { viewports } = viewportGridService.getState();
+
+  if (
+    Array.isArray(viewportsToUpdate) &&
+    viewportsToUpdate.length > 0 &&
+    viewportsToUpdate.every(viewport => viewport?.viewportId && viewports?.has(viewport.viewportId))
+  ) {
+    return viewportsToUpdate;
+  }
+
+  return buildFallbackViewportUpdate(fallbackViewportId, displaySetInstanceUID);
 }
 
 function waitForNextFrame() {
@@ -189,7 +203,12 @@ async function getUpdatedViewportsForDisplaySet({
   }
 
   try {
-    return getRequiredViewports();
+    return normalizeViewportUpdates(
+      getRequiredViewports(),
+      viewportGridService,
+      viewportIdToUse,
+      displaySetInstanceUID
+    );
   } catch (error) {
     console.warn(error);
 
@@ -212,7 +231,12 @@ async function getUpdatedViewportsForDisplaySet({
     );
 
     try {
-      return getRequiredViewports();
+      return normalizeViewportUpdates(
+        getRequiredViewports(),
+        viewportGridService,
+        viewportIdToUse,
+        displaySetInstanceUID
+      );
     } catch (retryError) {
       console.warn(retryError);
       return buildFallbackViewportUpdate(viewportIdToUse, displaySetInstanceUID);
@@ -270,11 +294,10 @@ export default {
       ({ activeViewportId, servicesManager, commandsManager, isHangingProtocolLayout }) =>
         async displaySetInstanceUID => {
           let updatedViewports = [];
-          const viewportId = activeViewportId;
 
           try {
             updatedViewports = await getUpdatedViewportsForDisplaySet({
-              activeViewportId: viewportId,
+                activeViewportId,
               displaySetInstanceUID,
               servicesManager,
               commandsManager,

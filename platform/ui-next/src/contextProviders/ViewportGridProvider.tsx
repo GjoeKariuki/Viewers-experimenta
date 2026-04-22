@@ -183,14 +183,14 @@ export function ViewportGridProvider({ children, service }: ViewportGridProvider
             updatedViewport?.viewportOptions
           );
 
-          const displaySetOptions = updatedViewport?.displaySetOptions || [];
+          let displaySetOptions = [...(updatedViewport?.displaySetOptions || [])];
           if (!displaySetOptions.length) {
             // Copy all the display set options, assuming a full set of displaySet UID's is provided.
             if (state.isHangingProtocolLayout) {
-              displaySetOptions.push(...(previousViewport.displaySetOptions || []));
+              displaySetOptions = [...displaySetOptions, ...(previousViewport?.displaySetOptions || [])];
             }
             if (!displaySetOptions.length) {
-              displaySetOptions.push({});
+              displaySetOptions = [{}];
             }
           }
 
@@ -302,20 +302,17 @@ export function ViewportGridProvider({ children, service }: ViewportGridProvider
 
             viewport.isReady = false;
 
-            if (!viewport.viewportOptions.presentationIds) {
-              const presentationIds = service.getPresentationIds({
-                viewport,
-                viewports,
-              });
-              viewport.viewportOptions.presentationIds = presentationIds;
-            }
+            viewport.viewportOptions.presentationIds ||= service.getPresentationIds({
+              viewport,
+              viewports,
+            });
           }
         }
 
         activeViewportIdToSet =
           activeViewportIdToSet ?? determineActiveViewportId(state, viewports);
 
-        const ret = {
+        return {
           ...state,
           activeViewportId: activeViewportIdToSet,
           layout: {
@@ -327,7 +324,6 @@ export function ViewportGridProvider({ children, service }: ViewportGridProvider
           viewports,
           isHangingProtocolLayout,
         };
-        return ret;
       }
       case 'RESET': {
         return DEFAULT_STATE;

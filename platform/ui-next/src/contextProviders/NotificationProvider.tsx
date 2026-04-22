@@ -31,6 +31,8 @@ const NotificationProvider = ({
   service,
   deduplicationInterval = 10000, // Default to 10 seconds
 }: NotificationProviderProps) => {
+  const SUPPRESS_ERROR_TOASTS = true;
+
   const DEFAULT_OPTIONS = {
     title: '',
     message: '',
@@ -71,6 +73,27 @@ const NotificationProvider = ({
     const notificationDeduplicationInterval = optionsDeduplicationInterval || deduplicationInterval;
 
     if (promise) {
+      if (SUPPRESS_ERROR_TOASTS) {
+        const loadingId = toast.loading(title || 'Loading...', {
+          description: typeof message === 'string' ? message : '',
+        });
+
+        promise.then(
+          (data: unknown) => {
+            const description = typeof message === 'function' ? message(data) : message;
+            toast.success(title || 'Success', {
+              description,
+            });
+            toast.dismiss(loadingId);
+          },
+          () => {
+            toast.dismiss(loadingId);
+          }
+        );
+
+        return loadingId;
+      }
+
       return toast.promise(promise, {
         loading: title || 'Loading...',
         success: (data: unknown) => {
@@ -88,6 +111,10 @@ const NotificationProvider = ({
           };
         },
       });
+    }
+
+    if (SUPPRESS_ERROR_TOASTS && type === 'error') {
+      return '';
     }
 
     // Create a cache key from notification properties
@@ -200,7 +227,7 @@ const NotificationProvider = ({
 
     // Add human-readable timestamps and time since showing
     const now = Date.now();
-    const enhancedCache = Object.entries(cache).reduce((result, [key, entry]) => {
+    return Object.entries(cache).reduce((result, [key, entry]) => {
       const timeSince = now - entry.timestamp;
       result[key] = {
         ...entry,
@@ -210,8 +237,6 @@ const NotificationProvider = ({
       };
       return result;
     }, {});
-
-    return enhancedCache;
   }, []);
 
   return (

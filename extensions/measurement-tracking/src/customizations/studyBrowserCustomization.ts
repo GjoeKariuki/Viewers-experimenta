@@ -23,6 +23,20 @@ function buildFallbackViewportUpdate(viewportId, displaySetInstanceUID) {
   ];
 }
 
+function normalizeViewportUpdates(viewportsToUpdate, viewportGridService, fallbackViewportId, displaySetInstanceUID) {
+  const { viewports } = viewportGridService.getState();
+
+  if (
+    Array.isArray(viewportsToUpdate) &&
+    viewportsToUpdate.length > 0 &&
+    viewportsToUpdate.every(viewport => viewport?.viewportId && viewports?.has(viewport.viewportId))
+  ) {
+    return viewportsToUpdate;
+  }
+
+  return buildFallbackViewportUpdate(fallbackViewportId, displaySetInstanceUID);
+}
+
 function getSafeActiveViewportId(viewportGridService, fallbackViewportId) {
   const { activeViewportId, viewports } = viewportGridService.getState();
 
@@ -180,7 +194,12 @@ async function getUpdatedViewportsForDisplaySet({
   }
 
   try {
-    return getRequiredViewports();
+    return normalizeViewportUpdates(
+      getRequiredViewports(),
+      viewportGridService,
+      viewportIdToUse,
+      displaySetInstanceUID
+    );
   } catch (error) {
     console.warn(error);
 
@@ -202,7 +221,12 @@ async function getUpdatedViewportsForDisplaySet({
       viewportIdToUse
     );
     try {
-      return getRequiredViewports();
+      return normalizeViewportUpdates(
+        getRequiredViewports(),
+        viewportGridService,
+        viewportIdToUse,
+        displaySetInstanceUID
+      );
     } catch (retryError) {
       console.warn(retryError);
       return buildFallbackViewportUpdate(viewportIdToUse, displaySetInstanceUID);
