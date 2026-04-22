@@ -48,6 +48,7 @@ const MeasurementTable = ({
       </PanelSection>
     </MeasurementTableProvider>
   );
+};
 
 const Header = ({ children }: { children: React.ReactNode }) => {
   return <div className="measurement-table-header">{children}</div>;
@@ -124,9 +125,7 @@ const Row = ({ item, index }: RowProps) => {
       isVisible={item.isVisible}
       isLocked={item.isLocked}
     >
-      {item.isUnmapped && (
-        <DataRow.Status.Warning tooltip={item.statusTooltip} />
-      )}
+      {item.isUnmapped && <DataRow.Status.Warning tooltip={item.statusTooltip} />}
     </DataRow>
   );
 };
