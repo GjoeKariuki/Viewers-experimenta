@@ -27,6 +27,7 @@ interface HeaderProps {
   WhiteLabeling?: {
     createLogoComponentFn?: (React: any, props: any) => ReactNode;
   };
+  Branding?: ReactNode;
   PatientInfo?: ReactNode;
   Secondary?: ReactNode;
   UndoRedo?: ReactNode;
@@ -39,6 +40,7 @@ function Header({
   onClickReturnButton,
   isSticky = false,
   WhiteLabeling,
+  Branding,
   PatientInfo,
   UndoRedo,
   Secondary,
@@ -51,9 +53,11 @@ function Header({
   };
 
   const hasReturnButton = isReturnEnabled && onClickReturnButton;
+  const brandingComponent = Branding ?? WhiteLabeling?.createLogoComponentFn?.(React, props);
+  const hasBranding = Boolean(brandingComponent);
   const hasUndoRedo = Boolean(UndoRedo);
   const hasPatientInfo = Boolean(PatientInfo);
-  const secondaryOffsetClass = hasReturnButton ? 'left-[44px]' : 'left-0';
+  const hasSecondary = Boolean(Secondary);
 
   return (
     <IconPresentationProvider
@@ -65,21 +69,32 @@ function Header({
         {...props}
       >
         <div className="relative h-[48px] items-center">
-          {hasReturnButton && (
+          {(hasReturnButton || hasBranding || hasSecondary) && (
             <div className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center">
-              <button
-                type="button"
-                className="text-primary hover:bg-primary-dark ml-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded"
-                onClick={onClickReturn}
-                data-cy="return-to-work-list"
-              >
-                <Icons.ArrowLeft className="h-7 w-7" />
-              </button>
+              {hasReturnButton && (
+                <button
+                  type="button"
+                  className="text-primary hover:bg-primary-dark ml-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded"
+                  onClick={onClickReturn}
+                  data-cy="return-to-work-list"
+                >
+                  <Icons.ArrowLeft className="h-7 w-7" />
+                </button>
+              )}
+              {hasBranding && (
+                <div className={`${hasReturnButton ? 'ml-2' : 'ml-1'} flex h-8 items-center`}>
+                  {brandingComponent}
+                </div>
+              )}
+              {hasSecondary && (
+                <div
+                  className={`${hasReturnButton || hasBranding ? 'ml-2' : 'ml-1'} flex h-8 items-center`}
+                >
+                  {Secondary}
+                </div>
+              )}
             </div>
           )}
-          <div className={`absolute top-1/2 ${secondaryOffsetClass} h-8 -translate-y-1/2`}>
-            {Secondary}
-          </div>
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform">
             <div className="flex items-center justify-center space-x-2">{children}</div>
           </div>

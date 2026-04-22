@@ -28,6 +28,7 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
+  ThemeSelector,
   Clipboard,
   useModal,
   useSessionStorage,
@@ -558,6 +559,7 @@ function WorkList({
         menuOptions={menuOptions}
         isReturnEnabled={false}
         WhiteLabeling={appConfig.whiteLabeling}
+        Branding={<ThemeSelector />}
         showPatientInfo={PatientInfoVisibility.DISABLED}
       />
       <Onboarding />

@@ -1,5 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import '../../tailwind.css';
 import '../../assets/styles.css';
+import { initializeThemePreference } from '../../lib/themePreference';
 
-export const ThemeWrapper = ({ children }) => <React.Fragment>{children}</React.Fragment>;
+initializeThemePreference();
+
+export const ThemeWrapper = ({ children }) => {
+  useEffect(() => {
+    initializeThemePreference();
+  }, []);
+
+  return <React.Fragment>{children}</React.Fragment>;
+};

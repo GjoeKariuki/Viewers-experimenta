@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { Header, useModal } from '@ohif/ui-next';
+import { Header, ThemeSelector, useModal } from '@ohif/ui-next';
 import { useSystem } from '@ohif/core';
 import { Toolbar } from '../Toolbar/Toolbar';
 import HeaderPatientInfo from './HeaderPatientInfo';
@@ -87,6 +87,7 @@ function ViewerHeader({ appConfig }: withAppTypes<{ appConfig: AppTypes.Config }
       isReturnEnabled={!!appConfig.showStudyList}
       onClickReturnButton={onClickReturnButton}
       WhiteLabeling={appConfig.whiteLabeling}
+      Branding={<ThemeSelector />}
       Secondary={<Toolbar buttonSection="secondary" />}
       PatientInfo={
         appConfig.showPatientInfo !== PatientInfoVisibility.DISABLED && (
