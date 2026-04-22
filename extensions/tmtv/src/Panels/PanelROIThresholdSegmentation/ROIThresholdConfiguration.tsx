@@ -23,7 +23,8 @@ function ROIThresholdConfiguration({ config, dispatch, runCommand }) {
   ];
 
   const handlePercentageOfMaxSUVChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
+    const { value: rawValue } = e.target;
+    let value = rawValue;
 
     if (value === '.') {
       value = '0.';
@@ -36,7 +37,7 @@ function ROIThresholdConfiguration({ config, dispatch, runCommand }) {
   };
 
   return (
-    <div className="bg-primary-dark flex flex-col space-y-4 p-px">
+    <div className="bg-card text-card-foreground flex flex-col space-y-4 p-px">
       <div className="flex items-end space-x-3">
         <div className="flex min-w-0 flex-1 flex-col">
           {/* The original panel design does not include "Strategy," but it was found in the code.

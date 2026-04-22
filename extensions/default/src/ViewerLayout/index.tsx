@@ -9,7 +9,7 @@ import SidePanelWithServices from '../Components/SidePanelWithServices';
 import { Onboarding, ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@ohif/ui-next';
 import useResizablePanels from './ResizablePanelsHook';
 
-const resizableHandleClassName = 'mt-[1px] bg-black';
+const resizableHandleClassName = 'mt-[1px] bg-border';
 
 function ViewerLayout({
   // From Extension Module Params
@@ -79,11 +79,11 @@ function ViewerLayout({
    * is sized to our viewport.
    */
   useEffect(() => {
-    document.body.classList.add('bg-black');
+    document.body.classList.add('bg-background');
     document.body.classList.add('overflow-hidden');
 
     return () => {
-      document.body.classList.remove('bg-black');
+      document.body.classList.remove('bg-background');
       document.body.classList.remove('overflow-hidden');
     };
   }, []);
@@ -91,7 +91,7 @@ function ViewerLayout({
   const getComponent = id => {
     const entry = extensionManager.getModuleEntry(id);
 
-    if (!entry || !entry.component) {
+    if (!entry?.component) {
       throw new Error(
         `${id} is not valid for an extension module or no component found from extension ${id}. Please verify your configuration or ensure that the extension is properly registered. It's also possible that your mode is utilizing a module from an extension that hasn't been included in its dependencies (add the extension to the "extensionDependencies" array in your mode's index.js file). Check the reference string to the extension in your Mode configuration`
       );
@@ -133,10 +133,10 @@ function ViewerLayout({
       ({ options }) => {
         setHasLeftPanels(hasPanels('left'));
         setHasRightPanels(hasPanels('right'));
-        if (options?.leftPanelClosed !== undefined) {
+        if (options && options.leftPanelClosed !== undefined) {
           setLeftPanelClosed(options.leftPanelClosed);
         }
-        if (options?.rightPanelClosed !== undefined) {
+        if (options && options.rightPanelClosed !== undefined) {
           setRightPanelClosed(options.rightPanelClosed);
         }
       }
@@ -158,11 +158,11 @@ function ViewerLayout({
         appConfig={appConfig}
       />
       <div
-        className="relative flex w-full flex-row flex-nowrap items-stretch overflow-hidden bg-black"
+        className="relative flex w-full flex-row flex-nowrap items-stretch overflow-hidden bg-background text-foreground"
         style={{ height: 'calc(100vh - 52px' }}
       >
         <React.Fragment>
-          {showLoadingIndicator && <LoadingIndicatorProgress className="h-full w-full bg-black" />}
+          {showLoadingIndicator && <LoadingIndicatorProgress className="h-full w-full bg-background" />}
           <ResizablePanelGroup {...resizablePanelGroupProps}>
             {/* LEFT SIDEPANELS */}
             {hasLeftPanels ? (
@@ -186,7 +186,7 @@ function ViewerLayout({
             <ResizablePanel {...resizableViewportGridPanelProps}>
               <div className="flex h-full flex-1 flex-col">
                 <div
-                  className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-black"
+                  className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-background"
                   onMouseEnter={handleMouseEnter}
                 >
                   <ViewportGridComp

@@ -17,31 +17,43 @@ const formatWithEllipsis = (str, maxLength) => {
 };
 
 function HeaderPatientInfo({ servicesManager, appConfig }: withAppTypes) {
-  const initialExpandedState =
-    appConfig.showPatientInfo === PatientInfoVisibility.VISIBLE ||
-    appConfig.showPatientInfo === PatientInfoVisibility.VISIBLE_READONLY;
+  const initialExpandedState = (() => {
+    switch (appConfig.showPatientInfo) {
+      case PatientInfoVisibility.VISIBLE:
+      case PatientInfoVisibility.VISIBLE_READONLY:
+        return true;
+      default:
+        return false;
+    }
+  })();
   const [expanded, setExpanded] = useState(initialExpandedState);
   const { patientInfo, isMixedPatients } = usePatientInfo(servicesManager);
 
   useEffect(() => {
-    if (isMixedPatients && expanded) {
+    if (isMixedPatients) {
       setExpanded(false);
     }
   }, [isMixedPatients, expanded]);
 
   const handleOnClick = () => {
-    if (!isMixedPatients && appConfig.showPatientInfo !== PatientInfoVisibility.VISIBLE_READONLY) {
-      setExpanded(!expanded);
+    if (isMixedPatients || appConfig.showPatientInfo === PatientInfoVisibility.VISIBLE_READONLY) {
+      return;
     }
+
+    setExpanded(!expanded);
   };
 
   const formattedPatientName = formatWithEllipsis(patientInfo.PatientName, 27);
   const formattedPatientID = formatWithEllipsis(patientInfo.PatientID, 15);
-  const patientDobOrAge = patientInfo.PatientDOB || patientInfo.PatientAge;
+  let patientDobOrAge = patientInfo.PatientAge;
+
+  if (patientInfo.PatientDOB != null) {
+    patientDobOrAge = patientInfo.PatientDOB;
+  }
 
   return (
     <div
-      className="hover:bg-primary-dark flex cursor-pointer items-center justify-center gap-1 rounded-lg"
+      className="hover:bg-accent flex cursor-pointer items-center justify-center gap-1 rounded-lg"
       onClick={handleOnClick}
     >
       {isMixedPatients ? (
@@ -52,10 +64,10 @@ function HeaderPatientInfo({ servicesManager, appConfig }: withAppTypes) {
       <div className="flex flex-col justify-center">
         {expanded ? (
           <>
-            <div className="self-start text-[13px] font-bold text-white">
+            <div className="text-foreground self-start text-[13px] font-bold">
               {formattedPatientName}
             </div>
-            <div className="text-aqua-pale flex gap-2 text-[11px]">
+            <div className="text-muted-foreground flex gap-2 text-[11px]">
               <div>{formattedPatientID}</div>
               <div>{patientInfo.PatientSex}</div>
               <div>{patientDobOrAge}</div>

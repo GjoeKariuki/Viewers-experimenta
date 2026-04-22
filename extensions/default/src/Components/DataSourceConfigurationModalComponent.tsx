@@ -100,8 +100,8 @@ function DataSourceConfigurationModalComponent({
   const getSelectedItemBackgroundClasses = itemIndex =>
     itemIndex < selectedItems.length
       ? classNames(
-          'bg-black/[.4]',
-          itemIndex !== itemLabels.length - 1 ? 'hover:bg-transparent active:bg-secondary-dark' : ''
+          'bg-muted/40',
+          itemIndex !== itemLabels.length - 1 ? 'hover:bg-transparent active:bg-accent' : ''
         )
       : 'bg-transparent';
 
@@ -113,15 +113,15 @@ function DataSourceConfigurationModalComponent({
         : 'border border-dashed border-secondary-light';
 
   const getSelectedItemTextClasses = itemIndex =>
-    itemIndex <= selectedItems.length ? 'text-primary-light' : 'text-primary';
+    itemIndex <= selectedItems.length ? 'text-primary' : 'text-primary';
 
   const getErrorComponent = (): ReactElement => {
     return (
       <div className="flex min-h-[1px] grow flex-col gap-4">
-        <div className="text-primary-light text-[20px]">
+        <div className="text-primary text-[20px]">
           {t(`Error fetching ${itemLabels[selectedItems.length]} list`)}
         </div>
-        <div className="grow bg-black p-4 text-[14px]">{errorMessage}</div>
+        <div className="bg-muted text-foreground grow p-4 text-[14px]">{errorMessage}</div>
       </div>
     );
   };
@@ -150,7 +150,7 @@ function DataSourceConfigurationModalComponent({
                   : undefined
               }
             >
-              <div className="text- flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 {itemLabelIndex < selectedItems.length ? (
                   <Icons.ByName name="status-tracked" />
                 ) : (
@@ -159,7 +159,7 @@ function DataSourceConfigurationModalComponent({
                 <div className={classNames(NO_WRAP_ELLIPSIS_CLASS_NAMES)}>{t(itemLabel)}</div>
               </div>
               {itemLabelIndex < selectedItems.length ? (
-                <div className={classNames('text-[14px] text-white', NO_WRAP_ELLIPSIS_CLASS_NAMES)}>
+                <div className={classNames('text-muted-foreground text-[14px]', NO_WRAP_ELLIPSIS_CLASS_NAMES)}>
                   {selectedItems[itemLabelIndex].name}
                 </div>
               ) : (
@@ -175,7 +175,7 @@ function DataSourceConfigurationModalComponent({
   return (
     <div className="flex h-[calc(100vh-300px)] select-none flex-col gap-4 pt-0.5">
       {getSelectedItemsComponent()}
-      <div className="h-0.5 w-full shrink-0 bg-black"></div>
+      <div className="bg-border h-0.5 w-full shrink-0"></div>
       {errorMessage ? (
         getErrorComponent()
       ) : (

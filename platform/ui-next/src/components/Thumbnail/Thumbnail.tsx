@@ -66,7 +66,7 @@ const Thumbnail = ({
         )}
       >
         <div className="h-[114px] w-[128px]">
-          <div className="relative bg-black">
+          <div className="relative bg-background">
             {imageSrc ? (
               <img
                 src={imageSrc}
@@ -88,7 +88,7 @@ const Thumbnail = ({
                 )}
               ></div>
               <div
-                className="text-[11px] font-semibold text-white"
+                className="text-foreground text-[11px] font-semibold"
                 data-cy="series-modality-label"
               >
                 {modality}
@@ -101,9 +101,9 @@ const Thumbnail = ({
                 <Tooltip>
                   <TooltipTrigger>
                     <div className="group">
-                      <Icons.StatusTracking className="text-primary-light h-[15px] w-[15px] group-hover:hidden" />
+                      <Icons.StatusTracking className="text-primary h-[15px] w-[15px] group-hover:hidden" />
                       <Icons.Cancel
-                        className="text-primary-light hidden h-[15px] w-[15px] group-hover:block"
+                        className="text-primary hidden h-[15px] w-[15px] group-hover:block"
                         onClick={onClickUntrack}
                       />
                     </div>
@@ -115,7 +115,7 @@ const Thumbnail = ({
                       </div>
                       <div className="flex flex-1 flex-col">
                         <span>
-                          <span className="text-white">
+                          <span className="text-foreground">
                             {isTracked ? 'Series is tracked' : 'Series is untracked'}
                           </span>
                         </span>
@@ -140,7 +140,7 @@ const Thumbnail = ({
             <TooltipContent>{description}</TooltipContent>
             <TooltipTrigger>
               <div
-                className="min-h-[18px] w-[128px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4 text-white"
+                className="text-foreground min-h-[18px] w-[128px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4"
                 data-cy="series-description-label"
               >
                 {description}
@@ -184,7 +184,7 @@ const Thumbnail = ({
           <div className="flex h-full w-[calc(100%-12px)] flex-col justify-start">
             <div className="flex items-center gap-[7px]">
               <div
-                className="text-[13px] font-semibold text-white"
+                className="text-foreground text-[13px] font-semibold"
                 data-cy="series-modality-label"
               >
                 {modality}
@@ -193,7 +193,7 @@ const Thumbnail = ({
                 <TooltipContent>{description}</TooltipContent>
                 <TooltipTrigger className="w-full overflow-hidden">
                   <div
-                    className="max-w-[160px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left text-[13px] font-normal text-white"
+                    className="text-foreground max-w-[160px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left text-[13px] font-normal"
                     data-cy="series-description-label"
                   >
                     {description}
@@ -223,9 +223,9 @@ const Thumbnail = ({
             <Tooltip>
               <TooltipTrigger>
                 <div className="group">
-                  <Icons.StatusTracking className="text-primary-light h-[20px] w-[15px] group-hover:hidden" />
+                  <Icons.StatusTracking className="text-primary h-[20px] w-[15px] group-hover:hidden" />
                   <Icons.Cancel
-                    className="text-primary-light hidden h-[15px] w-[15px] group-hover:block"
+                    className="text-primary hidden h-[15px] w-[15px] group-hover:block"
                     onClick={onClickUntrack}
                   />
                 </div>
@@ -237,7 +237,7 @@ const Thumbnail = ({
                   </div>
                   <div className="flex flex-1 flex-col">
                     <span>
-                      <span className="text-white">
+                      <span className="text-foreground">
                         {isTracked ? 'Series is tracked' : 'Series is untracked'}
                       </span>
                     </span>

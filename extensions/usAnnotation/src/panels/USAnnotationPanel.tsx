@@ -155,7 +155,7 @@ export default function USAnnotationPanel() {
    * Render helpers so the JSX doesn’t become spaghetti.     */
   const renderWorkflowToggles = () => (
     <PanelSection.Content>
-      <div className="space-y-3 p-2 text-sm text-white">
+      <div className="space-y-3 p-2 text-sm text-foreground">
         <div className="flex items-center">
           <Switch
             id="depth-guide-switch"
@@ -260,15 +260,15 @@ export default function USAnnotationPanel() {
             id="show-overlay-switch"
             checked={showOverlay}
             onCheckedChange={() => setShowOverlayCommand(!showOverlay)}
-            className="data-[state=checked]:bg-blue-500"
+            className="data-[state=checked]:bg-primary"
           />
-          <label htmlFor="show-overlay-switch" className="cursor-pointer text-blue-300">
+          <label htmlFor="show-overlay-switch" className="cursor-pointer text-primary">
             {t('Show Overlay')}
           </label>
         </div>
 
         {/* Divider */}
-        <hr className="border-t border-gray-800" />
+        <hr className="border-t border-border" />
       </div>
     </PanelSection.Content>
   );
@@ -280,7 +280,7 @@ export default function USAnnotationPanel() {
           {/* <Button
             variant="ghost"
             size="sm"
-            className="text-blue-300"
+            className="text-primary"
             disabled={autoAdd}
             onClick={addCurrentImageId}
           >
@@ -297,7 +297,7 @@ export default function USAnnotationPanel() {
         <div className="w-full overflow-hidden">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-blue-900 text-blue-300">
+              <tr className="border-b border-border text-primary">
                 <th></th>
                 <th className="py-2 px-3 text-left">{t('Frame')}</th>
                 <th className="py-2 px-3 text-center">{t('Pleura lines')}</th>
@@ -309,8 +309,8 @@ export default function USAnnotationPanel() {
               {annotatedFrames.map(item => (
                 <tr
                   key={item.frame}
-                  className={`border-b border-blue-900 ${
-                    item.frame === 5 ? 'bg-cyan-800 bg-opacity-30' : ''
+                  className={`border-b border-border ${
+                    item.frame === 5 ? 'bg-primary/10' : ''
                   }`}
                   onClick={() => handleRowClick(item)}
                   style={{ cursor: 'pointer' }}
@@ -322,10 +322,10 @@ export default function USAnnotationPanel() {
                   <td className="py-3 px-3 text-right">
                     {item.frame === 5 && (
                       <div className="flex items-center justify-end">
-                        <Button variant="ghost" className="p-0 text-blue-300">
+                        <Button variant="ghost" className="p-0 text-primary">
                           <Icons.EyeVisible />
                         </Button>
-                        <Button variant="ghost" className="ml-2 p-0 text-blue-300">
+                        <Button variant="ghost" className="ml-2 p-0 text-primary">
                           <Icons.More />
                         </Button>
                       </div>
@@ -396,7 +396,7 @@ export default function USAnnotationPanel() {
    *  🖼  Final Render                                      */
   return (
     <div
-      className="h-full bg-black text-white"
+      className="h-full bg-background text-foreground"
       style={{ minWidth: 240, maxWidth: 480, width: '100%' }}
     >
       {/* Workflow */}

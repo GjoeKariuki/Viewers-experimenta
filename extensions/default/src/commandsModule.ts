@@ -443,12 +443,26 @@ const commandsModule = ({
           // Run the hanging protocol fresh, re-using the existing study data
           // This is done on reset or when the study changes and we haven't yet
           // applied it, and don't specify exact stage to use.
-          const displaySets = displaySetService.getActiveDisplaySets();
-          const activeStudy = {
-            StudyInstanceUID: toUseStudyInstanceUID,
-            displaySets,
-          };
-          hangingProtocolService.run(activeStudy, protocolId);
+          const study = DicomMetadataStore.getStudy(toUseStudyInstanceUID);
+          if (study) {
+            hangingProtocolService.addStudy(study);
+          }
+
+          const displaySetsForStudy = displaySetService
+            .getActiveDisplaySets()
+            .filter(displaySet => displaySet.StudyInstanceUID === toUseStudyInstanceUID);
+
+          const displaySets = displaySetsForStudy.length
+            ? displaySetsForStudy
+            : displaySetService.getActiveDisplaySets();
+
+          hangingProtocolService.run(
+            {
+              activeStudy: study || { StudyInstanceUID: toUseStudyInstanceUID },
+              displaySets,
+            },
+            protocolId
+          );
         } else if (
           protocolId === hpInfo.protocolId &&
           useStageIdx === hpInfo.stageIndex &&

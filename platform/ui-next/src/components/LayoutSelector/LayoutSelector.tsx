@@ -223,10 +223,10 @@ const Trigger = ({
       className={cn(
         'inline-flex h-10 w-10 items-center justify-center !rounded-lg',
         disabled
-          ? 'text-common-bright hover:bg-primary-dark hover:text-primary-light cursor-not-allowed opacity-40'
+          ? 'text-muted-foreground cursor-not-allowed opacity-40'
           : isOpen
             ? 'bg-background text-foreground/80'
-            : 'text-foreground/80 hover:bg-background hover:text-highlight bg-transparent',
+            : 'bg-transparent text-foreground/80 hover:bg-accent hover:text-highlight',
         className
       )}
       variant="ghost"
@@ -438,7 +438,7 @@ const GridSelector = ({ rows = 3, columns = 4, className }: GridSelectorProps) =
       {Array.from(Array(rows * columns).keys()).map(index => (
         <div
           key={index}
-          className={cn('cursor-pointer', isHovered(index) ? 'bg-primary-active' : 'bg-[#04225b]')}
+          className={cn('cursor-pointer', isHovered(index) ? 'bg-primary' : 'bg-muted')}
           data-cy={`Layout-${index % columns}-${Math.floor(index / columns)}`}
           onClick={() => handleSelection(index)}
           onMouseEnter={() => setHoveredIndex(index)}
@@ -449,9 +449,7 @@ const GridSelector = ({ rows = 3, columns = 4, className }: GridSelectorProps) =
   );
 };
 
-const Divider = ({ className }: { className?: string }) => (
-  <div className={cn('h-px bg-black', className)}></div>
-);
+const Divider = ({ className }: { className?: string }) => <div className={cn('bg-border h-px', className)}></div>;
 
 const HelpText = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <p className={cn('text-muted-foreground text-xs leading-tight', className)}>{children}</p>

@@ -23,9 +23,9 @@ const DisplaySetMessageListTooltip = ({ messages, id }): React.ReactNode => {
             />
           </TooltipTrigger>
           <TooltipContent side="right">
-            <div className="max-w-68 text-left text-lg text-white">
+            <div className="text-foreground max-w-68 text-left text-lg">
               <div
-                className="break-normal text-lg font-semibold text-blue-300"
+                className="text-primary break-normal text-lg font-semibold"
                 style={{
                   marginLeft: '4px',
                   marginTop: '4px',

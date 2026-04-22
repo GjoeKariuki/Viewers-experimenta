@@ -32,7 +32,7 @@ function PanelStudyBrowser({
     (customizationService.getCustomization('studyBrowser.studyMode') as string) || 'all';
 
   const internalImageViewer = useImageViewer();
-  const StudyInstanceUIDs = internalImageViewer.StudyInstanceUIDs;
+  const { StudyInstanceUIDs } = internalImageViewer;
   const fetchedStudiesRef = useRef(new Set());
 
   const [{ activeViewportId, viewports, isHangingProtocolLayout }] = useViewportGrid();
@@ -254,7 +254,7 @@ function PanelStudyBrowser({
         }
         const { displaySetsAdded, options } = data;
         displaySetsAdded.forEach(async dSet => {
-          const displaySetInstanceUID = dSet.displaySetInstanceUID;
+          const { displaySetInstanceUID } = dSet;
           const newImageSrcEntry = {};
           const displaySet = displaySetService.getDisplaySetByUID(displaySetInstanceUID);
           if (displaySet?.unsupported) {
@@ -415,7 +415,7 @@ function PanelStudyBrowser({
         />
         <Separator
           orientation="horizontal"
-          className="bg-black"
+          className="bg-border"
           thickness="2px"
         />
       </>

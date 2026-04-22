@@ -55,17 +55,17 @@ export function StudyBrowserSort({ servicesManager }: withAppTypes) {
       <DropdownMenu>
         <Tooltip>
           <TooltipTrigger className="w-full overflow-hidden">
-            <DropdownMenuTrigger className="border-inputfield-main focus:border-inputfield-main flex h-[26px] w-full items-center justify-start overflow-hidden whitespace-nowrap rounded border bg-black p-2 text-base text-white">
+            <DropdownMenuTrigger className="border-border bg-popover text-popover-foreground focus:border-border flex h-[26px] w-full items-center justify-start overflow-hidden whitespace-nowrap rounded border p-2 text-base hover:bg-accent">
               {selectedSort.label}
             </DropdownMenuTrigger>
           </TooltipTrigger>
           <TooltipContent>{selectedSort.label}</TooltipContent>
         </Tooltip>
-        <DropdownMenuContent className="bg-black">
+        <DropdownMenuContent className="bg-popover text-popover-foreground border-border border">
           {sortFunctions.map(sort => (
             <DropdownMenuItem
               key={sort.label}
-              className="text-white"
+              className="text-popover-foreground hover:bg-accent hover:text-accent-foreground"
               onClick={() => handleSortChange(sort)}
             >
               {sort.label}
@@ -77,12 +77,12 @@ export function StudyBrowserSort({ servicesManager }: withAppTypes) {
         <TooltipTrigger>
           <button
             onClick={toggleSortDirection}
-            className="flex h-[26px] items-center justify-center bg-black"
+            className="border-border bg-popover text-foreground flex h-[26px] items-center justify-center rounded border hover:bg-accent"
           >
             {sortDirection === 'ascending' ? (
-              <Icons.SortingAscending className="text-primary-main w-2" />
+              <Icons.SortingAscending className="text-primary w-2" />
             ) : (
-              <Icons.SortingDescending className="text-primary-main w-2" />
+              <Icons.SortingDescending className="text-primary w-2" />
             )}
           </button>
         </TooltipTrigger>

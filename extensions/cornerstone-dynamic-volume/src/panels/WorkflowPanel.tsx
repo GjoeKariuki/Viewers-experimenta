@@ -10,9 +10,9 @@ function WorkflowPanel({ servicesManager }: { servicesManager: ServicesManager }
   return (
     <div
       data-cy={'workflow-panel'}
-      className="bg-secondary-dark mb-1 px-3 py-4"
+      className="bg-muted text-foreground mb-1 px-3 py-4"
     >
-      <div className="mb-1">Workflow</div>
+      <div className="mb-1 text-sm font-medium">Workflow</div>
       <div>
         <ProgressDropdownWithService servicesManager={servicesManager} />
       </div>

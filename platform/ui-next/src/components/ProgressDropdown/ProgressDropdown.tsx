@@ -94,12 +94,12 @@ const ProgressDropdown = ({
   return (
     <div
       ref={element}
-      className="relative grow select-none text-[0px] text-white"
+      className="relative grow select-none text-[0px] text-foreground"
     >
       <div>
         <div className="mb-1.5 flex h-[26px]">
           <div
-            className="bg-secondary-dark border-primary-main flex grow cursor-pointer rounded border"
+            className="bg-popover border-border text-popover-foreground flex grow cursor-pointer rounded border hover:bg-accent"
             style={{ width: `${dropDownWidth}px` }}
             onClick={toggleOpen}
           >
@@ -108,18 +108,18 @@ const ProgressDropdown = ({
 
               {!selectedOption && <div className="ml-1 grow text-base leading-6">{children}</div>}
             </div>
-            <Icons.ChevronDown className="text-primary-active mt-1.5 ml-1 mr-2" />
+            <Icons.ChevronDown className="text-primary mt-1.5 ml-1 mr-2" />
           </div>
           <button
             className={classnames('ml-1.5 w-[26px] rounded text-base', {
-              'bg-primary-main': canMoveNext,
-              'bg-primary-dark pointer-events-none': !canMoveNext,
+              'bg-primary text-primary-foreground': canMoveNext,
+              'bg-muted text-muted-foreground pointer-events-none': !canMoveNext,
             })}
           >
             <Icons.ArrowRight
-              className={classnames('relative left-0.5 h-6 w-6 text-white', {
-                'text-white': canMoveNext,
-                'text-secondary-light': !canMoveNext,
+              className={classnames('relative left-0.5 h-6 w-6', {
+                'text-primary-foreground': canMoveNext,
+                'text-muted-foreground': !canMoveNext,
               })}
               onClick={handleNextButtonClick}
             />
@@ -128,8 +128,8 @@ const ProgressDropdown = ({
         <div
           className={classnames(
             'absolute top-7 left-0 right-8 z-10 mt-0.5 origin-top',
-            'bg-primary-dark overflow-hidden transition-[max-height] duration-300',
-            'border-secondary-main rounded border shadow',
+            'bg-popover text-popover-foreground overflow-hidden transition-[max-height] duration-300',
+            'border-border rounded border shadow',
             {
               hidden: !open,
               'max-h-[500px]': open,

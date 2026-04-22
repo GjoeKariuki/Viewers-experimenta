@@ -65,18 +65,17 @@ export default function PanelMeasurement(props): React.ReactNode {
     return EmptyComponent ? (
       <EmptyComponent items={displayMeasurements} />
     ) : (
-      <span className="text-white">No Measurements</span>
+      <span className="text-muted-foreground">No Measurements</span>
     );
   }
 
   if (children) {
-    const cloned = React.Children.map(children, child =>
+    return React.Children.map(children, child =>
       React.cloneElement(child, {
         items: displayMeasurements,
         filter: measurementFilter,
       })
     );
-    return cloned;
   }
 
   // Need to merge defaults on the content props to ensure they get passed to children

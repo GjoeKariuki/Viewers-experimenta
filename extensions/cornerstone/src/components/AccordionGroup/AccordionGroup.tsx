@@ -55,9 +55,9 @@ const DEFAULT_TYPES = [GroupAccordion, Content, Trigger];
  * measurements panel for a practical, working example.
  */
 export function AccordionGroup(props) {
-  const { grouping, items, children, sourceChildren } = props;
+  const { grouping, items, children, sourceChildren, defaultValue: defaultValueProp } = props;
   const childProps = useSystem();
-  let defaultValue = props.defaultValue;
+  let defaultValue = defaultValueProp;
   const groups = grouping.groupingFunction(items, grouping, childProps);
 
   if (!defaultValue) {
@@ -98,7 +98,7 @@ function DefaultAccordion(props) {
   return (
     <Accordion
       type={grouping.type || 'multiple'}
-      className="text-white"
+      className="text-foreground"
       defaultValue={defaultValue}
     >
       {[...groups.entries()].map(([key, group]) => {
@@ -144,33 +144,31 @@ function GroupAccordion(props) {
 }
 
 function Content(props) {
-  const { children, asChild, ...childProps } = props;
-  const { group } = props;
-  Object.assign(childProps, group);
+  const { children, asChild, group, ...childProps } = props;
 
   if (!group) {
     return null;
   }
+  const contentProps = { ...childProps, ...group };
   if (asChild) {
-    return React.cloneElement(children, { ...group, ...props, children: children.props.children });
+    return React.cloneElement(children, { ...contentProps, children: children.props.children });
   }
   return (
     <AccordionContent>
-      {React.cloneElement(children, { ...group, ...props, children: children.props.children })}
+      {React.cloneElement(children, { ...contentProps, children: children.props.children })}
     </AccordionContent>
   );
 }
 
 function Trigger(props) {
-  const { children, asChild, ...childProps } = props;
-  const { group } = props;
-  Object.assign(childProps, group);
+  const { children, asChild, group, ...childProps } = props;
 
   if (!group) {
     return null;
   }
+  const triggerProps = { ...childProps, ...group };
   if (asChild) {
-    return React.cloneElement(children, childProps);
+    return React.cloneElement(children, triggerProps);
   }
   return (
     <AccordionTrigger
@@ -178,7 +176,7 @@ function Trigger(props) {
       asChild={true}
     >
       <div>
-        {React.cloneElement(children, childProps)}
+        {React.cloneElement(children, triggerProps)}
         <ChevronDownIcon
           key="chevronDown"
           className="text-primary h-4 w-4 shrink-0 transition-transform duration-200"

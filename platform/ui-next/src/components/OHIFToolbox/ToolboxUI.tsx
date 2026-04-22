@@ -50,7 +50,7 @@ function ToolboxUI(props: ToolboxProps) {
               }
 
               const { id, Component, componentProps } = toolDef;
-              const isLastRow = Math.floor(index / ItemsPerRow) + 1 === numRows;
+              const isLastRow = index >= (numRows - 1) * ItemsPerRow;
 
               const toolClasses = `ml-1 ${isLastRow ? '' : 'mb-2'}`;
 
@@ -78,7 +78,7 @@ function ToolboxUI(props: ToolboxProps) {
             })}
           </div>
         </div>
-        <div className="bg-primary-dark h-auto px-2">
+        <div className="bg-muted text-foreground h-auto px-2">
           {activeToolOptions && <ToolSettings options={activeToolOptions} />}
         </div>
       </>

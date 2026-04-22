@@ -50,15 +50,19 @@ const WindowLevel = ({
     [histogram]
   );
 
+  const initialVOIRange = (): VOIRange => {
+    if (voiProp) {
+      return convertVOItoVOIRange(voiProp);
+    }
+
+    return {
+      min: range.min,
+      max: range.max,
+    };
+  };
+
   // Initialize VOI range from props
-  const [voiRange, setVOIRange] = useState<VOIRange>(
-    voiProp
-      ? convertVOItoVOIRange(voiProp)
-      : {
-          min: range.min,
-          max: range.max,
-        }
-  );
+  const [voiRange, setVOIRange] = useState<VOIRange>(initialVOIRange());
 
   // Update VOI range when props change
   useEffect(() => {
@@ -138,7 +142,7 @@ const WindowLevel = ({
         {showOpacitySlider && (
           <div className="mt-2">
             <div className="flex items-center justify-between gap-2 text-base">
-              <div className="text-xs text-white">Opacity</div>
+              <div className="text-muted-foreground text-xs">Opacity</div>
               <div className="flex-1">
                 <Numeric.Container
                   mode="singleRange"

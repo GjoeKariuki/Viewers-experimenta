@@ -40,7 +40,7 @@ const MeasurementTable = ({
       <PanelSection defaultOpen={true}>
         <PanelSection.Header
           key="measurementTableHeader"
-          className="bg-secondary-dark"
+          className="bg-muted"
         >
           <span>{`${t(title)} (${amount})`}</span>
         </PanelSection.Header>
@@ -48,7 +48,6 @@ const MeasurementTable = ({
       </PanelSection>
     </MeasurementTableProvider>
   );
-};
 
 const Header = ({ children }: { children: React.ReactNode }) => {
   return <div className="measurement-table-header">{children}</div>;
@@ -59,7 +58,7 @@ const Body = () => {
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-primary-light mb-1 flex flex-1 items-center px-2 py-2 text-base">
+      <div className="text-muted-foreground mb-1 flex flex-1 items-center px-2 py-2 text-base">
         {useTranslation('MeasurementTable').t('No tracked measurements')}
       </div>
     );

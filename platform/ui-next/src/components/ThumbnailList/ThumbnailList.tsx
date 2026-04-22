@@ -34,7 +34,7 @@ const ThumbnailList = ({
         {thumbnailItems.length > 0 && (
           <div
             id="ohif-thumbnail-list"
-            className="bg-bkg-low grid grid-cols-1 place-items-start gap-[4px]"
+            className="bg-muted grid grid-cols-1 place-items-start gap-[4px]"
           >
             {thumbnailItems.map(item => {
               const { displaySetInstanceUID, componentType, numInstances, ...rest } = item;
@@ -62,7 +62,7 @@ const ThumbnailList = ({
         {listItems.length > 0 && (
           <div
             id="ohif-thumbnail-list"
-            className="bg-bkg-low grid grid-cols-1 place-items-start gap-[2px]"
+            className="bg-muted grid grid-cols-1 place-items-start gap-[2px]"
           >
             {listItems.map(item => {
               const { displaySetInstanceUID, componentType, numInstances, ...rest } = item;
