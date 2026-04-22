@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '../DropdownMenu';
 import { Button } from '../Button';
+import { Icons } from '../Icons';
 import {
   THEME_CHANGE_EVENT,
   ThemePreference,
@@ -59,11 +60,13 @@ function ThemeSelector() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="default"
-          className="text-primary hover:bg-primary-dark h-8 px-3"
+          size="icon"
+          className="text-primary hover:bg-primary-dark h-8 w-8"
           dataCY="theme-selector"
+          aria-label={t('Themes')}
+          title={t('Themes')}
         >
-          {t('Themes')}
+          <Icons.ColorChange className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
