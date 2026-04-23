@@ -74,7 +74,7 @@ function Header({
               {hasReturnButton && (
                 <button
                   type="button"
-                  className="text-primary hover:bg-primary-dark ml-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded"
+                  className="text-foreground hover:bg-primary/25 ml-1 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded"
                   onClick={onClickReturn}
                   data-cy="return-to-work-list"
                 >
@@ -111,7 +111,7 @@ function Header({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-primary hover:bg-primary-dark mt-2 h-full w-full"
+                    className="text-foreground hover:bg-primary/25 mt-2 h-full w-full"
                   >
                     <Icons.GearSettings />
                   </Button>
