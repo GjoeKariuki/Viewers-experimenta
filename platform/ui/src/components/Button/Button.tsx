@@ -33,17 +33,20 @@ const enabledEffectClasses = {
   ),
 };
 
-const baseEnabledClasses = 'text-white';
+const baseEnabledClasses = {
+  [ButtonEnums.type.primary]: 'text-white',
+  [ButtonEnums.type.secondary]: 'text-secondary-foreground',
+};
 
 const enabledClasses = {
   [ButtonEnums.type.primary]: classnames(
     'bg-primary-main',
-    baseEnabledClasses,
+    baseEnabledClasses[ButtonEnums.type.primary],
     enabledEffectClasses[ButtonEnums.type.primary]
   ),
   [ButtonEnums.type.secondary]: classnames(
     'bg-customblue-30',
-    baseEnabledClasses,
+    baseEnabledClasses[ButtonEnums.type.secondary],
     enabledEffectClasses[ButtonEnums.type.secondary]
   ),
 };

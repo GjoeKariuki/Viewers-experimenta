@@ -4,7 +4,7 @@ import classnames from 'classnames';
 
 const Table = ({ children, className = '', fullWidth = true, style = {} }) => {
   const classes = {
-    base: 'text-lg text-white',
+    base: 'text-lg text-foreground',
     fullWidth: {
       true: 'w-full',
       false: '',

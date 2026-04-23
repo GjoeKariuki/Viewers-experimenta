@@ -77,7 +77,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         month: 'space-y-4',
         caption: 'flex justify-between items-center px-2',
 
-        caption_dropdowns: 'flex space-x-2 text-black',
+        caption_dropdowns: 'flex space-x-2 text-foreground',
         caption_label: 'hidden',
         nav: 'space-x-1 flex items-center',
         table: 'w-full border-collapse space-y-1',

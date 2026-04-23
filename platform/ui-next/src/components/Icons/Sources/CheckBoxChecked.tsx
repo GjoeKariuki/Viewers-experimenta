@@ -20,8 +20,8 @@ export const CheckBoxChecked = (props: IconProps) => (
       fillRule="evenodd"
     >
       <rect
-        stroke="#348CFD"
-        fill="#348CFD"
+        stroke="currentColor"
+        fill="currentColor"
         x=".5"
         y=".5"
         width="11"
@@ -29,7 +29,7 @@ export const CheckBoxChecked = (props: IconProps) => (
         rx="3"
       />
       <use
-        fill="#000"
+        fill="white"
         xlinkHref="#3nvolf8jsa"
       />
     </g>
