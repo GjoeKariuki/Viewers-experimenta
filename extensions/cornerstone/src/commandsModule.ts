@@ -204,7 +204,7 @@ function commandsModule({
     viewportId?: string;
     displaySetInstanceUID?: string;
     mode?: ProjectionMode;
-    slabThickness?: number | 'fullVolume' | 'preserve';
+    slabThickness?: number | 'fullVolume' | 'minimum' | 'preserve';
   }) {
     const {
       viewport,
@@ -239,9 +239,11 @@ function commandsModule({
       const nextThickness =
         slabThickness === 'fullVolume'
           ? range.max
-          : typeof slabThickness === 'number'
-            ? clampProjectionSlabThickness(slabThickness, range)
-            : clampProjectionSlabThickness(currentThickness, range);
+          : slabThickness === 'minimum'
+            ? range.min
+            : typeof slabThickness === 'number'
+              ? clampProjectionSlabThickness(slabThickness, range)
+              : clampProjectionSlabThickness(currentThickness, range);
 
       viewport.setSlabThickness(nextThickness, actorUIDs);
     }
@@ -1542,8 +1544,8 @@ function commandsModule({
     toggleViewportProjection: ({
       viewportId,
       displaySetInstanceUID,
-      mode = PROJECTION_MODES.MIP,
-      slabThickness = 'fullVolume',
+      mode = PROJECTION_MODES.MINIP,
+      slabThickness = 'minimum' as const,
     }) => {
       const { viewport, actorEntry } = _getProjectionViewportContext(
         viewportId,

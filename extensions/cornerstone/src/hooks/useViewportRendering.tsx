@@ -597,10 +597,11 @@ export function useViewportRendering(
       }
 
       const nextBlendMode = projectionModeToBlendMode(mode);
-      const nextThickness = clampProjectionSlabThickness(
-        slabThicknessRef.current,
-        slabThicknessRange
-      );
+      const nextThickness =
+        projectionModeRef.current === PROJECTION_MODES.COMPOSITE &&
+        mode !== PROJECTION_MODES.COMPOSITE
+          ? slabThicknessRange.min
+          : clampProjectionSlabThickness(slabThicknessRef.current, slabThicknessRange);
 
       viewport.setBlendMode(nextBlendMode, actorUIDs, false);
 

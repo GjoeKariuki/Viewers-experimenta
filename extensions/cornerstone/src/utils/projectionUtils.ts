@@ -15,7 +15,7 @@ export type ProjectionSlabThicknessRange = {
   step: number;
 };
 
-const MINIMUM_SLAB_THICKNESS = 0.1;
+export const MINIMUM_SLAB_THICKNESS = 0.1;
 const DEFAULT_STEP = 0.1;
 
 function roundToPrecision(value: number, precision = 2): number {
@@ -55,6 +55,19 @@ export function clampProjectionSlabThickness(
   return roundToPrecision(Math.min(Math.max(slabThickness, range.min), range.max));
 }
 
+export function getMinimumProjectionSlabThickness(
+  spacing?: number[],
+  fallbackThickness = MINIMUM_SLAB_THICKNESS
+): number {
+  const validSpacing = spacing?.filter(value => Number.isFinite(value) && value > 0);
+
+  if (!validSpacing?.length) {
+    return roundToPrecision(Math.max(fallbackThickness, MINIMUM_SLAB_THICKNESS));
+  }
+
+  return roundToPrecision(Math.max(Math.min(...validSpacing), MINIMUM_SLAB_THICKNESS));
+}
+
 export function getProjectionSlabThicknessRange(
   imageData?: {
     imageData?: {
@@ -91,7 +104,7 @@ export function getProjectionSlabThicknessRange(
   const [dimX = 1, dimY = 1, dimZ = 1] = dimensions;
   const [spacingX = validSpacing[0], spacingY = validSpacing[0], spacingZ = validSpacing[0]] =
     spacing;
-  const minSpacing = Math.max(Math.min(...validSpacing), MINIMUM_SLAB_THICKNESS);
+  const minSpacing = getMinimumProjectionSlabThickness(validSpacing);
   const diagonal = Math.sqrt(
     Math.pow(dimX * spacingX, 2) + Math.pow(dimY * spacingY, 2) + Math.pow(dimZ * spacingZ, 2)
   );

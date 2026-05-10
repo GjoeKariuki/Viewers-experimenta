@@ -3,6 +3,7 @@ import {
   PROJECTION_MODES,
   blendModeToProjectionMode,
   clampProjectionSlabThickness,
+  getMinimumProjectionSlabThickness,
   getProjectionSlabThicknessRange,
   projectionModeToBlendMode,
 } from './projectionUtils';
@@ -96,6 +97,16 @@ describe('projectionUtils', () => {
         max: 3,
         step: 0.1,
       });
+    });
+  });
+
+  describe('getMinimumProjectionSlabThickness', () => {
+    it('uses the smallest valid volume spacing', () => {
+      expect(getMinimumProjectionSlabThickness([1.2, 0.6, 2.5])).toBe(0.6);
+    });
+
+    it('falls back when spacing is unavailable', () => {
+      expect(getMinimumProjectionSlabThickness(undefined, 2)).toBe(2);
     });
   });
 });

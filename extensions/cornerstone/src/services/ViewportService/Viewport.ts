@@ -71,7 +71,7 @@ export type PublicDisplaySetOptions = {
   voi?: VOI;
   voiInverted?: boolean;
   blendMode?: string;
-  slabThickness?: number;
+  slabThickness?: number | 'fullVolume' | 'minimum';
   colormap?: string;
   displayPreset?: string;
 };

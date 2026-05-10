@@ -238,11 +238,11 @@ function formatThickness(value: number): string {
 function getProjectionModeLabel(mode: ProjectionMode): string {
   switch (mode) {
     case PROJECTION_MODES.MIP:
-      return 'MIP';
+      return 'MIP (MaxIP)';
     case PROJECTION_MODES.MINIP:
-      return 'MinMIP';
+      return 'MinIP';
     case PROJECTION_MODES.AVG:
-      return 'AvgMIP';
+      return 'AvgIP';
     default:
       return 'Off';
   }

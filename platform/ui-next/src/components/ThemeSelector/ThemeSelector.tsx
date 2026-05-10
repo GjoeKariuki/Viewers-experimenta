@@ -22,7 +22,6 @@ import {
 const themeOptions: Array<{ label: string; value: ThemePreference }> = [
   { label: 'Default', value: 'default' },
   { label: 'Dark', value: 'dark' },
-  { label: 'White', value: 'white' },
 ];
 
 function ThemeSelector() {
@@ -46,7 +45,7 @@ function ThemeSelector() {
   }, []);
 
   const onValueChange = (value: string) => {
-    if (value !== 'default' && value !== 'dark' && value !== 'white') {
+    if (value !== 'default' && value !== 'dark') {
       return;
     }
 

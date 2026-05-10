@@ -61,8 +61,8 @@ export const mipAndMpr: Types.HangingProtocol.Protocol = {
             {
               id: 'activeDisplaySet',
               options: {
-                blendMode: 'MIP',
-                slabThickness: 'fullVolume',
+                blendMode: 'minip',
+                slabThickness: 'minimum',
               },
             },
           ],
