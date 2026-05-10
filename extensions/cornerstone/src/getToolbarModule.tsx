@@ -288,11 +288,9 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
         const displaySetUIDs = viewportGridService.getDisplaySetsUIDsForViewport(viewportId);
         const displaySets = displaySetUIDs.map(displaySetService.getDisplaySetByUID);
         const hasReconstructableDisplaySet = displaySets.some(displaySet => displaySet?.isReconstructable);
-        const currentMode = blendModeToProjectionMode(viewport.getBlendMode?.());
-        const isProjectionModeActive = currentMode !== PROJECTION_MODES.COMPOSITE;
 
         return {
-          disabled: !hasReconstructableDisplaySet || !isProjectionModeActive,
+          disabled: !hasReconstructableDisplaySet,
         };
       },
     },

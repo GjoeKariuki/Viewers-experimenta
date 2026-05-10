@@ -22,10 +22,10 @@ interface ProjectionMenuProps {
 }
 
 const PROJECTION_MODE_ORDER: ProjectionMode[] = [
-  PROJECTION_MODES.COMPOSITE,
-  PROJECTION_MODES.MIP,
   PROJECTION_MODES.MINIP,
+  PROJECTION_MODES.MIP,
   PROJECTION_MODES.AVG,
+  PROJECTION_MODES.COMPOSITE,
 ];
 
 export function ProjectionMenu({
