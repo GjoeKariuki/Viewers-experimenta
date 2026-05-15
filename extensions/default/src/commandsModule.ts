@@ -39,7 +39,9 @@ export type UpdateViewportDisplaySetParams = {
   excludeNonImageModalities?: boolean;
 };
 
-const PROJECTION_PROTOCOL_IDS = ['mpr', 'mip', 'mipAndMpr'];
+const DEFAULT_PROTOCOL_ID = 'default';
+const RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES = ['volume', 'volume3d'];
+const SERIES_CHANGE_RESET_WAIT_FRAMES = 5;
 
 const getSafeActiveViewportId = (viewportGridService, fallbackViewportId) => {
   const { activeViewportId, viewports } = viewportGridService.getState();
@@ -54,6 +56,145 @@ const getSafeActiveViewportId = (viewportGridService, fallbackViewportId) => {
 
   return viewports?.keys?.().next?.().value;
 };
+
+function getActiveViewportDisplaySetInstanceUID(viewportGridService, viewportId) {
+  const { viewports } = viewportGridService.getState();
+  const activeViewport = viewports?.get(viewportId);
+  return activeViewport?.displaySetInstanceUIDs?.[0];
+}
+
+function buildFallbackViewportUpdate(viewportId, displaySetInstanceUID) {
+  if (!viewportId) {
+    return [];
+  }
+
+  return [
+    {
+      viewportId,
+      displaySetInstanceUIDs: [displaySetInstanceUID],
+    },
+  ];
+}
+
+function normalizeViewportUpdates(
+  viewportsToUpdate,
+  viewportGridService,
+  fallbackViewportId,
+  displaySetInstanceUID
+) {
+  const { viewports } = viewportGridService.getState();
+
+  if (
+    Array.isArray(viewportsToUpdate) &&
+    viewportsToUpdate.length > 0 &&
+    viewportsToUpdate.every(viewport => viewport?.viewportId && viewports?.has(viewport.viewportId))
+  ) {
+    return viewportsToUpdate;
+  }
+
+  return buildFallbackViewportUpdate(fallbackViewportId, displaySetInstanceUID);
+}
+
+function waitForNextFrame() {
+  return new Promise(resolve => {
+    if (typeof window === 'undefined' || !window.requestAnimationFrame) {
+      resolve(undefined);
+      return;
+    }
+
+    window.requestAnimationFrame(() => resolve(undefined));
+  });
+}
+
+function getProtocolViewportIds(hangingProtocolService, protocolId = DEFAULT_PROTOCOL_ID) {
+  try {
+    const protocol = hangingProtocolService.getProtocolById(protocolId);
+    const stage = protocol?.stages?.[0];
+
+    return (stage?.viewports || [])
+      .map(viewport => viewport?.viewportOptions?.viewportId)
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function shouldResetToDefaultBeforeLoadingDisplaySet(hangingProtocolService, protocolId) {
+  if (!protocolId || protocolId === DEFAULT_PROTOCOL_ID) {
+    return false;
+  }
+
+  try {
+    const protocol = hangingProtocolService.getProtocolById(protocolId);
+    const viewportOptions = [
+      protocol?.defaultViewport?.viewportOptions,
+      ...(protocol?.stages || []).flatMap(stage =>
+        (stage?.viewports || []).map(viewport => viewport?.viewportOptions)
+      ),
+    ];
+
+    return viewportOptions.some(viewportOptions =>
+      RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES.includes(viewportOptions?.viewportType)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isVolumeRenderingViewport(viewport) {
+  return RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES.includes(viewport?.viewportOptions?.viewportType);
+}
+
+function getViewportIdAfterReset(viewportGridService, targetViewportIds = []) {
+  const { activeViewportId, viewports } = viewportGridService.getState();
+  const viewportIds = Array.from(viewports?.keys?.() ?? []);
+
+  if (!viewportIds.length) {
+    return undefined;
+  }
+
+  const candidateViewportIds = (targetViewportIds.length ? targetViewportIds : viewportIds).filter(
+    viewportId => {
+      const viewport = viewports?.get(viewportId);
+
+      return viewport && !isVolumeRenderingViewport(viewport);
+    }
+  );
+
+  if (activeViewportId && candidateViewportIds.includes(activeViewportId)) {
+    return activeViewportId;
+  }
+
+  if (candidateViewportIds.length) {
+    return candidateViewportIds[0];
+  }
+
+  if (activeViewportId && !isVolumeRenderingViewport(viewports?.get(activeViewportId))) {
+    return activeViewportId;
+  }
+
+  return viewportIds.find(viewportId => !isVolumeRenderingViewport(viewports?.get(viewportId)));
+}
+
+async function waitForViewportIdAfterReset(
+  viewportGridService,
+  hangingProtocolService,
+  targetProtocolId = DEFAULT_PROTOCOL_ID
+) {
+  const targetViewportIds = getProtocolViewportIds(hangingProtocolService, targetProtocolId);
+
+  for (let i = 0; i < SERIES_CHANGE_RESET_WAIT_FRAMES; i++) {
+    const viewportId = getViewportIdAfterReset(viewportGridService, targetViewportIds);
+
+    if (viewportId) {
+      return viewportId;
+    }
+
+    await waitForNextFrame();
+  }
+
+  return getViewportIdAfterReset(viewportGridService, targetViewportIds);
+}
 
 const commandsModule = ({
   servicesManager,
@@ -118,8 +259,8 @@ const commandsModule = ({
      */
     addDisplaySetAsLayer: ({ viewportId, displaySetInstanceUID, removeFirst = false }) => {
       if (!viewportId) {
-          const { activeViewportId } = servicesManager.services.viewportGridService.getState();
-          viewportId = activeViewportId;
+        const { activeViewportId } = servicesManager.services.viewportGridService.getState();
+        viewportId = activeViewportId;
       }
 
       if (!viewportId || !displaySetInstanceUID) {
@@ -780,7 +921,7 @@ const commandsModule = ({
       thumbnail.scrollIntoView({ behavior: 'smooth' });
     },
 
-    updateViewportDisplaySet: ({
+    updateViewportDisplaySet: async ({
       direction,
       excludeNonImageModalities,
     }: UpdateViewportDisplaySetParams) => {
@@ -788,10 +929,10 @@ const commandsModule = ({
 
       const currentDisplaySets = [...displaySetService.activeDisplaySets];
 
-      const { activeViewportId, viewports, isHangingProtocolLayout } =
-        viewportGridService.getState();
-
-      const { displaySetInstanceUIDs } = viewports.get(activeViewportId);
+      const { activeViewportId, viewports } = viewportGridService.getState();
+      let viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
+      const activeViewport = viewports.get(viewportIdToUse);
+      const displaySetInstanceUIDs = activeViewport?.displaySetInstanceUIDs || [];
 
       const activeDisplaySetIndex = currentDisplaySets.findIndex(displaySet =>
         displaySetInstanceUIDs.includes(displaySet.displaySetInstanceUID)
@@ -820,43 +961,70 @@ const commandsModule = ({
       const { displaySetInstanceUID } = displaySetToShow;
       const activeProtocolId = hangingProtocolService.getState()?.protocolId;
 
-      if (PROJECTION_PROTOCOL_IDS.includes(activeProtocolId) && !displaySetToShow?.isReconstructable) {
-        actions.setHangingProtocol({
-          protocolId: 'default',
+      let updatedViewports = [];
+      const currentViewportDisplaySetInstanceUID = getActiveViewportDisplaySetInstanceUID(
+        viewportGridService,
+        viewportIdToUse
+      );
+
+      if (
+        shouldResetToDefaultBeforeLoadingDisplaySet(hangingProtocolService, activeProtocolId) &&
+        currentViewportDisplaySetInstanceUID !== displaySetInstanceUID
+      ) {
+        const didReset = actions.setHangingProtocol({
+          protocolId: DEFAULT_PROTOCOL_ID,
           StudyInstanceUID: displaySetToShow?.StudyInstanceUID,
           reset: true,
         });
+
+        if (didReset !== false) {
+          viewportIdToUse = await waitForViewportIdAfterReset(
+            viewportGridService,
+            hangingProtocolService
+          );
+        }
       }
 
-      let updatedViewports = [];
-      let viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
-
       try {
-        updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+        updatedViewports = normalizeViewportUpdates(
+          hangingProtocolService.getViewportsRequireUpdate(
+            viewportIdToUse,
+            displaySetInstanceUID,
+            viewportGridService.getState().isHangingProtocolLayout
+          ),
+          viewportGridService,
           viewportIdToUse,
-          displaySetInstanceUID,
-          viewportGridService.getState().isHangingProtocolLayout
+          displaySetInstanceUID
         );
       } catch (error) {
         console.warn(error);
 
         const didReset = actions.setHangingProtocol({
-          protocolId: 'default',
+          protocolId: DEFAULT_PROTOCOL_ID,
           StudyInstanceUID: currentDisplaySets[displaySetIndexToShow]?.StudyInstanceUID,
           reset: true,
         });
 
         if (didReset) {
-          viewportIdToUse = getSafeActiveViewportId(viewportGridService, activeViewportId);
+          viewportIdToUse = await waitForViewportIdAfterReset(
+            viewportGridService,
+            hangingProtocolService
+          );
 
           try {
-            updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+            updatedViewports = normalizeViewportUpdates(
+              hangingProtocolService.getViewportsRequireUpdate(
+                viewportIdToUse,
+                displaySetInstanceUID,
+                viewportGridService.getState().isHangingProtocolLayout
+              ),
+              viewportGridService,
               viewportIdToUse,
-              displaySetInstanceUID,
-              viewportGridService.getState().isHangingProtocolLayout
+              displaySetInstanceUID
             );
           } catch (retryError) {
             console.warn(retryError);
+            updatedViewports = buildFallbackViewportUpdate(viewportIdToUse, displaySetInstanceUID);
           }
         }
 

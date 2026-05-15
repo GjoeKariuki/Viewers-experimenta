@@ -130,7 +130,9 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     // Creating the wrapper registers the concrete implementation in
     // Cornerstone's rendering-engine cache, so prefer the cached instance
     // after construction to keep our service pointed at the real engine.
-    this.renderingEngine = new RenderingEngine(RENDERING_ENGINE_ID) as unknown as Types.IRenderingEngine;
+    this.renderingEngine = new RenderingEngine(
+      RENDERING_ENGINE_ID
+    ) as unknown as Types.IRenderingEngine;
     this.renderingEngine = getRenderingEngine(RENDERING_ENGINE_ID) || this.renderingEngine;
 
     return this.renderingEngine;
@@ -1458,20 +1460,22 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
 
   private _getRenderingEngineImplementation(renderingEngine: Types.IRenderingEngine) {
     return (
-      (renderingEngine as Types.IRenderingEngine & {
-        _implementation?: Types.IRenderingEngine & {
+      (
+        renderingEngine as Types.IRenderingEngine & {
+          _implementation?: Types.IRenderingEngine & {
+            useCPURendering?: boolean;
+            contextPool?: unknown;
+            offscreenMultiRenderWindow?: unknown;
+            offScreenCanvasContainer?: unknown;
+            hasBeenDestroyed?: boolean;
+          };
           useCPURendering?: boolean;
           contextPool?: unknown;
           offscreenMultiRenderWindow?: unknown;
           offScreenCanvasContainer?: unknown;
           hasBeenDestroyed?: boolean;
-        };
-        useCPURendering?: boolean;
-        contextPool?: unknown;
-        offscreenMultiRenderWindow?: unknown;
-        offScreenCanvasContainer?: unknown;
-        hasBeenDestroyed?: boolean;
-      })._implementation ||
+        }
+      )._implementation ||
       (renderingEngine as Types.IRenderingEngine & {
         useCPURendering?: boolean;
         contextPool?: unknown;
@@ -1509,7 +1513,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     positionPresentation: PositionPresentation
   ): void {
     const viewRef = positionPresentation?.viewReference;
-    if (viewRef) {
+    if (viewRef && !(viewport instanceof VolumeViewport3D)) {
       // The orientation can be updated here to navigate to the specified
       // measurement or previous item, but this will not switch to volume
       // or to stack from the other type

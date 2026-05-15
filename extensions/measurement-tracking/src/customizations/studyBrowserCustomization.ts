@@ -23,7 +23,12 @@ function buildFallbackViewportUpdate(viewportId, displaySetInstanceUID) {
   ];
 }
 
-function normalizeViewportUpdates(viewportsToUpdate, viewportGridService, fallbackViewportId, displaySetInstanceUID) {
+function normalizeViewportUpdates(
+  viewportsToUpdate,
+  viewportGridService,
+  fallbackViewportId,
+  displaySetInstanceUID
+) {
   const { viewports } = viewportGridService.getState();
 
   if (
@@ -86,7 +91,11 @@ function shouldResetToDefaultBeforeLoadingDisplaySet(hangingProtocolService, pro
   }
 }
 
-function getViewportIdAfterReset(viewportGridService, previousViewportId, targetViewportIds = []) {
+function isVolumeRenderingViewport(viewport) {
+  return RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES.includes(viewport?.viewportOptions?.viewportType);
+}
+
+function getViewportIdAfterReset(viewportGridService, targetViewportIds = []) {
   const { activeViewportId, viewports } = viewportGridService.getState();
   const viewportIds = Array.from(viewports?.keys?.() ?? []);
 
@@ -95,7 +104,11 @@ function getViewportIdAfterReset(viewportGridService, previousViewportId, target
   }
 
   const candidateViewportIds = (targetViewportIds.length ? targetViewportIds : viewportIds).filter(
-    viewportId => viewports?.has(viewportId) && viewportId !== previousViewportId
+    viewportId => {
+      const viewport = viewports?.get(viewportId);
+
+      return viewport && !isVolumeRenderingViewport(viewport);
+    }
   );
 
   if (activeViewportId && candidateViewportIds.includes(activeViewportId)) {
@@ -106,31 +119,22 @@ function getViewportIdAfterReset(viewportGridService, previousViewportId, target
     return candidateViewportIds[0];
   }
 
-  if (
-    activeViewportId &&
-    activeViewportId !== previousViewportId &&
-    viewports?.has(activeViewportId)
-  ) {
+  if (activeViewportId && !isVolumeRenderingViewport(viewports?.get(activeViewportId))) {
     return activeViewportId;
   }
 
-  return viewportIds.find(viewportId => viewportId !== previousViewportId);
+  return viewportIds.find(viewportId => !isVolumeRenderingViewport(viewports?.get(viewportId)));
 }
 
 async function waitForViewportIdAfterReset(
   viewportGridService,
   hangingProtocolService,
-  previousViewportId,
   targetProtocolId = DEFAULT_PROTOCOL_ID
 ) {
   const targetViewportIds = getProtocolViewportIds(hangingProtocolService, targetProtocolId);
 
   for (let i = 0; i < PROJECTION_RESET_WAIT_FRAMES; i++) {
-    const viewportId = getViewportIdAfterReset(
-      viewportGridService,
-      previousViewportId,
-      targetViewportIds
-    );
+    const viewportId = getViewportIdAfterReset(viewportGridService, targetViewportIds);
     if (viewportId) {
       return viewportId;
     }
@@ -138,7 +142,7 @@ async function waitForViewportIdAfterReset(
     await waitForNextFrame();
   }
 
-  return getViewportIdAfterReset(viewportGridService, previousViewportId, targetViewportIds);
+  return getViewportIdAfterReset(viewportGridService, targetViewportIds);
 }
 
 async function getUpdatedViewportsForDisplaySet({
@@ -170,7 +174,7 @@ async function getUpdatedViewportsForDisplaySet({
     const studyInstanceUID =
       displaySetService.getDisplaySetByUID(displaySetInstanceUID)?.StudyInstanceUID;
     const didReset = commandsManager.run('setHangingProtocol', {
-      protocolId: 'default',
+      protocolId: DEFAULT_PROTOCOL_ID,
       StudyInstanceUID: studyInstanceUID,
       reset: true,
     });
@@ -181,8 +185,7 @@ async function getUpdatedViewportsForDisplaySet({
 
     viewportIdToUse = await waitForViewportIdAfterReset(
       viewportGridService,
-      hangingProtocolService,
-      viewportIdToUse
+      hangingProtocolService
     );
 
     try {
@@ -206,7 +209,7 @@ async function getUpdatedViewportsForDisplaySet({
     const studyInstanceUID =
       displaySetService.getDisplaySetByUID(displaySetInstanceUID)?.StudyInstanceUID;
     const didReset = commandsManager.run('setHangingProtocol', {
-      protocolId: 'default',
+      protocolId: DEFAULT_PROTOCOL_ID,
       StudyInstanceUID: studyInstanceUID,
       reset: true,
     });
@@ -217,8 +220,7 @@ async function getUpdatedViewportsForDisplaySet({
 
     viewportIdToUse = await waitForViewportIdAfterReset(
       viewportGridService,
-      hangingProtocolService,
-      viewportIdToUse
+      hangingProtocolService
     );
     try {
       return normalizeViewportUpdates(

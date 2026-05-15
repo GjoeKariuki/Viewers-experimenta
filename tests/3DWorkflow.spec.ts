@@ -31,4 +31,29 @@ test.describe('3D workflow', () => {
 
     expect(viewportIds).toEqual(['default']);
   });
+
+  test('should reset from 3D four up to the default layout when navigating to another series', async ({
+    page,
+    mainToolbarPageObject,
+  }) => {
+    await mainToolbarPageObject.layoutSelection.threeDFourUp.click();
+    await page.waitForTimeout(4000);
+
+    await expect(page.locator('[data-cy="viewport-pane"]')).toHaveCount(4);
+
+    await page.locator('[data-cy="viewport-pane"]').first().click();
+    await page.keyboard.press('PageDown');
+    await page.waitForTimeout(4000);
+
+    await expect(page.locator('[data-cy="viewport-pane"]')).toHaveCount(1);
+
+    const viewportIds = await page.evaluate(() => {
+      return window.cornerstone
+        .getEnabledElements()
+        .map(({ viewport }) => viewport.id)
+        .sort();
+    });
+
+    expect(viewportIds).toEqual(['default']);
+  });
 });
