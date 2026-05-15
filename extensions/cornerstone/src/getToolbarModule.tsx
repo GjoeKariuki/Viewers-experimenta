@@ -21,6 +21,9 @@ const getDisabledState = (disabledText?: string) => ({
   disabledText: disabledText ?? i18n.t('Buttons:Not available on the current viewport'),
 });
 
+const MPR_PROTOCOL_ID = 'mpr';
+const MPR_TOOL_GROUP_ID = 'mpr';
+
 export default function getToolbarModule({ servicesManager, extensionManager }: withAppTypes) {
   const {
     toolGroupService,
@@ -31,7 +34,22 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
     displaySetService,
     viewportGridService,
     segmentationService,
+    hangingProtocolService,
   } = servicesManager.services;
+
+  const shouldHideProjectionControls = (viewportId: string): boolean => {
+    const activeProtocolId = hangingProtocolService.getState?.()?.protocolId;
+
+    if (activeProtocolId === MPR_PROTOCOL_ID) {
+      return true;
+    }
+
+    const viewportOptions = cornerstoneViewportService
+      .getViewportInfo(viewportId)
+      ?.getViewportOptions?.();
+
+    return viewportOptions?.toolGroupId === MPR_TOOL_GROUP_ID;
+  };
 
   return [
     {
@@ -277,6 +295,12 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
     {
       name: 'evaluate.projectionMenu',
       evaluate: ({ viewportId }) => {
+        if (shouldHideProjectionControls(viewportId)) {
+          return {
+            disabled: true,
+          };
+        }
+
         const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
 
         if (!viewport || viewport.type !== 'orthographic') {
@@ -287,7 +311,9 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
 
         const displaySetUIDs = viewportGridService.getDisplaySetsUIDsForViewport(viewportId);
         const displaySets = displaySetUIDs.map(displaySetService.getDisplaySetByUID);
-        const hasReconstructableDisplaySet = displaySets.some(displaySet => displaySet?.isReconstructable);
+        const hasReconstructableDisplaySet = displaySets.some(
+          displaySet => displaySet?.isReconstructable
+        );
 
         return {
           disabled: !hasReconstructableDisplaySet,

@@ -6,7 +6,7 @@ import { Colorbar } from './Colorbar';
 import { WindowLevel } from './WindowLevel';
 import { VolumeRenderingPresets } from './VolumeRenderingPresets';
 import { VolumeRenderingOptions } from './VolumeRenderingOptions';
-import ProjectionMenu from './ProjectionMenu';
+import ProjectionMenu, { useShouldHideProjectionControls } from './ProjectionMenu';
 import { useViewportRendering } from '../../hooks/useViewportRendering';
 import i18n from 'i18next';
 
@@ -56,6 +56,7 @@ export function WindowLevelActionMenuContent({
     volumeRenderingPresets,
     volumeRenderingQualityRange,
   } = useViewportRendering(viewportId);
+  const shouldHideProjectionControls = useShouldHideProjectionControls(viewportId);
 
   return (
     <AllInOneMenu.Menu
@@ -91,7 +92,7 @@ export function WindowLevelActionMenuContent({
           </AllInOneMenu.SubMenu>
         )}
 
-        {isOrthographicVolume && (
+        {isOrthographicVolume && !shouldHideProjectionControls && (
           <AllInOneMenu.SubMenu
             key="projectionControls"
             itemLabel={t('MIP / Projection')}

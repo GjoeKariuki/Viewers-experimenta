@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import ProjectionMenu from './ProjectionMenu';
+import ProjectionMenu, { useShouldHideProjectionControls } from './ProjectionMenu';
 
 type ProjectionMenuWrapperProps = {
   viewportId: string;
@@ -8,10 +8,16 @@ type ProjectionMenuWrapperProps = {
 
 export function ProjectionMenuWrapper(props: ProjectionMenuWrapperProps): ReactNode {
   const { viewportId, disabled } = props;
+  const shouldHideProjectionControls = useShouldHideProjectionControls(viewportId);
 
-  if (disabled) {
+  if (disabled || shouldHideProjectionControls) {
     return null;
   }
 
-  return <ProjectionMenu viewportId={viewportId} variant="toolbar" />;
+  return (
+    <ProjectionMenu
+      viewportId={viewportId}
+      variant="toolbar"
+    />
+  );
 }

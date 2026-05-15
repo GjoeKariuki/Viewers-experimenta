@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSystem } from '@ohif/core';
 import {
   Button,
   Numeric,
@@ -28,12 +29,67 @@ const PROJECTION_MODE_ORDER: ProjectionMode[] = [
   PROJECTION_MODES.COMPOSITE,
 ];
 
-export function ProjectionMenu({
-  viewportId,
-  className,
-  variant = 'card',
-}: ProjectionMenuProps) {
+const MPR_PROTOCOL_ID = 'mpr';
+const MPR_TOOL_GROUP_ID = 'mpr';
+
+export function useShouldHideProjectionControls(viewportId?: string): boolean {
+  const { servicesManager } = useSystem();
+  const { cornerstoneViewportService, hangingProtocolService, viewportGridService } =
+    servicesManager.services;
+  const [, refreshProjectionControlVisibility] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => {
+      refreshProjectionControlVisibility(value => value + 1);
+    };
+
+    refresh();
+
+    const protocolChangedSubscription = hangingProtocolService.subscribe?.(
+      hangingProtocolService.EVENTS.PROTOCOL_CHANGED,
+      refresh
+    );
+    const protocolRestoredSubscription = hangingProtocolService.subscribe?.(
+      hangingProtocolService.EVENTS.PROTOCOL_RESTORED,
+      refresh
+    );
+    const viewportGridSubscription = viewportGridService.subscribe?.(
+      viewportGridService.EVENTS.GRID_STATE_CHANGED,
+      refresh
+    );
+    const viewportDataSubscription = cornerstoneViewportService.subscribe?.(
+      cornerstoneViewportService.EVENTS.VIEWPORT_DATA_CHANGED,
+      event => {
+        if (!viewportId || event?.viewportId === viewportId) {
+          refresh();
+        }
+      }
+    );
+
+    return () => {
+      protocolChangedSubscription?.unsubscribe();
+      protocolRestoredSubscription?.unsubscribe();
+      viewportGridSubscription?.unsubscribe();
+      viewportDataSubscription?.unsubscribe();
+    };
+  }, [cornerstoneViewportService, hangingProtocolService, viewportGridService, viewportId]);
+
+  const activeProtocolId = hangingProtocolService.getState?.()?.protocolId;
+
+  if (activeProtocolId === MPR_PROTOCOL_ID) {
+    return true;
+  }
+
+  const viewportOptions = viewportId
+    ? cornerstoneViewportService.getViewportInfo(viewportId)?.getViewportOptions?.()
+    : undefined;
+
+  return viewportOptions?.toolGroupId === MPR_TOOL_GROUP_ID;
+}
+
+export function ProjectionMenu({ viewportId, className, variant = 'card' }: ProjectionMenuProps) {
   const { t } = useTranslation('WindowLevelActionMenu');
+  const shouldHideProjectionControls = useShouldHideProjectionControls(viewportId);
   const { viewportDisplaySets } = useViewportDisplaySets(viewportId);
   const [selectedDisplaySetUID, setSelectedDisplaySetUID] = useState<string | undefined>(
     viewportDisplaySets[0]?.displaySetInstanceUID
@@ -65,7 +121,7 @@ export function ProjectionMenu({
     [selectedDisplaySetUID, viewportDisplaySets]
   );
 
-  if (!isOrthographicVolume) {
+  if (shouldHideProjectionControls || !isOrthographicVolume) {
     return null;
   }
 
