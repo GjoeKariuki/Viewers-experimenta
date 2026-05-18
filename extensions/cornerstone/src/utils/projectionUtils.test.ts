@@ -3,9 +3,12 @@ import {
   PROJECTION_MODES,
   blendModeToProjectionMode,
   clampProjectionSlabThickness,
+  getDefaultProjectionSlabThickness,
   getMinimumProjectionSlabThickness,
+  getProjectionSampleDistance,
   getProjectionSlabThicknessRange,
   projectionModeToBlendMode,
+  resolveProjectionSlabThickness,
 } from './projectionUtils';
 
 jest.mock('@cornerstonejs/core', () => ({
@@ -78,7 +81,7 @@ describe('projectionUtils', () => {
   });
 
   describe('getProjectionSlabThicknessRange', () => {
-    it('derives slab bounds from image spacing and dimensions', () => {
+    it('derives slab bounds from image spacing and dimensions with a safe interactive max', () => {
       const range = getProjectionSlabThicknessRange({
         imageData: {
           getDimensions: () => [256, 256, 100],
@@ -87,7 +90,7 @@ describe('projectionUtils', () => {
       });
 
       expect(range.min).toBe(0.7);
-      expect(range.max).toBe(294.49);
+      expect(range.max).toBe(160);
       expect(range.step).toBe(0.35);
     });
 
@@ -107,6 +110,33 @@ describe('projectionUtils', () => {
 
     it('falls back when spacing is unavailable', () => {
       expect(getMinimumProjectionSlabThickness(undefined, 2)).toBe(2);
+    });
+  });
+
+  describe('projection slab resolution', () => {
+    const range = { min: 0.5, max: 80, step: 0.25 };
+
+    it('uses a clinical default slab thickness for MIP', () => {
+      expect(getDefaultProjectionSlabThickness(range)).toBe(10);
+      expect(getDefaultProjectionSlabThickness({ min: 20, max: 80, step: 1 })).toBe(20);
+    });
+
+    it('resolves symbolic slab thickness values', () => {
+      expect(resolveProjectionSlabThickness('minimum', range)).toBe(0.5);
+      expect(resolveProjectionSlabThickness('fullVolume', range)).toBe(80);
+      expect(resolveProjectionSlabThickness('default', range)).toBe(10);
+      expect(resolveProjectionSlabThickness('preserve', range, 12.345)).toBe(12.35);
+    });
+  });
+
+  describe('getProjectionSampleDistance', () => {
+    it('keeps generated MIP shaders below the target sample budget', () => {
+      const sampleDistance = getProjectionSampleDistance({
+        getDimensions: () => [512, 512, 600],
+        getSpacing: () => [0.5, 0.5, 1],
+      });
+
+      expect(sampleDistance).toBeGreaterThan(0.5);
     });
   });
 });

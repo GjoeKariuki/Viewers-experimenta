@@ -2,6 +2,7 @@ import { Types } from '@ohif/core';
 import i18n from 'i18next';
 
 import { HYDRATE_SEG_SYNC_GROUP, VOI_SYNC_GROUP } from './mpr';
+import { DEFAULT_MIP_SLAB_THICKNESS } from '../utils/projectionUtils';
 
 export const mipAndMpr: Types.HangingProtocol.Protocol = {
   id: 'mipAndMpr',
@@ -62,7 +63,7 @@ export const mipAndMpr: Types.HangingProtocol.Protocol = {
               id: 'activeDisplaySet',
               options: {
                 blendMode: 'minip',
-                slabThickness: 'minimum',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
               },
             },
           ],

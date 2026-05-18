@@ -97,6 +97,7 @@ export default defineConfig({
     },
   },
   output: {
+    filenameHash: true,
     copy: [
       // Copy plugin files (handled by writePluginImportsFile)
       ...(writePluginImportsFile(SRC_DIR, DIST_DIR) || []),

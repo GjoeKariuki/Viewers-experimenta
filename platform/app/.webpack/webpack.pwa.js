@@ -63,7 +63,8 @@ module.exports = (env, argv) => {
     },
     output: {
       path: DIST_DIR,
-      filename: isProdBuild ? '[name].bundle.[chunkhash].js' : '[name].js',
+      filename: isProdBuild ? '[name].bundle.[contenthash:16].js' : '[name].js',
+      chunkFilename: isProdBuild ? '[name].[contenthash:16].chunk.js' : '[name].js',
       publicPath: PUBLIC_URL, // Used by HtmlWebPackPlugin for asset prefix
       devtoolModuleFilenameTemplate: function (info) {
         if (isProdBuild) {
@@ -199,8 +200,8 @@ module.exports = (env, argv) => {
   if (isProdBuild) {
     mergedConfig.plugins.push(
       new MiniCssExtractPlugin({
-        filename: '[name].bundle.css',
-        chunkFilename: '[id].css',
+        filename: '[name].bundle.[contenthash:16].css',
+        chunkFilename: '[name].[contenthash:16].css',
       })
     );
   }

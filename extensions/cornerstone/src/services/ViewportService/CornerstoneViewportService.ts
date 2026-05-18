@@ -41,7 +41,11 @@ import { useSynchronizersStore } from '../../stores/useSynchronizersStore';
 import { useSegmentationPresentationStore } from '../../stores/useSegmentationPresentationStore';
 import getClosestOrientationFromIOP from '../../utils/isReferenceViewable';
 import { BlendModes } from '@cornerstonejs/core/enums';
-import { getMinimumProjectionSlabThickness } from '../../utils/projectionUtils';
+import {
+  getProjectionSampleDistance,
+  getProjectionSlabThicknessRange,
+  resolveProjectionSlabThickness,
+} from '../../utils/projectionUtils';
 
 const EVENTS = {
   VIEWPORT_DATA_CHANGED: 'event::cornerstoneViewportService:viewportDataChanged',
@@ -1122,6 +1126,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     }
 
     await viewport.setVolumes(volumeInputArray);
+    this._applyProjectionRenderingDefaults(viewport, volumeInputArray);
 
     if (overlayProcessingResults?.length) {
       overlayProcessingResults.forEach(({ addOverlayFn }) => {
@@ -1296,29 +1301,46 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
       return;
     }
 
-    // if there is a slabThickness set as a number then use it
-    if (typeof displaySetOptions.slabThickness === 'number') {
-      return displaySetOptions.slabThickness;
-    }
+    const imageVolume = volumeId ? cache.getVolume(volumeId) : undefined;
+    const range = getProjectionSlabThicknessRange(
+      imageVolume
+        ? {
+            imageData: {
+              getDimensions: () => imageVolume.dimensions,
+              getSpacing: () => imageVolume.spacing,
+            },
+          }
+        : undefined
+    );
 
-    const slabThickness = displaySetOptions.slabThickness.toLowerCase();
+    return resolveProjectionSlabThickness(displaySetOptions.slabThickness, range);
+  }
 
-    if (slabThickness === 'minimum' || slabThickness === 'min') {
-      const imageVolume = volumeId ? cache.getVolume(volumeId) : undefined;
-      return getMinimumProjectionSlabThickness(imageVolume?.spacing);
-    }
+  _applyProjectionRenderingDefaults(viewport: Types.IVolumeViewport, volumeInputArray) {
+    volumeInputArray.forEach(volumeInput => {
+      const { blendMode, volumeId, displaySetInstanceUID } = volumeInput;
 
-    if (slabThickness === 'fullvolume') {
-      const imageVolume = cache.getVolume(volumeId);
-      const { dimensions, spacing } = imageVolume;
-      const fullVolumeSlabThickness = Math.sqrt(
-        Math.pow(dimensions[0] * spacing[0], 2) +
-          Math.pow(dimensions[1] * spacing[1], 2) +
-          Math.pow(dimensions[2] * spacing[2], 2)
-      );
+      if (blendMode === undefined || blendMode === BlendModes.COMPOSITE) {
+        return;
+      }
 
-      return fullVolumeSlabThickness;
-    }
+      const actorEntry = viewport
+        .getActors()
+        .find(
+          actor =>
+            actor.referencedId === volumeId ||
+            (!!volumeId && actor.referencedId?.includes(volumeId)) ||
+            (!!displaySetInstanceUID && actor.referencedId?.includes(displaySetInstanceUID))
+        );
+      const mapper = actorEntry?.actor?.getMapper?.();
+
+      if (!mapper?.setSampleDistance) {
+        return;
+      }
+
+      const imageData = mapper.getInputData?.();
+      mapper.setSampleDistance(getProjectionSampleDistance(imageData));
+    });
   }
 
   _getFrameOfReferenceUID(displaySetInstanceUID) {
