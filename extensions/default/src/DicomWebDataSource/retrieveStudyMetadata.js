@@ -72,10 +72,15 @@ export function retrieveStudyMetadata(
     });
   }
 
-  // Store the promise in cache
-  StudyMetaDataPromises.set(promiseId, promise);
+  const cachedPromise = promise.catch(error => {
+    StudyMetaDataPromises.delete(promiseId);
+    throw error;
+  });
 
-  return promise;
+  // Store the promise in cache
+  StudyMetaDataPromises.set(promiseId, cachedPromise);
+
+  return cachedPromise;
 }
 
 /**
@@ -85,7 +90,9 @@ export function retrieveStudyMetadata(
  * @param {String} StudyInstanceUID The UID of the Study to be removed from cache
  */
 export function deleteStudyMetadataPromise(StudyInstanceUID) {
-  if (StudyMetaDataPromises.has(StudyInstanceUID)) {
-    StudyMetaDataPromises.delete(StudyInstanceUID);
+  for (const promiseId of StudyMetaDataPromises.keys()) {
+    if (promiseId.endsWith(`:${StudyInstanceUID}`)) {
+      StudyMetaDataPromises.delete(promiseId);
+    }
   }
 }

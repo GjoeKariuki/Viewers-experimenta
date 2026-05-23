@@ -24,20 +24,6 @@ export default {
       route: '/viewer',
       steps: [
         {
-          id: 'scroll',
-          title: i18n.t('Onboarding:Scrolling Through Images'),
-          text: i18n.t('Onboarding:You can scroll through the images using the mouse wheel or scrollbar.'),
-          attachTo: {
-            element: '.viewport-element',
-            on: 'top',
-          },
-          advanceOn: {
-            selector: '.cornerstone-viewport-element',
-            event: 'CORNERSTONE_TOOLS_MOUSE_WHEEL',
-          },
-          beforeShowPromise: () => waitForElement('.viewport-element'),
-        },
-        {
           id: 'zoom',
           title: i18n.t('Onboarding:Zooming In and Out'),
           text: i18n.t('Onboarding:You can zoom the images using the right click.'),
@@ -97,7 +83,9 @@ export default {
         {
           id: 'drawAnnotation',
           title: i18n.t('Onboarding:Drawing Length Annotations'),
-          text: i18n.t('Onboarding:Use the length tool on the viewport to measure the length of a region.'),
+          text: i18n.t(
+            'Onboarding:Use the length tool on the viewport to measure the length of a region.'
+          ),
           attachTo: {
             element: '.viewport-element',
             on: 'right',
@@ -139,7 +127,9 @@ export default {
         {
           id: 'scrollAwayFromMeasurement',
           title: i18n.t('Onboarding:Scrolling Away from a Measurement'),
-          text: i18n.t('Onboarding:Scroll the images using the mouse wheel away from the measurement.'),
+          text: i18n.t(
+            'Onboarding:Scroll the images using the mouse wheel away from the measurement.'
+          ),
           attachTo: {
             element: '.viewport-element',
             on: 'left',
@@ -167,7 +157,9 @@ export default {
         {
           id: 'changeLayout',
           title: i18n.t('Onboarding:Changing Layout'),
-          text: i18n.t('Onboarding:You can change the layout of the viewer using the layout button.'),
+          text: i18n.t(
+            'Onboarding:You can change the layout of the viewer using the layout button.'
+          ),
           attachTo: {
             element: '[data-cy="Layout"]',
             on: 'bottom',
