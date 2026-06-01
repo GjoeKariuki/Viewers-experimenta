@@ -18,6 +18,46 @@ const protocolRequiresGPU = protocol => {
   );
 };
 
+function getSeriesPromiseUID(seriesPromise) {
+  return seriesPromise?.metadata?.SeriesInstanceUID || seriesPromise?.metadata?.seriesInstanceUID;
+}
+
+function splitSeriesPromisesByUID(seriesPromises, seriesInstanceUIDs = []) {
+  if (!seriesInstanceUIDs?.length) {
+    return {
+      requiredSeries: seriesPromises,
+      remaining: [],
+    };
+  }
+
+  const requestedSeries = new Set(seriesInstanceUIDs);
+  const requiredSeries = [];
+  const remaining = [];
+
+  seriesPromises.forEach(seriesPromise => {
+    const seriesInstanceUID = getSeriesPromiseUID(seriesPromise);
+
+    if (seriesInstanceUID && requestedSeries.has(seriesInstanceUID)) {
+      requiredSeries.push(seriesPromise);
+      return;
+    }
+
+    remaining.push(seriesPromise);
+  });
+
+  if (!requiredSeries.length) {
+    return {
+      requiredSeries: seriesPromises,
+      remaining: [],
+    };
+  }
+
+  return {
+    requiredSeries,
+    remaining,
+  };
+}
+
 /**
  * Initialize the route.
  *
@@ -138,8 +178,8 @@ export async function defaultRouteInit(
     });
   });
 
-  // is displaysets from URL and has initialSOPInstanceUID or initialSeriesInstanceUID
-  // then we need to wait for all display sets to be retrieved before applying the hanging protocol
+  // If the URL asks for a specific initial series, retrieve that display set
+  // first so the hanging protocol can apply without waiting for every series.
   const params = new URLSearchParams(window.location.search);
 
   const initialSeriesInstanceUID = getSplitParam('initialseriesinstanceuid', params);
@@ -169,10 +209,15 @@ export async function defaultRouteInit(
       }
 
       if (displaySetFromUrl) {
-        const requiredSeriesPromises = retrieveSeriesMetadataPromise.map(promise =>
-          promise.start()
+        const { requiredSeries, remaining } = splitSeriesPromisesByUID(
+          retrieveSeriesMetadataPromise,
+          initialSeriesInstanceUID
         );
+        const requiredSeriesPromises = requiredSeries.map(promise => promise.start());
         allPromises.push(Promise.allSettled(requiredSeriesPromises));
+        if (remaining.length) {
+          remainingPromises.push(remaining);
+        }
       } else {
         const { requiredSeries, remaining } = hangingProtocolService.filterSeriesRequiredForRun(
           hangingProtocolId,
