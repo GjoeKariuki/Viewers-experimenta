@@ -54,6 +54,7 @@ const EVENTS = {
 
 const MIN_STACK_VIEWPORTS_TO_ENQUEUE_RESIZE = 12;
 const MIN_VOLUME_VIEWPORTS_TO_ENQUEUE_RESIZE = 6;
+const DEFAULT_INITIAL_VIEWPORT_ZOOM_SCALE = 1.08;
 
 export const WITH_NAVIGATION = { withNavigation: true, withOrientation: false };
 export const WITH_ORIENTATION = { withNavigation: true, withOrientation: true };
@@ -811,6 +812,39 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     });
   }
 
+  private _applyDefaultInitialViewportZoom(
+    viewport: Types.IViewport,
+    presentations: Presentations = {}
+  ): void {
+    if (presentations?.positionPresentation) {
+      return;
+    }
+
+    const zoomableViewport = viewport as unknown as {
+      getZoom?: () => number;
+      setZoom?: (zoom: number) => void;
+      resetCamera?: () => void;
+    };
+
+    if (
+      typeof zoomableViewport.getZoom !== 'function' ||
+      typeof zoomableViewport.setZoom !== 'function'
+    ) {
+      return;
+    }
+
+    try {
+      zoomableViewport.resetCamera?.();
+      const currentZoom = zoomableViewport.getZoom();
+
+      if (Number.isFinite(currentZoom) && currentZoom > 0) {
+        zoomableViewport.setZoom(currentZoom * DEFAULT_INITIAL_VIEWPORT_ZOOM_SCALE);
+      }
+    } catch {
+      // Some specialized viewport types do not expose stack-style zoom controls.
+    }
+  }
+
   private async _setStackViewport(
     viewport: Types.IStackViewport,
     viewportData: StackViewportData,
@@ -890,6 +924,8 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
 
       if (displayArea) {
         viewport.setDisplayArea(displayArea);
+      } else {
+        this._applyDefaultInitialViewportZoom(viewport, presentations);
       }
       if (rotation) {
         viewport.setProperties({ rotation });

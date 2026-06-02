@@ -8,6 +8,8 @@ export const toolGroupIds = {
   default: 'default',
 };
 
+const noDefaultBindings = [];
+
 function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
   const tools = {
     active: [
@@ -17,11 +19,11 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,

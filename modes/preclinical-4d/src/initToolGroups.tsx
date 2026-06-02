@@ -17,6 +17,8 @@ const colorsByOrientation = {
   coronal: 'rgb(0, 200, 0)',
 };
 
+const noDefaultBindings = [];
+
 function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager, servicesManager) {
   const { cornerstoneViewportService } = servicesManager.services;
   const tools = {
@@ -27,11 +29,11 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager, se
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,
