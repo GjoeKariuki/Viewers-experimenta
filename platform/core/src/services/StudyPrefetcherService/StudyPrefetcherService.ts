@@ -39,6 +39,12 @@ type StudyPrefetcherConfig = {
   enabled: boolean;
   /* Number of displaysets to be prefetched */
   displaySetsCount: number;
+  /*
+   * Prefetch all display sets in the currently loaded study. This is useful for
+   * diagnostic viewers where clicking any series should paint from local
+   * Cornerstone cache instead of waiting for a first network/decode trip.
+   */
+  prefetchAllDisplaySets: boolean;
   /**
    * Max number of concurrent prefetch requests
    * High numbers may impact on the time to load a new dropped series because
@@ -50,6 +56,20 @@ type StudyPrefetcherConfig = {
    * (need to add support for `AbortController` on Cornerstone)
    * */
   maxNumPrefetchRequests: number;
+  /*
+   * When true, non-active display sets wait until active viewport imageIds are
+   * cached. When false, background warming begins immediately as low-priority
+   * prefetch work while interaction requests keep their own higher-priority pool.
+   */
+  waitForActiveDisplaySet: boolean;
+  /* Also enqueue the currently active display set. */
+  includeActiveDisplaySet: boolean;
+  /*
+   * Number of leading imageIds per display set to enqueue before the rest of
+   * that display set. This makes a clicked X-ray/series paint quickly even when
+   * the study has many images.
+   */
+  firstImagePriorityCount: number;
   /* Display sets prefetching order (closest, downward and upward) */
   order: StudyPrefetchOrder;
 };
@@ -115,6 +135,7 @@ class StudyPrefetcherService extends PubSubService {
     enabled: false,
     /* Number of displaysets to be prefetched */
     displaySetsCount: 1,
+    prefetchAllDisplaySets: false,
     /**
      * Max number of concurrent prefetch requests
      * High numbers may impact on the time to load a new dropped series because
@@ -126,6 +147,9 @@ class StudyPrefetcherService extends PubSubService {
      * (need to add support for `AbortController` on Cornerstone)
      * */
     maxNumPrefetchRequests: 10,
+    waitForActiveDisplaySet: true,
+    includeActiveDisplaySet: false,
+    firstImagePriorityCount: 1,
     /* Display sets prefetching order (closest, downward and upward) */
     order: StudyPrefetchOrder.downward,
   };
@@ -326,8 +350,10 @@ class StudyPrefetcherService extends PubSubService {
     return (
       displaySetsInstanceUIDs.length &&
       displaySetsInstanceUIDs.every(
-        displaySetsInstanceUID =>
-          this._displaySetLoadingStates.get(displaySetsInstanceUID).loadingProgress >= 1
+        displaySetsInstanceUID => {
+          const state = this._displaySetLoadingStates.get(displaySetsInstanceUID);
+          return Boolean(state && state.loadingProgress >= 1);
+        }
       )
     );
   }
@@ -377,7 +403,7 @@ class StudyPrefetcherService extends PubSubService {
       return [];
     }
 
-    const { displaySetsCount } = this.config;
+    const { displaySetsCount, prefetchAllDisplaySets } = this.config;
     const activeDisplaySetsInstanceUIDs = this._activeDisplaySetsInstanceUIDs;
     const [activeDisplaySetUID] = activeDisplaySetsInstanceUIDs;
     const activeDisplaySetIndex = displaySets.findIndex(
@@ -397,6 +423,15 @@ class StudyPrefetcherService extends PubSubService {
 
     // Creates a `Set` to look for UIDs in O(1) instead of O(n)
     const uidsSet = new Set(activeDisplaySetsInstanceUIDs);
+
+    if (prefetchAllDisplaySets) {
+      const sortedDisplaySets =
+        activeDisplaySetIndex >= 0
+          ? this._getClosestDisplaySets(displaySets, activeDisplaySetIndex)
+          : displaySets;
+
+      return sortedDisplaySets.filter(ds => !uidsSet.has(ds.displaySetInstanceUID));
+    }
 
     // Remove any active displaySet that may still be in the activeDisplaySetsInstanceUIDs.
     // That may happen when activeDisplaySetsInstanceUIDs has more than one element.
@@ -435,7 +470,9 @@ class StudyPrefetcherService extends PubSubService {
 
   private _updateDisplaySetLoadingProgress(displaySetLoadingState: DisplaySetLoadingState) {
     const { numInstances, loadedImageIds, failedImageIds } = displaySetLoadingState;
-    const loadingProgress = (loadedImageIds.size + failedImageIds.size) / numInstances;
+    const loadingProgress = numInstances
+      ? (loadedImageIds.size + failedImageIds.size) / numInstances
+      : 1;
 
     displaySetLoadingState.loadingProgress = loadingProgress;
   }
@@ -449,7 +486,7 @@ class StudyPrefetcherService extends PubSubService {
       return;
     }
 
-    const pendingImageIds = new Set<string>(imageIds);
+    const pendingImageIds = new Set<string>();
     const loadedImageIds = new Set<string>();
 
     // Needs to check which image is already loaded to update the progress properly
@@ -483,9 +520,19 @@ class StudyPrefetcherService extends PubSubService {
 
   private _loadDisplaySets() {
     const { displaySets, displaySetsToPrefetch } = this._getDisplaySets();
+    const activeDisplaySetUIDs = new Set(this._activeDisplaySetsInstanceUIDs);
+    const activeDisplaySets = this.config.includeActiveDisplaySet
+      ? displaySets.filter(displaySet => activeDisplaySetUIDs.has(displaySet.displaySetInstanceUID))
+      : [];
+    const displaySetsToWarm = [...activeDisplaySets, ...displaySetsToPrefetch].filter(
+      (displaySet, index, array) =>
+        array.findIndex(
+          item => item.displaySetInstanceUID === displaySet.displaySetInstanceUID
+        ) === index
+    );
 
     displaySets.forEach(displaySet => this._addDisplaySetLoadingState(displaySet));
-    displaySetsToPrefetch.forEach(displaySet => this._enqueueDisplaySetImagesRequests(displaySet));
+    displaySetsToWarm.forEach(displaySet => this._enqueueDisplaySetImagesRequests(displaySet));
   }
 
   private _moveImageIdToLoadedSet(imageId: string): boolean {
@@ -497,6 +544,9 @@ class StudyPrefetcherService extends PubSubService {
 
     for (const displaySetInstanceUID of Array.from(displaySetsInstanceUIDs.values())) {
       const displaySetLoadingState = this._displaySetLoadingStates.get(displaySetInstanceUID);
+      if (!displaySetLoadingState) {
+        continue;
+      }
       const { pendingImageIds, loadedImageIds } = displaySetLoadingState;
 
       pendingImageIds.delete(imageId);
@@ -518,6 +568,9 @@ class StudyPrefetcherService extends PubSubService {
 
     for (const displaySetInstanceUID of Array.from(displaySetsInstanceUIDs.values())) {
       const displaySetLoadingState = this._displaySetLoadingStates.get(displaySetInstanceUID);
+      if (!displaySetLoadingState) {
+        continue;
+      }
       const { pendingImageIds, failedImageIds } = displaySetLoadingState;
 
       pendingImageIds.delete(imageId);
@@ -532,6 +585,9 @@ class StudyPrefetcherService extends PubSubService {
 
   private _triggerDisplaySetEvents(displaySetInstanceUID: string) {
     const displaySetLoadingState = this._displaySetLoadingStates.get(displaySetInstanceUID);
+    if (!displaySetLoadingState) {
+      return;
+    }
     const { loadingProgress, numInstances } = displaySetLoadingState;
 
     this._broadcastEvent(this.EVENTS.DISPLAYSET_LOAD_PROGRESS, {
@@ -586,8 +642,7 @@ class StudyPrefetcherService extends PubSubService {
       return;
     }
 
-    // Does not send any prefetch request until the active display sets are loaded
-    if (!this._areActiveDisplaySetsLoaded()) {
+    if (this.config.waitForActiveDisplaySet && !this._areActiveDisplaySetsLoaded()) {
       return;
     }
 
@@ -622,7 +677,8 @@ class StudyPrefetcherService extends PubSubService {
             error => this._onImagePrefetchFailed(imageRequest, error)
           ),
         this.requestType,
-        { imageId }
+        { imageId },
+        -5
       );
 
       inflightRequests.set(imageId, imageRequest);
@@ -632,10 +688,23 @@ class StudyPrefetcherService extends PubSubService {
   private _enqueueDisplaySetImagesRequests(displaySet: DisplaySet) {
     const { displaySetInstanceUID } = displaySet;
     const imageIds = this._getImageIdsForDisplaySet(displaySet);
+    const queuedImageIds = new Set([
+      ...this._pendingRequests.map(request => request.imageId),
+      ...this._inflightRequests.keys(),
+    ]);
+    const firstImagePriorityCount = Math.max(0, this.config.firstImagePriorityCount || 0);
+    const prioritizedImageIds = [
+      ...imageIds.slice(0, firstImagePriorityCount),
+      ...imageIds.slice(firstImagePriorityCount),
+    ];
 
-    imageIds.forEach(imageId => {
+    prioritizedImageIds.forEach(imageId => {
       if (this.cache.isImageCached(imageId)) {
         this._moveImageIdToLoadedSet(imageId);
+        return;
+      }
+
+      if (queuedImageIds.has(imageId)) {
         return;
       }
 
@@ -644,6 +713,7 @@ class StudyPrefetcherService extends PubSubService {
         imageId,
         aborted: false,
       });
+      queuedImageIds.add(imageId);
     });
   }
 

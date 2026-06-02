@@ -17,12 +17,23 @@ window.config = {
   showCPUFallbackMessage: true,
   showLoadingIndicator: true,
   useNorm16Texture: true,
+  maxCacheSize: 3 * 1024 * 1024 * 1024,
   maxNumRequests: {
     interaction: 100,
     thumbnail: 75,
     // Prefetch number is dependent on the http protocol. For http 2 or
     // above, the number of requests can be go a lot higher.
     prefetch: 25,
+  },
+  studyPrefetcher: {
+    enabled: true,
+    displaySetsCount: 1024,
+    prefetchAllDisplaySets: true,
+    waitForActiveDisplaySet: false,
+    includeActiveDisplaySet: true,
+    firstImagePriorityCount: 1,
+    maxNumPrefetchRequests: 4,
+    order: 'closest',
   },
   // filterQueryParam: false,
   dataSources: [

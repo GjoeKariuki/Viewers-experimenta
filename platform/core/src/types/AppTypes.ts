@@ -143,7 +143,11 @@ declare global {
       studyPrefetcher?: {
         enabled: boolean;
         displaySetsCount: number;
+        prefetchAllDisplaySets?: boolean;
         maxNumPrefetchRequests: number;
+        waitForActiveDisplaySet?: boolean;
+        includeActiveDisplaySet?: boolean;
+        firstImagePriorityCount?: number;
         order: 'closest' | 'downward' | 'upward';
       };
     }

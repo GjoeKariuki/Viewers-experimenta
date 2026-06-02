@@ -1553,7 +1553,7 @@ function commandsModule({
     toggleViewportProjection: ({
       viewportId,
       displaySetInstanceUID,
-      mode = PROJECTION_MODES.MINIP,
+      mode = PROJECTION_MODES.MIP,
       slabThickness = DEFAULT_MIP_SLAB_THICKNESS,
     }) => {
       const { viewport, actorEntry } = _getProjectionViewportContext(

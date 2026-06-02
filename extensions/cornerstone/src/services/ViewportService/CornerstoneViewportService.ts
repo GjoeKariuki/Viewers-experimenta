@@ -897,6 +897,13 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
       if (flipHorizontal) {
         viewport.setCamera({ flipHorizontal: true });
       }
+
+      viewport.render();
+
+      if (typeof window !== 'undefined') {
+        window.requestAnimationFrame?.(() => viewport.render());
+        window.setTimeout(() => viewport.render(), 120);
+      }
     });
   }
 

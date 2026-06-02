@@ -6,19 +6,19 @@ function getFirstViewportOptions(protocol: typeof mip | typeof mipAndMpr) {
 }
 
 describe('MIP hanging protocols', () => {
-  it('starts the single MIP workflow in minimum intensity projection mode with a clinical slab', () => {
+  it('starts the single MIP workflow in maximum intensity projection mode with a clinical slab', () => {
     expect(getFirstViewportOptions(mip)).toEqual(
       expect.objectContaining({
-        blendMode: 'minip',
+        blendMode: 'mip',
         slabThickness: 10,
       })
     );
   });
 
-  it('starts the MIP overview in minimum intensity projection mode with a clinical slab', () => {
+  it('starts the MIP overview in maximum intensity projection mode with a clinical slab', () => {
     expect(getFirstViewportOptions(mipAndMpr)).toEqual(
       expect.objectContaining({
-        blendMode: 'minip',
+        blendMode: 'mip',
         slabThickness: 10,
       })
     );
