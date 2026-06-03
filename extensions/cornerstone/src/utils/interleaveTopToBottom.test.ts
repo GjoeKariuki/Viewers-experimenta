@@ -147,7 +147,7 @@ describe('interleaveTopToBottom', () => {
       viewportMatchDetails: mockMatchDetailsWithDifferentSize,
     });
 
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
   });
 
   it('should handle multiple volume inputs', () => {
@@ -309,7 +309,7 @@ describe('interleaveTopToBottom', () => {
       viewportMatchDetails: mockMultipleMatchDetails,
     });
 
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
   });
 
   it('should handle undefined displaySetOptions', () => {

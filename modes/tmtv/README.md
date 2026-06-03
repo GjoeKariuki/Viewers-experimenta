@@ -39,9 +39,7 @@ with the fusion viewport.
 
 ### MIP
 The tools that are activated on each viewport is unique to its data. For instance,
-the mouse scroll tool for PT, CT and Fusion viewports are scrolling through the image data
-(in different directions); however, the mouse scroll tool for the MIP viewport will
-rotate the camera to match the usecase for the MIP.
+the mouse scroll tool for PT, CT, Fusion, and MIP viewports scrolls through the image data.
 
 
 ## Panels

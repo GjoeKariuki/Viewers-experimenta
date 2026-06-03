@@ -277,17 +277,16 @@ function initMIPToolGroup(extensionManager, toolGroupService) {
   const tools = {
     active: [
       {
-        toolName: toolNames.TrackballRotateTool,
+        toolName: toolNames.WindowLevel,
         bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
       },
       {
-        toolName: toolNames.WindowLevel,
-        bindings: [
-          {
-            mouseButton: Enums.MouseBindings.Primary,
-            modifierKey: Enums.KeyboardBindings.Shift,
-          },
-        ],
+        toolName: toolNames.StackScroll,
+        bindings: [{ mouseButton: Enums.MouseBindings.Wheel }, { numTouchPoints: 3 }],
+      },
+      {
+        toolName: toolNames.TrackballRotateTool,
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Pan,
@@ -296,23 +295,6 @@ function initMIPToolGroup(extensionManager, toolGroupService) {
       {
         toolName: toolNames.Zoom,
         bindings: noDefaultBindings,
-      },
-      {
-        toolName: toolNames.VolumeRotate,
-        bindings: [{ mouseButton: Enums.MouseBindings.Wheel }],
-        configuration: {
-          rotateIncrementDegrees: 5,
-        },
-      },
-    ],
-    enabled: [
-      {
-        toolName: toolNames.OrientationMarker,
-        configuration: {
-          orientationWidget: {
-            viewportCorner: 'BOTTOM_LEFT',
-          },
-        },
       },
     ],
     disabled: [

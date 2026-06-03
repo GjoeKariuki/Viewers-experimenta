@@ -159,11 +159,8 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
   const mipTools = {
     active: [
       {
-        toolName: toolNames.VolumeRotate,
+        toolName: toolNames.StackScroll,
         bindings: [{ mouseButton: Enums.MouseBindings.Wheel }],
-        configuration: {
-          rotateIncrementDegrees: 5,
-        },
       },
       {
         toolName: toolNames.MipJumpToClick,
@@ -171,16 +168,6 @@ function _initToolGroups(toolNames, Enums, toolGroupService, commandsManager) {
           toolGroupId: toolGroupIds.PT,
         },
         bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
-      },
-    ],
-    enabled: [
-      {
-        toolName: toolNames.OrientationMarker,
-        configuration: {
-          orientationWidget: {
-            viewportCorner: 'BOTTOM_LEFT',
-          },
-        },
       },
     ],
   };

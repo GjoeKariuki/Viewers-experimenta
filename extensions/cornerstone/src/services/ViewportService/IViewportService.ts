@@ -33,6 +33,10 @@ export interface IViewportService {
    */
   getRenderingEngine(): Types.IRenderingEngine;
   /**
+   * It retrieves the renderingEngine if it already exists without creating one.
+   */
+  getRenderingEngineIfExists(): Types.IRenderingEngine | null;
+  /**
    * It creates  a resize observer for the viewport element, and observes
    * the element for resizing events
    */

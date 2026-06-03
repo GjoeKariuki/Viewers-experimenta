@@ -8,6 +8,12 @@ import flatten from 'lodash.flatten';
 const volumeIdMapsToLoad = new Map<string, string>();
 const viewportIdVolumeInputArrayMap = new Map<string, unknown[]>();
 
+function isWaitingForMatchedViewports(matchDetails): boolean {
+  const matchedViewportCount = matchDetails?.size || 0;
+
+  return Boolean(matchedViewportCount && viewportIdVolumeInputArrayMap.size < matchedViewportCount);
+}
+
 /**
  * This function caches the volumeUIDs until all the volumes inside the
  * hanging protocol are initialized. Then it goes through the imageIds
@@ -21,6 +27,10 @@ export default function interleaveCenterLoader({
   displaySetsMatchDetails,
   viewportMatchDetails: matchDetails,
 }) {
+  if (!volumeInputArray?.length) {
+    return;
+  }
+
   viewportIdVolumeInputArrayMap.set(viewportId, volumeInputArray);
 
   // Based on the volumeInputs store the volumeIds and SeriesInstanceIds
@@ -30,6 +40,7 @@ export default function interleaveCenterLoader({
     const volume = cache.getVolume(volumeId);
 
     if (!volume) {
+      viewportIdVolumeInputArrayMap.delete(viewportId);
       return;
     }
 
@@ -70,8 +81,18 @@ export default function interleaveCenterLoader({
     });
   });
 
-  if (uniqueViewportVolumeDisplaySetUIDs.size !== uniqueMatchedDisplaySetUIDs.size) {
+  if (!uniqueMatchedDisplaySetUIDs.size) {
+    volumeIdMapsToLoad.clear();
+    viewportIdVolumeInputArrayMap.clear();
     return;
+  }
+
+  if (uniqueViewportVolumeDisplaySetUIDs.size !== uniqueMatchedDisplaySetUIDs.size) {
+    return null;
+  }
+
+  if (isWaitingForMatchedViewports(matchDetails)) {
+    return null;
   }
 
   const volumeIds = Array.from(volumeIdMapsToLoad.keys()).slice();

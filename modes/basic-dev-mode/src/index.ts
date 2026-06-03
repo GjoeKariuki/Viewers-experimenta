@@ -8,6 +8,8 @@ const configs = {
   //
 };
 
+const noDefaultBindings = [];
+
 const ohif = {
   layout: '@ohif/extension-default.layoutTemplateModule.viewerLayout',
   sopClassHandler: '@ohif/extension-default.sopClassHandlerModule.stack',
@@ -66,11 +68,11 @@ function modeFactory({ modeConfiguration }) {
           },
           {
             toolName: toolNames.Pan,
-            bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+            bindings: noDefaultBindings,
           },
           {
             toolName: toolNames.Zoom,
-            bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+            bindings: noDefaultBindings,
           },
           {
             toolName: toolNames.StackScroll,

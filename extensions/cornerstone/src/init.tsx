@@ -78,11 +78,18 @@ export default async function init({
     cornerstone.resetUseCPURendering();
   }
 
+  const configuredWebGlContextCount = appConfig?.webGlContextCount;
+  const webGlContextCount =
+    typeof configuredWebGlContextCount === 'number'
+      ? Math.max(1, configuredWebGlContextCount)
+      : Math.min(cornerstone.getConfiguration().rendering?.webGlContextCount ?? 3, 3);
+
   cornerstone.setConfiguration({
     ...cornerstone.getConfiguration(),
     rendering: {
       ...cornerstone.getConfiguration().rendering,
       strictZSpacingForVolumeViewport: appConfig.strictZSpacingForVolumeViewport,
+      webGlContextCount,
     },
   });
 
@@ -231,7 +238,12 @@ export default async function init({
 
         const ohifViewport = cornerstoneViewportService.getViewportInfo(viewportId);
 
+        if (!viewport || !ohifViewport) {
+          continue;
+        }
+
         const { presentationIds } = ohifViewport.getViewportOptions();
+        const requestId = (volumeInputArray as Array<unknown> & { requestId?: number }).requestId;
 
         const presentations = {
           positionPresentation: positionPresentationStore[presentationIds?.positionPresentationId],
@@ -240,7 +252,12 @@ export default async function init({
             segmentationPresentationStore[presentationIds?.segmentationPresentationId],
         };
 
-        cornerstoneViewportService.setVolumesForViewport(viewport, volumeInputArray, presentations);
+        cornerstoneViewportService.setVolumesForViewport(
+          viewport,
+          volumeInputArray,
+          presentations,
+          requestId
+        );
       }
     }
   );

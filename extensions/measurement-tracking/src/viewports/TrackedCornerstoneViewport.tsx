@@ -34,6 +34,10 @@ function TrackedCornerstoneViewport(
 
   const { SeriesInstanceUID } = displaySet;
 
+  const renderExistingViewport = useCallback(() => {
+    cornerstoneViewportService.getCornerstoneViewport(viewportId)?.render();
+  }, [cornerstoneViewportService, viewportId]);
+
   const updateIsTracked = useCallback(() => {
     if (trackedSeries.includes(SeriesInstanceUID) !== isTracked) {
       setIsTracked(!isTracked);
@@ -88,7 +92,7 @@ function TrackedCornerstoneViewport(
         },
       });
 
-      cornerstoneViewportService.getRenderingEngine().renderViewport(viewportId);
+      renderExistingViewport();
 
       return;
     }
@@ -99,12 +103,12 @@ function TrackedCornerstoneViewport(
       },
     });
 
-    cornerstoneViewportService.getRenderingEngine().renderViewport(viewportId);
+    renderExistingViewport();
 
     return () => {
       annotation.config.style.setViewportToolStyles(viewportId, {});
     };
-  }, [isTracked]);
+  }, [isTracked, renderExistingViewport, viewportId]);
 
   /**
    * The effect for listening to measurement service measurement added events

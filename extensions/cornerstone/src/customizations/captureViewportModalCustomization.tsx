@@ -3,6 +3,17 @@ import { ImageModal, FooterAction } from '@ohif/ui-next';
 import { useTranslation } from 'react-i18next';
 const MAX_TEXTURE_SIZE = 10000;
 const DEFAULT_FILENAME = 'image';
+const viewportInteractionEvents = [
+  'contextmenu',
+  'dragstart',
+  'mousedown',
+  'mousemove',
+  'mouseup',
+  'pointerdown',
+  'pointermove',
+  'pointerup',
+  'wheel',
+];
 
 interface ViewportDownloadFormNewProps {
   onClose: () => void;
@@ -44,9 +55,21 @@ function ViewportDownloadFormNew({
       return;
     }
 
+    const preventViewportInteraction = (event: Event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+
+    viewportInteractionEvents.forEach(eventName => {
+      viewportElement.addEventListener(eventName, preventViewportInteraction, true);
+    });
+
     onEnableViewport(viewportElement);
 
     return () => {
+      viewportInteractionEvents.forEach(eventName => {
+        viewportElement.removeEventListener(eventName, preventViewportInteraction, true);
+      });
       onDisableViewport();
     };
   }, [onDisableViewport, onEnableViewport, viewportElement]);
@@ -62,6 +85,7 @@ function ViewportDownloadFormNew({
               position: 'relative',
               pointerEvents: 'none',
             }}
+            draggable={false}
             data-viewport-uid={viewportId}
             ref={setViewportElement}
           >

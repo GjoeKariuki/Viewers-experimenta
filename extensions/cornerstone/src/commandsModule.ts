@@ -75,6 +75,8 @@ const toggleSyncFunctions = {
   voi: toggleVOISliceSync,
 };
 
+const disabledMouseTransformTools = new Set([toolNames.Pan, toolNames.Zoom]);
+
 const { segmentation: segmentationUtils } = cstUtils;
 
 const getLabelmapTools = ({ toolGroupService }) => {
@@ -1200,6 +1202,10 @@ function commandsModule({
       toolGroupId = null,
       bindings = [{ mouseButton: Enums.MouseBindings.Primary }],
     }) => {
+      if (disabledMouseTransformTools.has(toolName)) {
+        return;
+      }
+
       const { viewports } = viewportGridService.getState();
 
       if (!viewports.size) {

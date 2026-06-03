@@ -18,7 +18,7 @@ export type ProjectionSlabThicknessRange = {
 export const MINIMUM_SLAB_THICKNESS = 0.1;
 export const DEFAULT_MIP_SLAB_THICKNESS = 10;
 export const MAX_INTERACTIVE_PROJECTION_SLAB_THICKNESS = 160;
-export const MAX_PROJECTION_SHADER_SAMPLES = 768;
+export const MAX_PROJECTION_SHADER_SAMPLES = 512;
 const DEFAULT_STEP = 0.1;
 
 function roundToPrecision(value: number, precision = 2): number {

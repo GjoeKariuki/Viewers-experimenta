@@ -3,6 +3,7 @@ import { eventTarget } from '@cornerstonejs/core';
 
 import { Types as OhifTypes, pubSubServiceInterface } from '@ohif/core';
 import getActiveViewportEnabledElement from '../../utils/getActiveViewportEnabledElement';
+import { getViewportEnabledElement } from '../../utils/getViewportEnabledElement';
 
 const EVENTS = {
   VIEWPORT_ADDED: 'event::cornerstone::toolgroupservice:viewportadded',
@@ -106,8 +107,16 @@ export default class ToolGroupService {
   }
 
   public getToolGroupForViewport(viewportId: string): Types.IToolGroup | void {
-    const renderingEngine = this.cornerstoneViewportService.getRenderingEngine();
-    return ToolGroupManager.getToolGroupForViewport(viewportId, renderingEngine.id);
+    const enabledElement = getViewportEnabledElement(viewportId);
+    const renderingEngineId =
+      enabledElement?.renderingEngineId ??
+      this.cornerstoneViewportService.getViewportInfo?.(viewportId)?.getRenderingEngineId?.();
+
+    if (!renderingEngineId) {
+      return;
+    }
+
+    return ToolGroupManager.getToolGroupForViewport(viewportId, renderingEngineId);
   }
 
   public getActiveToolForViewport(viewportId: string): string {
@@ -156,11 +165,14 @@ export default class ToolGroupService {
     renderingEngineId: string,
     toolGroupId?: string
   ): void {
+    let addedViewport = false;
+
     if (!toolGroupId) {
       // If toolGroupId is not provided, add the viewport to all toolGroups
       const toolGroups = ToolGroupManager.getAllToolGroups();
       toolGroups.forEach(toolGroup => {
-        toolGroup.addViewport(viewportId, renderingEngineId);
+        addedViewport =
+          this._addViewportToToolGroup(toolGroup, viewportId, renderingEngineId) || addedViewport;
       });
     } else {
       let toolGroup = ToolGroupManager.getToolGroup(toolGroupId);
@@ -168,7 +180,11 @@ export default class ToolGroupService {
         toolGroup = this.createToolGroup(toolGroupId);
       }
 
-      toolGroup.addViewport(viewportId, renderingEngineId);
+      addedViewport = this._addViewportToToolGroup(toolGroup, viewportId, renderingEngineId);
+    }
+
+    if (!addedViewport) {
+      return;
     }
 
     this._broadcastEvent(EVENTS.VIEWPORT_ADDED, {
@@ -191,6 +207,27 @@ export default class ToolGroupService {
     });
 
     return toolGroup;
+  }
+
+  private _addViewportToToolGroup(
+    toolGroup: Types.IToolGroup,
+    viewportId: string,
+    renderingEngineId: string
+  ): boolean {
+    const hasViewport = toolGroup
+      .getViewportsInfo()
+      .some(
+        viewportInfo =>
+          viewportInfo.viewportId === viewportId &&
+          viewportInfo.renderingEngineId === renderingEngineId
+      );
+
+    if (hasViewport) {
+      return false;
+    }
+
+    toolGroup.addViewport(viewportId, renderingEngineId);
+    return true;
   }
 
   public addToolsToToolGroup(toolGroupId: string, tools: Array<Tool>, configs: any = {}): void {

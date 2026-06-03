@@ -46,7 +46,12 @@ function ImageVisual({ children, className }: ImageVisualProps) {
         className
       )}
     >
-      <div className="h-[512px] w-[512px] overflow-auto">{children}</div>
+      <div
+        className="overflow-auto"
+        style={{ height: 'min(72vh, 768px)', width: 'min(72vw, 768px)' }}
+      >
+        {children}
+      </div>
     </div>
   );
 }

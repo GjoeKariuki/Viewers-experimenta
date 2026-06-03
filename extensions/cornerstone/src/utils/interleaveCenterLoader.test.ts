@@ -112,7 +112,7 @@ describe('interleaveCenterLoader', () => {
       viewportMatchDetails: mockMatchDetailsWithDifferentSize,
     });
 
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
   });
 
   it('should process volume and create interleaved requests', () => {
@@ -361,7 +361,7 @@ describe('interleaveCenterLoader', () => {
       viewportMatchDetails: mockMultipleMatchDetails,
     });
 
-    expect(result).toBeUndefined();
+    expect(result).toBeNull();
   });
 
   it('should handle empty match details', () => {
@@ -465,7 +465,7 @@ describe('interleaveCenterLoader', () => {
       ]),
     });
 
-    expect(firstCall).toBeUndefined();
+    expect(firstCall).toBeNull();
 
     const secondCall = interleaveCenterLoader({
       ...defaultParameters,

@@ -6,6 +6,12 @@ import interleave from './interleave';
 const volumeIdMapsToLoad = new Map<string, string>();
 const viewportIdVolumeInputArrayMap = new Map<string, unknown[]>();
 
+function isWaitingForMatchedViewports(matchDetails): boolean {
+  const matchedViewportCount = matchDetails?.size || 0;
+
+  return Boolean(matchedViewportCount && viewportIdVolumeInputArrayMap.size < matchedViewportCount);
+}
+
 /**
  * This function caches the volumeUIDs until all the volumes inside the
  * hanging protocol are initialized. Then it goes through the requests and
@@ -18,7 +24,12 @@ const viewportIdVolumeInputArrayMap = new Map<string, unknown[]>();
 export default function interleaveNthLoader({
   data: { viewportId, volumeInputArray },
   displaySetsMatchDetails,
+  viewportMatchDetails: matchDetails,
 }) {
+  if (!volumeInputArray?.length) {
+    return;
+  }
+
   viewportIdVolumeInputArrayMap.set(viewportId, volumeInputArray);
 
   // Based on the volumeInputs store the volumeIds and SeriesInstanceIds
@@ -29,6 +40,7 @@ export default function interleaveNthLoader({
 
     if (!volume) {
       console.log("interleaveNthLoader::No volume, can't load it");
+      viewportIdVolumeInputArrayMap.delete(viewportId);
       return;
     }
 
@@ -37,6 +49,10 @@ export default function interleaveNthLoader({
       const { metadata } = volume;
       volumeIdMapsToLoad.set(volumeId, metadata.SeriesInstanceUID);
     }
+  }
+
+  if (isWaitingForMatchedViewports(matchDetails)) {
+    return null;
   }
 
   const volumeIds = Array.from(volumeIdMapsToLoad.keys()).slice();

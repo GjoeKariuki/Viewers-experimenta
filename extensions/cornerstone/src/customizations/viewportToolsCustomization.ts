@@ -1,6 +1,8 @@
 import { Enums } from '@cornerstonejs/tools';
 import { toolNames } from '../initCornerstoneTools';
 
+const noDefaultBindings = [];
+
 export default {
   'cornerstone.overlayViewportTools': {
     active: [
@@ -10,11 +12,11 @@ export default {
       },
       {
         toolName: toolNames.Pan,
-        bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+        bindings: noDefaultBindings,
       },
       {
         toolName: toolNames.StackScroll,
