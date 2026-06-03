@@ -25,53 +25,53 @@ module.exports = {
       inherit: 'inherit',
 
       aqua: {
-        pale: '#7bb2ce',
+        pale: 'hsl(var(--highlight))',
       },
 
       primary: {
-        light: '#5acce6',
-        main: '#0944b3',
-        dark: '#090c29',
-        active: '#348cfd',
+        light: 'hsl(var(--primary-light))',
+        main: 'hsl(var(--primary))',
+        dark: 'hsl(var(--primary-dark))',
+        active: 'hsl(var(--primary))',
       },
       inputfield: {
-        main: '#3a3f99',
-        disabled: '#2b166b',
-        focus: '#5acce6',
-        placeholder: '#39383f',
+        main: 'hsl(var(--input))',
+        disabled: 'hsl(var(--muted))',
+        focus: 'hsl(var(--highlight))',
+        placeholder: 'hsl(var(--muted-foreground))',
       },
 
       secondary: {
-        light: '#3a3f99',
-        main: '#2b166b',
-        dark: '#041c4a',
-        active: '#1f1f27',
+        light: 'hsl(var(--highlight))',
+        main: 'hsl(var(--secondary))',
+        dark: 'hsl(var(--background))',
+        active: 'hsl(var(--secondary))',
       },
 
       indigo: {
-        dark: '#0b1a42',
+        dark: 'hsl(var(--background))',
       },
 
       common: {
-        bright: '#e1e1e1',
-        light: '#a19fad',
-        main: '#fff',
-        dark: '#726f7e',
-        active: '#2c3074',
+        bright: 'hsl(var(--foreground))',
+        light: 'hsl(var(--muted-foreground))',
+        main: 'hsl(var(--background))',
+        dark: 'hsl(var(--neutral-dark))',
+        active: 'hsl(var(--primary))',
       },
       bkg: {
-        low: '#050615',
-        med: '#090C29',
-        full: '#041C4A',
+        low: 'hsl(var(--background))',
+        med: 'hsl(var(--muted))',
+        full: 'hsl(var(--accent))',
       },
       info: {
-        primary: '#FFFFFF',
-        secondary: '#7BB2CE',
+        primary: 'hsl(var(--foreground))',
+        secondary: 'hsl(var(--highlight))',
       },
       actions: {
-        primary: '#348CFD',
-        highlight: '#5ACCE6',
-        hover: 'rgba(52, 140, 253, 0.2)',
+        primary: 'hsl(var(--primary))',
+        highlight: 'hsl(var(--highlight))',
+        hover: 'hsla(var(--primary) / 0.2)',
       },
       customgreen: {
         100: '#05D97C',
@@ -79,20 +79,20 @@ module.exports = {
       },
 
       customblue: {
-        10: '#0A163F',
-        20: '#0B1F54',
-        30: '#09286e',
-        40: '#0E307F',
-        50: '#0F3A94',
-        80: '#1454D4',
-        100: '#c4fdff',
-        200: '#38daff',
-        300: '#1D204D',
-        400: '#90A0C1',
+        10: 'hsl(var(--background))',
+        20: 'hsl(var(--muted))',
+        30: 'hsl(var(--accent))',
+        40: 'hsl(var(--primary))',
+        50: 'hsl(var(--primary))',
+        80: 'hsl(var(--highlight))',
+        100: 'hsl(var(--highlight))',
+        200: 'hsl(var(--highlight))',
+        300: 'hsl(var(--secondary))',
+        400: 'hsl(var(--muted-foreground))',
       },
 
       customgray: {
-        100: '#262943',
+        100: 'hsl(var(--muted))',
       },
 
       gray: {

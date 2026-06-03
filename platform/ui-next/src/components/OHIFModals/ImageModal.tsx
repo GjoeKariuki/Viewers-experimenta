@@ -41,7 +41,7 @@ function ImageVisual({ children, className }: ImageVisualProps) {
   return (
     <div
       className={cn(
-        'bg-background/90 flex-1 items-center justify-center rounded-2xl p-4 sm:flex-[7]',
+        'flex-1 items-center justify-center rounded-2xl bg-muted p-4 sm:flex-[7]',
         'flex', // ensure the container is a flex box
         className
       )}

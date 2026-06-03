@@ -438,7 +438,7 @@ const GridSelector = ({ rows = 3, columns = 4, className }: GridSelectorProps) =
       {Array.from(Array(rows * columns).keys()).map(index => (
         <div
           key={index}
-          className={cn('cursor-pointer', isHovered(index) ? 'bg-primary' : 'bg-muted')}
+          className={cn('cursor-pointer', isHovered(index) ? 'bg-primary-active' : 'bg-muted')}
           data-cy={`Layout-${index % columns}-${Math.floor(index / columns)}`}
           onClick={() => handleSelection(index)}
           onMouseEnter={() => setHoveredIndex(index)}
@@ -449,7 +449,9 @@ const GridSelector = ({ rows = 3, columns = 4, className }: GridSelectorProps) =
   );
 };
 
-const Divider = ({ className }: { className?: string }) => <div className={cn('bg-border h-px', className)}></div>;
+const Divider = ({ className }: { className?: string }) => (
+  <div className={cn('h-px bg-border', className)}></div>
+);
 
 const HelpText = ({ children, className }: { children: React.ReactNode; className?: string }) => (
   <p className={cn('text-muted-foreground text-xs leading-tight', className)}>{children}</p>

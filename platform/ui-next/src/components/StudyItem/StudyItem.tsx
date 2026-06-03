@@ -47,7 +47,7 @@ const StudyItem = ({
                     className="w-full"
                     asChild
                   >
-                    <div className="text-foreground h-[18px] w-full max-w-[160px] overflow-hidden truncate whitespace-nowrap text-left">
+                    <div className="h-[18px] w-full max-w-[160px] overflow-hidden truncate whitespace-nowrap text-left text-foreground">
                       {date}
                     </div>
                   </TooltipTrigger>

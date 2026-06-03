@@ -60,7 +60,7 @@ function ThemeSelector() {
         <Button
           variant="ghost"
           size="icon"
-          className="text-primary hover:bg-accent h-8 w-8"
+          className="text-foreground hover:bg-primary/25 h-8 w-8"
           dataCY="theme-selector"
           aria-label={t('Themes')}
           title={t('Themes')}

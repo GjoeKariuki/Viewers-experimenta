@@ -55,10 +55,18 @@ module.exports = {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          light: 'hsl(var(--highlight))',
+          main: 'hsl(var(--primary))',
+          dark: 'hsl(var(--background))',
+          active: 'hsl(var(--primary))',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
+          light: 'hsl(var(--highlight))',
+          main: 'hsl(var(--secondary))',
+          dark: 'hsl(var(--background))',
+          active: 'hsl(var(--secondary))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -80,6 +88,47 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        inputfield: {
+          main: 'hsl(var(--input))',
+          disabled: 'hsl(var(--accent))',
+          focus: 'hsl(var(--highlight))',
+          placeholder: 'hsl(var(--neutral))',
+        },
+        customblue: {
+          10: 'hsl(var(--background))',
+          20: 'hsl(var(--background))',
+          30: 'hsl(var(--accent))',
+          40: 'hsl(var(--primary))',
+          50: 'hsl(var(--secondary))',
+          80: 'hsl(var(--secondary))',
+          100: 'hsl(var(--highlight))',
+          200: 'hsl(var(--highlight))',
+          300: 'hsl(var(--accent))',
+          400: 'hsl(var(--neutral))',
+        },
+        common: {
+          bright: '#ffffff',
+          light: 'hsl(var(--neutral))',
+          main: '#ffffff',
+          dark: 'hsl(var(--neutral-dark))',
+          active: 'hsl(var(--primary))',
+        },
+        'aqua-pale': 'hsl(var(--highlight))',
+        'customgrey-70': 'hsl(var(--muted-foreground))',
+        bkg: {
+          low: 'hsl(var(--background))',
+          med: 'hsl(var(--muted))',
+          full: 'hsl(var(--accent))',
+        },
+        info: {
+          primary: 'hsl(var(--foreground))',
+          secondary: 'hsl(var(--highlight))',
+        },
+        actions: {
+          primary: 'hsl(var(--primary))',
+          highlight: 'hsl(var(--highlight))',
+          hover: 'hsla(var(--primary) / 0.2)',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -99,20 +148,6 @@ module.exports = {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-      },
-      bkg: {
-        low: '#050615',
-        med: '#090C29',
-        full: '#041C4A',
-      },
-      info: {
-        primary: '#FFFFFF',
-        secondary: '#7BB2CE',
-      },
-      actions: {
-        primary: '#348CFD',
-        highlight: '#5ACCE6',
-        hover: 'rgba(52, 140, 253, 0.2)',
       },
     },
   },
