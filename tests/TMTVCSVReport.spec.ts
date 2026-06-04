@@ -1,5 +1,6 @@
 import { expect, test, visitStudy } from './utils';
 import { downloadAsString } from './utils/download';
+import toArray from 'extensions/dicom-microscopy/src/utils/toArray';
 
 test('should create and download the TMTV CSV report correctly', async ({
   page,

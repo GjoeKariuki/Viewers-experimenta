@@ -396,12 +396,21 @@ function WorkList({
                 // Hide this mode from display
                 return null;
               }
+              if (mode.hide) {
+                // Hide this mode from display
+                return null;
+              }
               const modalitiesToCheck = modalities.replaceAll('/', '\\');
 
               const { valid: isValidMode, description: invalidModeDescription } = mode.isValidMode({
                 modalities: modalitiesToCheck,
                 study,
               });
+              if (isValidMode === null) {
+                // Hide this as a computed result.
+                return null;
+              }
+
               if (isValidMode === null) {
                 // Hide this as a computed result.
                 return null;
@@ -438,6 +447,7 @@ function WorkList({
                     {/* TODO revisit the completely rounded style of buttons used for launching a mode from the worklist later */}
                     <Button
                       type={ButtonEnums.type.primary}
+                      size={ButtonEnums.size.smallTall}
                       size={ButtonEnums.size.smallTall}
                       disabled={!isValidMode}
                       startIconTooltip={

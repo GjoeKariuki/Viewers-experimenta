@@ -113,7 +113,6 @@ export const SegmentationSegments = ({ children = null }: { children?: React.Rea
             if (!segmentFromSegmentation) {
               return null;
             }
-
             const { locked, active, label, displayText } = segmentFromSegmentation;
             const cssColor = `rgb(${color[0]},${color[1]},${color[2]})`;
 
@@ -193,7 +192,6 @@ export const SegmentationSegments = ({ children = null }: { children?: React.Rea
                     ></div>
                     <h3 className="text-muted-foreground break-words font-semibold">{label}</h3>
                   </div>
-
                   <SegmentStatistics
                     segment={{
                       ...segmentFromSegmentation,

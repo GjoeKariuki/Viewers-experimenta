@@ -251,6 +251,10 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
       defaultComponent: ProjectionMenuWrapper,
     },
     {
+      name: 'ohif.projectionMenu',
+      defaultComponent: ProjectionMenuWrapper,
+    },
+    {
       name: 'ohif.windowLevelMenu',
       defaultComponent: WindowLevelActionMenuWrapper,
     },

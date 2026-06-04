@@ -13,6 +13,7 @@ coverage/
 .codex
 .yarn/
 .nx/
+.codex
 addOns/yarn.lock
 playwright-report/
 

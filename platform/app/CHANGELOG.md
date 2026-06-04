@@ -1189,6 +1189,22 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+## [3.11.1](https://github.com/OHIF/Viewers/compare/v3.11.0...v3.11.1) (2025-10-28)
+
+**Note:** Version bump only for package @ohif/app
+
+
+
+
+
+# [3.11.0](https://github.com/OHIF/Viewers/compare/v3.11.0-beta.116...v3.11.0) (2025-08-05)
+
+**Note:** Version bump only for package @ohif/app
+
+
+
+
+
 # [3.11.0-beta.116](https://github.com/OHIF/Viewers/compare/v3.11.0-beta.115...v3.11.0-beta.116) (2025-08-05)
 
 **Note:** Version bump only for package @ohif/app

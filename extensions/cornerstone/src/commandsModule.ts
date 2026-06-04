@@ -1551,135 +1551,8 @@ function commandsModule({
         true // overwrite
       );
 
-      const renderingEngine = cornerstoneViewportService.getRenderingEngineIfExists?.();
-      const viewportIds = cornerstoneViewportService.getViewportIds?.() ?? [viewportId];
-
-      viewportIds.forEach(id => {
-        if (renderingEngine?.getViewport(id)) {
-          renderingEngine.renderViewport(id);
-        }
-      });
-    },
-    setViewportProjectionMode: ({ viewportId, displaySetInstanceUID, mode, slabThickness }) => {
-      _setViewportProjectionMode({
-        viewportId,
-        displaySetInstanceUID,
-        mode,
-        slabThickness,
-      });
-    },
-    toggleViewportProjection: ({
-      viewportId,
-      displaySetInstanceUID,
-      mode = PROJECTION_MODES.MIP,
-      slabThickness = DEFAULT_MIP_SLAB_THICKNESS,
-    }) => {
-      const { viewport, actorEntry } = _getProjectionViewportContext(
-        viewportId,
-        displaySetInstanceUID
-      );
-
-      if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
-        return;
-      }
-
-      const mapper = actorEntry?.actor?.getMapper?.();
-      const currentMode = blendModeToProjectionMode(
-        mapper?.getBlendMode?.() ?? viewport.getBlendMode?.()
-      );
-
-      _setViewportProjectionMode({
-        viewportId,
-        displaySetInstanceUID,
-        mode: currentMode === mode ? PROJECTION_MODES.COMPOSITE : mode,
-        slabThickness,
-      });
-    },
-    applyClinicalMipPreset: ({ presetId, viewportId, displaySetInstanceUID }) => {
-      const presets = {
-        ctaThin: {
-          viewportId: viewportId ?? _getPreferredMipViewportId(),
-          modality: 'CT',
-          mode: PROJECTION_MODES.MIP,
-          slabThickness: 10,
-          windowWidth: 700,
-          windowCenter: 200,
-        },
-        ctaThick: {
-          viewportId: viewportId ?? _getPreferredMipViewportId(),
-          modality: 'CT',
-          mode: PROJECTION_MODES.MIP,
-          slabThickness: 40,
-          windowWidth: 700,
-          windowCenter: 200,
-        },
-        mraThin: {
-          viewportId: viewportId ?? _getPreferredMipViewportId(),
-          modality: 'MR',
-          mode: PROJECTION_MODES.MIP,
-          slabThickness: 20,
-          windowWidth: 1200,
-          windowCenter: 600,
-        },
-        mraFull: {
-          viewportId: viewportId ?? _getPreferredMipViewportId(),
-          modality: 'MR',
-          mode: PROJECTION_MODES.MIP,
-          slabThickness: 'fullVolume' as const,
-          windowWidth: 1200,
-          windowCenter: 600,
-        },
-        petFull: {
-          viewportId: viewportId ?? _getPreferredMipViewportId(),
-          modality: 'PT',
-          mode: PROJECTION_MODES.MIP,
-          slabThickness: 'fullVolume' as const,
-          windowWidth: 10,
-          windowCenter: 5,
-        },
-      };
-
-      const preset = presets[presetId];
-      if (!preset) {
-        return;
-      }
-
-      const targetViewportId = preset.viewportId;
-      const targetViewport = cornerstoneViewportService.getCornerstoneViewport(targetViewportId);
-      const targetDisplaySetUIDs =
-        viewportGridService.getDisplaySetsUIDsForViewport(targetViewportId) || [];
-      const targetDisplaySetUID = displaySetInstanceUID ?? targetDisplaySetUIDs[0];
-      const targetDisplaySet = targetDisplaySetUID
-        ? displaySetService.getDisplaySetByUID(targetDisplaySetUID)
-        : undefined;
-
-      if (targetDisplaySet?.Modality && targetDisplaySet.Modality !== preset.modality) {
-        uiNotificationService.show({
-          title: 'MIP preset unavailable',
-          message: `This preset requires a ${preset.modality} volume in the selected viewport.`,
-          type: 'info',
-          duration: 3000,
-        });
-        return;
-      }
-
-      if (!targetViewport) {
-        return;
-      }
-
-      _setViewportProjectionMode({
-        viewportId: targetViewportId,
-        displaySetInstanceUID,
-        mode: preset.mode,
-        slabThickness: preset.slabThickness,
-      });
-
-      actions.setViewportWindowLevel({
-        viewportId: targetViewportId,
-        displaySetInstanceUID,
-        windowWidth: preset.windowWidth,
-        windowCenter: preset.windowCenter,
-      });
+      const renderingEngine = cornerstoneViewportService.getRenderingEngine();
+      renderingEngine.render();
     },
     storePresentation: ({ viewportId }) => {
       cornerstoneViewportService.storePresentation({ viewportId });
@@ -2074,6 +1947,8 @@ function commandsModule({
         uiDialogService,
         title: i18n.t('Tools:Edit Segment Label'),
         placeholder: i18n.t('Tools:Enter new label'),
+        title: i18n.t('Tools:Edit Segment Label'),
+        placeholder: i18n.t('Tools:Enter new label'),
         defaultValue: segment.label,
       }).then(label => {
         segmentationService.setSegmentLabel(segmentationId, segmentIndex, label);
@@ -2092,6 +1967,8 @@ function commandsModule({
 
       callInputDialog({
         uiDialogService,
+        title: i18n.t('Tools:Edit Segmentation Label'),
+        placeholder: i18n.t('Tools:Enter new label'),
         title: i18n.t('Tools:Edit Segmentation Label'),
         placeholder: i18n.t('Tools:Enter new label'),
         defaultValue: label,
@@ -2115,6 +1992,7 @@ function commandsModule({
 
       uiDialogService.show({
         content: colorPickerDialog,
+        title: i18n.t('Tools:Segment Color'),
         title: i18n.t('Tools:Segment Color'),
         contentProps: {
           value: rgbaColor,
@@ -2736,6 +2614,205 @@ function commandsModule({
       const renderingEngine = cornerstoneViewportService.getRenderingEngine();
       renderingEngine.render();
     },
+    activateSelectedSegmentationOfType: ({ segmentationRepresentationType }) => {
+      const { segmentationService, viewportGridService } = servicesManager.services;
+      const activeViewportId = viewportGridService.getActiveViewportId();
+      const { selectedSegmentationsForViewport } =
+        useSelectedSegmentationsForViewportStore.getState();
+      const segmentationId = selectedSegmentationsForViewport[activeViewportId]?.get(
+        segmentationRepresentationType
+      );
+
+      if (!segmentationId) {
+        return;
+      }
+
+      segmentationService.setActiveSegmentation(activeViewportId, segmentationId);
+    },
+    setDynamicCursorSizeForSculptorTool: ({ value: isDynamicCursorSize }) => {
+      const viewportId = viewportGridService.getActiveViewportId();
+      const toolGroup = toolGroupService.getToolGroupForViewport(viewportId);
+      const sculptorToolInstance = toolGroup.getToolInstance(toolNames.SculptorTool);
+      const oldConfiguration = sculptorToolInstance.configuration;
+
+      sculptorToolInstance.configuration = {
+        ...oldConfiguration,
+        updateCursorSize: isDynamicCursorSize ? 'dynamic' : '',
+      };
+    },
+    setInterpolationToolConfiguration: ({ value: interpolateContours, toolNames }) => {
+      const viewportId = viewportGridService.getActiveViewportId();
+      const toolGroup = toolGroupService.getToolGroupForViewport(viewportId);
+
+      // Set the interpolation configuration for the active tool.
+      const activeTool = toolGroupService.getActiveToolForViewport(viewportId);
+      const interpolationConfig = {
+        interpolation: {
+          enabled: interpolateContours,
+        },
+      };
+      toolGroup.setToolConfiguration(activeTool, interpolationConfig);
+
+      // Now set the interpolation configuration for the other tools specified.
+      if (toolNames) {
+        Object.values(toolGroup.getToolInstances()).forEach(toolInstance => {
+          if (toolNames?.includes(toolInstance.toolName)) {
+            toolGroup.setToolConfiguration(toolInstance.toolName, interpolationConfig);
+          }
+        });
+      }
+    },
+    setSimplifiedSplineForSplineContourSegmentationTool: ({ value: simplifiedSpline }) => {
+      const viewportId = viewportGridService.getActiveViewportId();
+      const toolGroup = toolGroupService.getToolGroupForViewport(viewportId);
+      Object.values(toolGroup.getToolInstances()).forEach(toolInstance => {
+        if (toolInstance instanceof SplineContourSegmentationTool) {
+          const oldConfiguration = toolInstance.configuration;
+          toolInstance.configuration = {
+            ...oldConfiguration,
+            simplifiedSpline,
+          };
+        }
+      });
+    },
+    removeSmallContours: ({ areaThreshold: threshold }) => {
+      const viewportId = viewportGridService.getActiveViewportId();
+      const activeSegmentation = segmentationService.getActiveSegmentation(viewportId);
+      const activeSegment = segmentationService.getActiveSegment(viewportId);
+
+      if (!activeSegmentation || !activeSegment) {
+        return;
+      }
+
+      const { removeContourIslands } = segmentationUtilities;
+      removeContourIslands(activeSegmentation.segmentationId, activeSegment.segmentIndex, {
+        threshold,
+      });
+      const renderingEngine = cornerstoneViewportService.getRenderingEngine();
+      renderingEngine.render();
+    },
+    applyLogicalContourOperation: ({
+      segmentAInfo,
+      segmentBInfo,
+      resultSegmentInfo,
+      logicalOperation,
+    }: {
+      segmentAInfo: SegmentInfo;
+      segmentBInfo: SegmentInfo;
+      resultSegmentInfo: OperatorOptions;
+      logicalOperation: LogicalOperation;
+    }) => {
+      switch (logicalOperation) {
+        case LogicalOperation.Union:
+          add(segmentAInfo, segmentBInfo, resultSegmentInfo);
+          break;
+        case LogicalOperation.Intersect:
+          intersect(segmentAInfo, segmentBInfo, resultSegmentInfo);
+          break;
+        case LogicalOperation.Subtract:
+          subtract(segmentAInfo, segmentBInfo, resultSegmentInfo);
+          break;
+        default:
+          throw new Error('Unsupported logical operation');
+      }
+    },
+    copyContourSegment: ({
+      sourceSegmentInfo,
+      targetSegmentInfo,
+    }: {
+      sourceSegmentInfo: SegmentInfo;
+      targetSegmentInfo?: SegmentInfo;
+    }) => {
+      if (!targetSegmentInfo) {
+        targetSegmentInfo = {
+          segmentationId: sourceSegmentInfo.segmentationId,
+          segmentIndex: segmentationService.getNextAvailableSegmentIndex(
+            sourceSegmentInfo.segmentationId
+          ),
+        };
+        segmentationService.addSegment(targetSegmentInfo.segmentationId, {
+          segmentIndex: targetSegmentInfo.segmentIndex,
+        });
+      }
+
+      copy(sourceSegmentInfo, targetSegmentInfo);
+    },
+    smoothContours: () => {
+      const viewportId = viewportGridService.getActiveViewportId();
+      const activeSegmentation = segmentationService.getActiveSegmentation(viewportId);
+      const activeSegment = segmentationService.getActiveSegment(viewportId);
+
+      if (!activeSegmentation || !activeSegment) {
+        return;
+      }
+
+      const { smoothContours } = segmentationUtilities;
+      smoothContours(activeSegmentation.segmentationId, activeSegment.segmentIndex);
+
+      const renderingEngine = cornerstoneViewportService.getRenderingEngine();
+      renderingEngine.render();
+    },
+    removeContourHoles: () => {
+      const viewportId = viewportGridService.getActiveViewportId();
+      const activeSegmentation = segmentationService.getActiveSegmentation(viewportId);
+      const activeSegment = segmentationService.getActiveSegment(viewportId);
+
+      if (!activeSegmentation || !activeSegment) {
+        return;
+      }
+
+      const { removeContourHoles } = segmentationUtilities;
+      removeContourHoles(activeSegmentation.segmentationId, activeSegment.segmentIndex);
+
+      const renderingEngine = cornerstoneViewportService.getRenderingEngine();
+      renderingEngine.render();
+    },
+    decimateContours: () => {
+      const viewportId = viewportGridService.getActiveViewportId();
+      const activeSegmentation = segmentationService.getActiveSegmentation(viewportId);
+      const activeSegment = segmentationService.getActiveSegment(viewportId);
+
+      if (!activeSegmentation || !activeSegment) {
+        return;
+      }
+
+      const { decimateContours } = segmentationUtilities;
+      decimateContours(activeSegmentation.segmentationId, activeSegment.segmentIndex);
+
+      const renderingEngine = cornerstoneViewportService.getRenderingEngine();
+      renderingEngine.render();
+    },
+    convertContourHoles: () => {
+      const viewportId = viewportGridService.getActiveViewportId();
+      const activeSegmentation = segmentationService.getActiveSegmentation(viewportId);
+      const activeSegment = segmentationService.getActiveSegment(viewportId);
+
+      if (!activeSegmentation || !activeSegment) {
+        return;
+      }
+
+      const targetSegmentInfo = {
+        segmentationId: activeSegmentation.segmentationId,
+        segmentIndex: segmentationService.getNextAvailableSegmentIndex(
+          activeSegmentation.segmentationId
+        ),
+      };
+
+      segmentationService.addSegment(targetSegmentInfo.segmentationId, {
+        segmentIndex: targetSegmentInfo.segmentIndex,
+      });
+
+      const { convertContourHoles } = segmentationUtilities;
+      convertContourHoles(
+        activeSegmentation.segmentationId,
+        activeSegment.segmentIndex,
+        targetSegmentInfo.segmentationId,
+        targetSegmentInfo.segmentIndex
+      );
+
+      const renderingEngine = cornerstoneViewportService.getRenderingEngine();
+      renderingEngine.render();
+    },
   };
 
   const definitions = {
@@ -2901,6 +2978,15 @@ function commandsModule({
     applyClinicalMipPreset: {
       commandFn: actions.applyClinicalMipPreset,
     },
+    setViewportProjectionMode: {
+      commandFn: actions.setViewportProjectionMode,
+    },
+    toggleViewportProjection: {
+      commandFn: actions.toggleViewportProjection,
+    },
+    applyClinicalMipPreset: {
+      commandFn: actions.applyClinicalMipPreset,
+    },
     storePresentation: {
       commandFn: actions.storePresentation,
     },
@@ -2990,11 +3076,17 @@ function commandsModule({
     },
     setFillAlpha: {
       commandFn: createSetStyleCommand('fillAlpha'),
+      commandFn: createSetStyleCommand('fillAlpha'),
     },
     setOutlineWidth: {
       commandFn: createSetStyleCommand('outlineWidth'),
+      commandFn: createSetStyleCommand('outlineWidth'),
     },
     setRenderFill: {
+      commandFn: createSetStyleCommand('renderFill'),
+    },
+    setRenderFillInactive: {
+      commandFn: createSetStyleCommand('renderFillInactive'),
       commandFn: createSetStyleCommand('renderFill'),
     },
     setRenderFillInactive: {
@@ -3005,8 +3097,13 @@ function commandsModule({
     },
     setRenderOutlineInactive: {
       commandFn: createSetStyleCommand('renderOutlineInactive'),
+      commandFn: createSetStyleCommand('renderOutline'),
+    },
+    setRenderOutlineInactive: {
+      commandFn: createSetStyleCommand('renderOutlineInactive'),
     },
     setFillAlphaInactive: {
+      commandFn: createSetStyleCommand('fillAlphaInactive'),
       commandFn: createSetStyleCommand('fillAlphaInactive'),
     },
     editSegmentLabel: {
@@ -3053,6 +3150,18 @@ function commandsModule({
     toggleSegmentLabel: actions.toggleSegmentLabel,
     jumpToMeasurementViewport: actions.jumpToMeasurementViewport,
     initializeSegmentLabelTool: actions.initializeSegmentLabelTool,
+    activateSelectedSegmentationOfType: actions.activateSelectedSegmentationOfType,
+    setDynamicCursorSizeForSculptorTool: actions.setDynamicCursorSizeForSculptorTool,
+    setSimplifiedSplineForSplineContourSegmentationTool:
+      actions.setSimplifiedSplineForSplineContourSegmentationTool,
+    removeSmallContours: actions.removeSmallContours,
+    applyLogicalContourOperation: actions.applyLogicalContourOperation,
+    copyContourSegment: actions.copyContourSegment,
+    smoothContours: actions.smoothContours,
+    removeContourHoles: actions.removeContourHoles,
+    decimateContours: actions.decimateContours,
+    convertContourHoles: actions.convertContourHoles,
+    setInterpolationToolConfiguration: actions.setInterpolationToolConfiguration,
     activateSelectedSegmentationOfType: actions.activateSelectedSegmentationOfType,
     setDynamicCursorSizeForSculptorTool: actions.setDynamicCursorSizeForSculptorTool,
     setSimplifiedSplineForSplineContourSegmentationTool:
