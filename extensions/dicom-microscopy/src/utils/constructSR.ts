@@ -175,7 +175,7 @@ export default function constructSR(metadata, { SeriesDescription, SeriesNumber 
     MediaStorageSOPClassUID: dataset.sopClassUID,
     MediaStorageSOPInstanceUID: dataset.sopInstanceUID,
     TransferSyntaxUID: {
-      Value: ['1.2.840.10008.1.2.1'],
+      Value: ['1.2.840.10008.1.2.4.91'], // Explicit VR Little Endian
       vr: 'UI',
     },
     ImplementationClassUID: {
