@@ -298,68 +298,111 @@ interface ToolButtonListItemProps extends React.ButtonHTMLAttributes<HTMLButtonE
   disabledText?: string;
   tooltip?: string;
   onSelect?: () => void;
+  commands?: unknown;
+  evaluate?: unknown;
+  evaluateProps?: unknown;
+  hideWhenDisabled?: boolean;
+  isActive?: boolean;
+  label?: string;
+  listeners?: unknown;
+  options?: unknown;
+  visible?: boolean;
 }
 
 const ToolButtonListItem = React.forwardRef<
   HTMLButtonElement,
   ToolButtonListItemProps
->(({ className, children, icon, disabledText, tooltip, disabled, onSelect, onClick, ...props }, ref) => {
-  const defaultTooltip = tooltip || (typeof children === 'string' ? children : undefined);
+>(
+  (
+    {
+      className,
+      children,
+      icon,
+      disabledText,
+      tooltip,
+      disabled,
+      onSelect,
+      onClick,
+      commands,
+      evaluate,
+      evaluateProps,
+      hideWhenDisabled,
+      isActive,
+      label,
+      listeners,
+      options,
+      visible,
+      ...props
+    },
+    ref
+  ) => {
+    void commands;
+    void evaluate;
+    void evaluateProps;
+    void hideWhenDisabled;
+    void isActive;
+    void label;
+    void listeners;
+    void options;
+    void visible;
 
-  const menuItem = (
-    <button
-      type="button"
-      ref={ref}
-      disabled={disabled}
-      onClick={event => {
-        onClick?.(event);
+    const defaultTooltip = tooltip || (typeof children === 'string' ? children : undefined);
 
-        if (!event.defaultPrevented) {
-          onSelect?.();
-        }
-      }}
-      onKeyDown={event => {
-        if ((event.key === 'Enter' || event.key === ' ') && !disabled) {
-          event.preventDefault();
-          onSelect?.();
-        }
-      }}
-      aria-disabled={disabled}
-      className={cn(
-        'focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default select-none items-center rounded px-1 py-1 text-base outline-none transition-colors disabled:pointer-events-none disabled:opacity-50',
-        className
-      )}
-      {...props}
-    >
-      {icon && (
-        <Icons.ByName
-          name={icon || 'MissingIcon'}
-          className="h-6 w-6"
-        />
-      )}
-      {children}
-    </button>
-  );
+    const menuItem = (
+      <button
+        type="button"
+        ref={ref}
+        disabled={disabled}
+        onClick={event => {
+          onClick?.(event);
 
-  // Todo: there is a weird issue where i can't control the duration of the delay
-  // for the items in this list, causing the tooltip to show up too early in the
-  // dropdown menu. So i'm just removing the tooltip for list items unless the disabledText is set.
-  if (!disabled) {
-    return menuItem;
+          if (!event.defaultPrevented) {
+            onSelect?.();
+          }
+        }}
+        onKeyDown={event => {
+          if ((event.key === 'Enter' || event.key === ' ') && !disabled) {
+            event.preventDefault();
+            onSelect?.();
+          }
+        }}
+        aria-disabled={disabled}
+        className={cn(
+          'focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default select-none items-center rounded px-1 py-1 text-base outline-none transition-colors disabled:pointer-events-none disabled:opacity-50',
+          className
+        )}
+        {...props}
+      >
+        {icon && (
+          <Icons.ByName
+            name={icon || 'MissingIcon'}
+            className="h-6 w-6"
+          />
+        )}
+        {children}
+      </button>
+    );
+
+    // Todo: there is a weird issue where i can't control the duration of the delay
+    // for the items in this list, causing the tooltip to show up too early in the
+    // dropdown menu. So i'm just removing the tooltip for list items unless the disabledText is set.
+    if (!disabled) {
+      return menuItem;
+    }
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>{menuItem}</span>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {defaultTooltip && <div>{defaultTooltip}</div>}
+          {disabledText && disabled && <div className="text-muted-foreground">{disabledText}</div>}
+        </TooltipContent>
+      </Tooltip>
+    );
   }
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span>{menuItem}</span>
-      </TooltipTrigger>
-      <TooltipContent side="bottom">
-        {defaultTooltip && <div>{defaultTooltip}</div>}
-        {disabledText && disabled && <div className="text-muted-foreground">{disabledText}</div>}
-      </TooltipContent>
-    </Tooltip>
-  );
-});
+);
 ToolButtonListItem.displayName = 'ToolButtonListItem';
 
 /**
