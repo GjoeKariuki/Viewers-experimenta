@@ -11,7 +11,7 @@ const ContextMenu = ({ items, ...props }) => {
   return (
     <div
       data-cy="context-menu"
-      className="bg-secondary-dark relative z-50 block w-48 rounded"
+      className="bg-background relative z-50 block w-48 rounded shadow-lg border border-border"
       onContextMenu={e => e.preventDefault()}
     >
       {items.map((item, index) => (
@@ -26,7 +26,7 @@ const ContextMenu = ({ items, ...props }) => {
           {item.iconRight && (
             <Icons.ByName
               name={item.iconRight}
-              className="inline text-white"
+              className="inline text-foreground"
             />
           )}
         </div>

@@ -1,5 +1,5 @@
 .customSelect__wrapper .customSelect__control {
-  @apply border-secondary-light w-full rounded border bg-black text-sm leading-tight text-white shadow transition duration-300;
+  @apply border-secondary-light w-full rounded border bg-background text-sm leading-tight text-foreground shadow transition duration-300;
   min-height: 28px;
 }
 .customSelect__wrapper .customSelect__control:hover {
@@ -16,7 +16,7 @@
 }
 
 .customSelect__input {
-  @apply text-white !important;
+  @apply text-foreground !important;
   font-size: 0.75rem !important;
   line-height: 1.25 !important;
 }
@@ -43,7 +43,7 @@
 }
 
  .customSelect__option {
-  color: #d6d6d6 !important;
+  color: hsl(var(--foreground)) !important;
   font-size: 14px !important;
   display: flex !important;
   align-items: center !important;
@@ -90,22 +90,22 @@
 }
 
 .customSelect__menu-portal .customSelect__menu-list::-webkit-scrollbar-thumb {
-  background-color: #0944b3;
+  background-color: hsl(var(--primary));
   border-radius: 10px;
 }
 
 .customSelect__option--is-focused {
-  background-color: #0944b391 !important;
+  background-color: hsl(var(--primary) / 0.5) !important;
 }
 
 .customSelect__menu-portal .customSelect__option:hover {
-  background-color: #0944b391;
+  background-color: hsl(var(--primary) / 0.5);
 }
 
 .customSelect__menu-portal .customSelect__menu {
-  border: 2px solid #0944b3;
+  border: 2px solid hsl(var(--primary));
   border-radius: 6px;
-  background-color: #151515 !important;
+  background-color: hsl(var(--background)) !important;
 }
 
 .css-1hwfws3 {

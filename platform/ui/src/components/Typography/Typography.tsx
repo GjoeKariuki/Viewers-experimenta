@@ -43,11 +43,11 @@ const classes = {
     inherit: '',
   },
   color: {
-    initial: 'text-white',
+    initial: 'text-foreground',
     inherit: 'text-inherit',
     primary: 'text-primary-main',
     primaryActive: 'text-primary-active',
-    primaryLight: 'text-primary-light',
+    primaryLight: 'text-primary',
     secondary: 'text-common-light',
     error: 'text-red-600',
   },

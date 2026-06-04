@@ -58,7 +58,7 @@ const closeIconWidth = 30;
 const gridHorizontalPadding = 10;
 const tabSpacerWidth = 2;
 
-const baseClasses = 'bg-background border-border text-foreground justify-start box-content flex flex-col';
+const baseClasses = 'bg-background border-border justify-start box-content flex flex-col';
 
 const openStateIconName = {
   left: 'SidePanelCloseLeft',
@@ -111,8 +111,8 @@ const getTabClassNames = (
   isActiveTab: boolean,
   isTabDisabled: boolean
 ) =>
-  classnames('h-[28px] mb-[2px] cursor-pointer bg-background text-foreground', {
-    'hover:text-primary hover:bg-accent': !isActiveTab && !isTabDisabled,
+  classnames('h-[28px] mb-[2px] cursor-pointer text-foreground bg-background', {
+    'hover:text-primary': !isActiveTab && !isTabDisabled,
     'rounded-l': tabIndex % numColumns === 0,
     'rounded-r': (tabIndex + 1) % numColumns === 0 || tabIndex === numTabs - 1,
   });
@@ -162,7 +162,7 @@ const getToolTipContent = (label: string, disabled: boolean) => {
   return (
     <>
       <div>{label}</div>
-      {disabled && <div className="text-muted-foreground">{'Not available based on current context'}</div>}
+      {disabled && <div className="text-foreground">{'Not available based on current context'}</div>}
     </>
   );
 };
@@ -373,7 +373,7 @@ const SidePanel = ({
                   {tabIndex % numCols !== 0 && (
                     <div
                       className={classnames(
-                        'flex h-[28px] w-[2px] items-center bg-border',
+                        'flex h-[28px] w-[2px] items-center bg-background',
                         tabSpacerWidth
                       )}
                     >
