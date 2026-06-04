@@ -3,7 +3,7 @@ import getInterleavedFrames from './getInterleavedFrames';
 import zip from 'lodash.zip';
 import compact from 'lodash.compact';
 import flatten from 'lodash.flatten';
-import interleaveCenterLoader from './interleaveCenterLoader';
+import interleaveCenterLoader, { resetInterleaveCenterLoaderState } from './interleaveCenterLoader';
 
 jest.mock('@cornerstonejs/core', () => ({
   cache: {
@@ -69,7 +69,18 @@ describe('interleaveCenterLoader', () => {
     viewportMatchDetails: mockMatchDetails,
   };
 
+  const createMipMatchDetails = (displaySetInstanceUID: string) =>
+    new Map(
+      ['mip-overview', 'mpr-axial', 'mpr-sagittal', 'mpr-coronal'].map(viewportId => [
+        viewportId,
+        {
+          displaySetsInfo: [{ displaySetInstanceUID }],
+        },
+      ])
+    );
+
   beforeEach(() => {
+    resetInterleaveCenterLoaderState();
     jest.clearAllMocks();
     (cache.getVolume as jest.Mock).mockReturnValue(mockVolume);
     mockVolume.getImageLoadRequests.mockReturnValue([mockImageLoadRequest]);
@@ -492,6 +503,77 @@ describe('interleaveCenterLoader', () => {
     expect(secondCall).toBeInstanceOf(Map);
     expect(secondCall.has('viewport-1')).toBe(true);
     expect(secondCall.has('viewport-2')).toBe(true);
+  });
+
+  it('should reset pending matched viewport state when the hanging protocol match changes', () => {
+    const oldVolumeInput = { volumeId: 'old-volume-id' };
+    const newVolumeInput = { volumeId: 'new-volume-id' };
+    const oldVolume = {
+      metadata: { SeriesInstanceUID: 'old-series-uid' },
+      getImageLoadRequests: jest.fn().mockReturnValue([mockImageLoadRequest]),
+    };
+    const newVolume = {
+      metadata: { SeriesInstanceUID: 'new-series-uid' },
+      getImageLoadRequests: jest.fn().mockReturnValue([mockImageLoadRequest]),
+    };
+
+    (cache.getVolume as jest.Mock).mockImplementation(volumeId => {
+      if (volumeId === oldVolumeInput.volumeId) {
+        return oldVolume;
+      }
+
+      if (volumeId === newVolumeInput.volumeId) {
+        return newVolume;
+      }
+    });
+
+    const firstPendingCall = interleaveCenterLoader({
+      ...defaultParameters,
+      data: {
+        viewportId: 'mip-overview',
+        volumeInputArray: [oldVolumeInput],
+      },
+      viewportMatchDetails: createMipMatchDetails(oldVolumeInput.volumeId),
+    });
+
+    expect(firstPendingCall).toBeNull();
+
+    interleaveCenterLoader({
+      ...defaultParameters,
+      data: {
+        viewportId: 'mip-overview',
+        volumeInputArray: [newVolumeInput],
+      },
+      viewportMatchDetails: createMipMatchDetails(newVolumeInput.volumeId),
+    });
+    interleaveCenterLoader({
+      ...defaultParameters,
+      data: {
+        viewportId: 'mpr-axial',
+        volumeInputArray: [newVolumeInput],
+      },
+      viewportMatchDetails: createMipMatchDetails(newVolumeInput.volumeId),
+    });
+    interleaveCenterLoader({
+      ...defaultParameters,
+      data: {
+        viewportId: 'mpr-sagittal',
+        volumeInputArray: [newVolumeInput],
+      },
+      viewportMatchDetails: createMipMatchDetails(newVolumeInput.volumeId),
+    });
+    const completedCall = interleaveCenterLoader({
+      ...defaultParameters,
+      data: {
+        viewportId: 'mpr-coronal',
+        volumeInputArray: [newVolumeInput],
+      },
+      viewportMatchDetails: createMipMatchDetails(newVolumeInput.volumeId),
+    });
+
+    expect(completedCall).toBeInstanceOf(Map);
+    expect(completedCall.get('mip-overview')).toEqual([newVolumeInput]);
+    expect(completedCall.has('old-volume-id')).toBe(false);
   });
 
   it('should handle volume with undefined metadata', () => {

@@ -571,8 +571,12 @@ const commandsModule = ({
           useStageIdx || 0
         }`;
 
+        const protocolToApply = protocolId
+          ? hangingProtocolService.getProtocolById(protocolId)
+          : hpInfo.protocol;
+        const canRestoreProtocol = !protocolToApply?.imageLoadStrategy;
         const { viewportGridState } = useViewportGridStore.getState();
-        const restoreProtocol = !reset && viewportGridState[storedHanging];
+        const restoreProtocol = !reset && canRestoreProtocol && viewportGridState[storedHanging];
 
         if (
           reset ||

@@ -54,6 +54,7 @@ const EVENTS = {
 const MIN_STACK_VIEWPORTS_TO_ENQUEUE_RESIZE = 12;
 const MIN_VOLUME_VIEWPORTS_TO_ENQUEUE_RESIZE = 6;
 const DEFAULT_INITIAL_VIEWPORT_ZOOM_SCALE = 1.08;
+const RENDERING_ENGINE_DESTROY_DELAY_MS = 1000;
 
 export const WITH_NAVIGATION = { withNavigation: true, withOrientation: false };
 export const WITH_ORIENTATION = { withNavigation: true, withOrientation: true };
@@ -80,6 +81,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
   viewportDataRequestIds: Map<string, number> = new Map();
   viewportRenderRequestIds: Map<string, number> = new Map();
   beforeResizePositionPresentations: Map<string, PositionPresentation> = new Map();
+  renderingEngineDestroyTimer = null;
 
   // Some configs
   servicesManager: AppTypes.ServicesManager = null;
@@ -110,6 +112,8 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
    * @param {*} elementRef
    */
   public enableViewport(viewportId: string, elementRef: HTMLDivElement): void {
+    this._cancelRenderingEngineDestroy();
+
     const viewportInfo = new ViewportInfo(viewportId);
     viewportInfo.setElement(elementRef);
     this.viewportsById.set(viewportId, viewportInfo);
@@ -215,6 +219,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     this.resizeQueue = [];
     clearTimeout(this.viewportResizeTimer);
     clearTimeout(this.gridResizeTimeOut);
+    this._cancelRenderingEngineDestroy();
     this._destroyRenderingEngine();
     cache.purgeCache();
   }
@@ -245,7 +250,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     this.viewportRenderRequestIds.delete(viewportId);
 
     if (this.viewportsById.size === 0) {
-      this._destroyRenderingEngine();
+      this._scheduleRenderingEngineDestroy();
     }
   }
 
@@ -275,6 +280,32 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
 
     this._setLutPresentation(viewport, lutPresentation);
     this._setPositionPresentation(viewport, { ...positionPresentation, viewportId });
+  }
+
+  private _shouldResetVolumePositionForCustomImageLoad(viewport: Types.IViewport): boolean {
+    const { hangingProtocolService } = this.servicesManager.services;
+    const isCustomImageLoadProtocol = Boolean(
+      hangingProtocolService?.getActiveProtocol?.()?.protocol?.imageLoadStrategy
+    );
+
+    return isCustomImageLoadProtocol && viewport instanceof BaseVolumeViewport;
+  }
+
+  private _getPresentationsForVolumeSet(
+    viewport: Types.IViewport,
+    presentations: Presentations = {}
+  ): Presentations {
+    if (
+      !this._shouldResetVolumePositionForCustomImageLoad(viewport) ||
+      !presentations.positionPresentation
+    ) {
+      return presentations;
+    }
+
+    return {
+      lutPresentation: presentations.lutPresentation,
+      segmentationPresentation: presentations.segmentationPresentation,
+    };
   }
 
   /**
@@ -1126,7 +1157,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
   public async setVolumesForViewport(
     viewport,
     volumeInputArray,
-    presentations,
+    presentations: Presentations = {},
     requestId = this.viewportDataRequestIds.get(viewport.id)
   ) {
     const { displaySetService, viewportGridService } = this.servicesManager.services;
@@ -1226,6 +1257,12 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
       return;
     }
 
+    if (this._shouldResetVolumePositionForCustomImageLoad(viewport)) {
+      volumeInputArray.forEach(({ volumeId }) => {
+        cache.getVolume(volumeId)?.invalidateVolume?.(true);
+      });
+    }
+
     this._applyProjectionRenderingDefaults(viewport, volumeInputArray);
 
     if (overlayProcessingResults?.length) {
@@ -1252,13 +1289,19 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
       return;
     }
 
-    this.setPresentations(viewport.id, presentations);
+    if (this._shouldResetVolumePositionForCustomImageLoad(viewport)) {
+      viewport.resetCamera?.();
+    }
+
+    const presentationsToApply = this._getPresentationsForVolumeSet(viewport, presentations);
+
+    this.setPresentations(viewport.id, presentationsToApply);
 
     if (!this._isViewportRequestCurrent(viewport.id, viewportInfo, requestId)) {
       return;
     }
 
-    if (!presentations.positionPresentation) {
+    if (!presentationsToApply.positionPresentation) {
       const imageIndex = this._getInitialImageIndexForViewport(viewportInfo);
 
       if (imageIndex !== undefined) {
@@ -1557,7 +1600,26 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     }, this.gridResizeDelay);
   }
 
+  private _cancelRenderingEngineDestroy(): void {
+    clearTimeout(this.renderingEngineDestroyTimer);
+    this.renderingEngineDestroyTimer = null;
+  }
+
+  private _scheduleRenderingEngineDestroy(): void {
+    this._cancelRenderingEngineDestroy();
+
+    this.renderingEngineDestroyTimer = setTimeout(() => {
+      this.renderingEngineDestroyTimer = null;
+
+      if (this.viewportsById.size === 0) {
+        this._destroyRenderingEngine();
+      }
+    }, RENDERING_ENGINE_DESTROY_DELAY_MS);
+  }
+
   private _destroyRenderingEngine(renderingEngine?: Types.IRenderingEngine): void {
+    this._cancelRenderingEngineDestroy();
+
     const engineToDestroy =
       renderingEngine || getRenderingEngine(RENDERING_ENGINE_ID) || this.renderingEngine;
 

@@ -1,5 +1,5 @@
 import { cache, imageLoadPoolManager, Enums as csEnums } from '@cornerstonejs/core';
-import interleaveNthLoader from './nthLoader';
+import interleaveNthLoader, { resetInterleaveNthLoaderState } from './nthLoader';
 import getNthFrames from './getNthFrames';
 import interleave from './interleave';
 
@@ -45,6 +45,7 @@ describe('interleaveNthLoader', () => {
   };
 
   beforeEach(() => {
+    resetInterleaveNthLoaderState();
     jest.clearAllMocks();
     (cache.getVolume as jest.Mock).mockReturnValue(mockVolume);
     mockVolume.getImageLoadRequests.mockReturnValue([mockImageLoadRequest]);

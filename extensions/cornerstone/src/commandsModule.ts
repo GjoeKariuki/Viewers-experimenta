@@ -1529,6 +1529,12 @@ function commandsModule({
         viewportId = activeViewportId ?? 'default';
       }
 
+      const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+      if (!viewport) {
+        return;
+      }
+
       const toolGroup = toolGroupService.getToolGroupForViewport(viewportId);
 
       if (!toolGroup?.hasTool(toolName)) {
@@ -1545,8 +1551,14 @@ function commandsModule({
         true // overwrite
       );
 
-      const renderingEngine = cornerstoneViewportService.getRenderingEngine();
-      renderingEngine.render();
+      const renderingEngine = cornerstoneViewportService.getRenderingEngineIfExists?.();
+      const viewportIds = cornerstoneViewportService.getViewportIds?.() ?? [viewportId];
+
+      viewportIds.forEach(id => {
+        if (renderingEngine?.getViewport(id)) {
+          renderingEngine.renderViewport(id);
+        }
+      });
     },
     setViewportProjectionMode: ({ viewportId, displaySetInstanceUID, mode, slabThickness }) => {
       _setViewportProjectionMode({

@@ -2,7 +2,9 @@ import { cache, imageLoadPoolManager, Enums } from '@cornerstonejs/core';
 import zip from 'lodash.zip';
 import compact from 'lodash.compact';
 import flatten from 'lodash.flatten';
-import interleaveTopToBottom from './interleaveTopToBottom';
+import interleaveTopToBottom, {
+  resetInterleaveTopToBottomState,
+} from './interleaveTopToBottom';
 
 jest.mock('@cornerstonejs/core', () => ({
   cache: {
@@ -68,6 +70,7 @@ describe('interleaveTopToBottom', () => {
   };
 
   beforeEach(() => {
+    resetInterleaveTopToBottomState();
     jest.clearAllMocks();
     (cache.getVolume as jest.Mock).mockReturnValue(mockVolume);
     mockVolume.getImageLoadRequests.mockReturnValue([mockImageLoadRequest]);

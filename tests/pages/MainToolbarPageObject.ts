@@ -49,6 +49,16 @@ export class MainToolbarPageObject {
           },
         };
       },
+      get MIPAndMPR() {
+        const button = page.getByTestId('MIP + MPR');
+        return {
+          button,
+          async click() {
+            await layoutSelection.click();
+            await button.click();
+          },
+        };
+      },
       get threeDFourUp() {
         const button = page.getByTestId('3D four up');
         return {
