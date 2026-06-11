@@ -76,6 +76,7 @@ const toggleSyncFunctions = {
 };
 
 const disabledMouseTransformTools = new Set([toolNames.Pan, toolNames.Zoom]);
+const projectionOnlyToolGroupIds = new Set(['mip', 'mipToolGroup']);
 
 const { segmentation: segmentationUtils } = cstUtils;
 
@@ -1202,10 +1203,6 @@ function commandsModule({
       toolGroupId = null,
       bindings = [{ mouseButton: Enums.MouseBindings.Primary }],
     }) => {
-      if (disabledMouseTransformTools.has(toolName)) {
-        return;
-      }
-
       const { viewports } = viewportGridService.getState();
 
       if (!viewports.size) {
@@ -1219,6 +1216,13 @@ function commandsModule({
       }
 
       if (!toolGroup?.hasTool(toolName)) {
+        return;
+      }
+
+      if (
+        disabledMouseTransformTools.has(toolName) &&
+        projectionOnlyToolGroupIds.has(toolGroup.id)
+      ) {
         return;
       }
 
@@ -1604,6 +1608,10 @@ function commandsModule({
 
     setVolumeRenderingQulaity: ({ viewportId, volumeQuality }) => {
       const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+      if (!viewport || volumeQuality === undefined) {
+        return;
+      }
+
       const { actor } = viewport.getActors()[0];
       const mapper = actor.getMapper();
       const image = mapper.getInputData();
@@ -1619,6 +1627,13 @@ function commandsModule({
       mapper.setMaximumSamplesPerRay(samplesPerRay);
       mapper.setSampleDistance(sampleDistance);
       viewport.render();
+    },
+
+    setVolumeRenderingQuality: ({ viewportId, quality, volumeQuality }) => {
+      actions.setVolumeRenderingQulaity({
+        viewportId,
+        volumeQuality: volumeQuality ?? quality,
+      });
     },
 
     /**
@@ -2998,6 +3013,9 @@ function commandsModule({
     },
     setVolumeRenderingQulaity: {
       commandFn: actions.setVolumeRenderingQulaity,
+    },
+    setVolumeRenderingQuality: {
+      commandFn: actions.setVolumeRenderingQuality,
     },
     shiftVolumeOpacityPoints: {
       commandFn: actions.shiftVolumeOpacityPoints,

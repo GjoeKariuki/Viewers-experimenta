@@ -1,0 +1,70 @@
+.viewer-layout {
+  min-height: 100vh;
+  background: hsl(var(--background));
+}
+
+@media (max-width: 767px) {
+  .viewer-layout__body {
+    height: calc(100dvh - 96px) !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .viewer-layout__panel-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0;
+    height: auto !important;
+    min-height: 100%;
+    overflow: visible !important;
+    width: 100%;
+  }
+
+  .viewer-layout__resize-handle {
+    display: none !important;
+  }
+
+  .viewer-layout__viewport-panel {
+    order: 1 !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: min(62dvh, 520px) !important;
+    min-height: 340px !important;
+  }
+
+  .viewer-layout__left-panel-shell {
+    order: 2 !important;
+  }
+
+  .viewer-layout__right-panel-shell {
+    order: 3 !important;
+  }
+
+  .viewer-layout__side-panel-shell {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: 280px !important;
+    min-height: 220px !important;
+  }
+
+  .viewer-layout__right-panel-shell {
+    height: 240px !important;
+    min-height: 188px !important;
+  }
+
+  .viewer-layout__side-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    top: 0 !important;
+  }
+
+  .viewer-layout__viewport-wrapper {
+    min-height: 340px;
+  }
+}

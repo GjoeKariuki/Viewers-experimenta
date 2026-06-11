@@ -56,9 +56,9 @@ export const only3D = {
               id: 'activeDisplaySet',
               options: {
                 displayPreset: {
-                  CT: 'CT-Bone',
+                  CT: 'CT-Bones',
                   MR: 'MR-Default',
-                  default: 'CT-Bone',
+                  default: 'CT-Bones',
                 },
               },
             },
