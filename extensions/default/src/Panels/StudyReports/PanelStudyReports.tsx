@@ -90,10 +90,19 @@ function getReportConfig() {
   );
 }
 
+const REPORTS_API_BASE_URL = 'https://home.kpnmedpacs.com';
+
+function normalizeBaseUrl(value: string) {
+  return value.replace(/\/+$/, '');
+}
+
 function buildUrl(path: string, params?: Record<string, string>) {
   const config = getReportConfig();
-  const baseUrl = config.apiBaseUrl || window.location.origin;
-  const url = new URL(path, baseUrl);
+
+  const baseUrl = normalizeBaseUrl(config.apiBaseUrl || REPORTS_API_BASE_URL);
+
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = new URL(cleanPath, `${baseUrl}/`);
 
   Object.entries(params || {}).forEach(([key, value]) => {
     url.searchParams.set(key, value);
