@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 
 import { InvestigationalUseDialog } from '@ohif/ui-next';
@@ -8,6 +8,7 @@ import ViewerHeader from './ViewerHeader';
 import SidePanelWithServices from '../Components/SidePanelWithServices';
 import { Onboarding, ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@ohif/ui-next';
 import useResizablePanels from './ResizablePanelsHook';
+import './ViewerLayout.css';
 
 const resizableHandleClassName = 'mt-[1px] bg-border';
 
@@ -43,6 +44,7 @@ function ViewerLayout({
   const [hasLeftPanels, setHasLeftPanels] = useState(hasPanels('left'));
   const [leftPanelClosedState, setLeftPanelClosed] = useState(leftPanelClosed);
   const [rightPanelClosedState, setRightPanelClosed] = useState(rightPanelClosed);
+  const mobilePanelsExpandedRef = useRef(false);
 
   const [
     leftPanelProps,
@@ -80,13 +82,60 @@ function ViewerLayout({
    */
   useEffect(() => {
     document.body.classList.add('bg-background');
-    document.body.classList.add('overflow-hidden');
+
+    if (typeof window === 'undefined') {
+      document.body.classList.add('overflow-hidden');
+
+      return () => {
+        document.body.classList.remove('bg-background');
+        document.body.classList.remove('overflow-hidden');
+      };
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const syncBodyOverflow = () => {
+      document.body.classList.toggle('overflow-hidden', !mediaQuery.matches);
+    };
+
+    syncBodyOverflow();
+    mediaQuery.addEventListener?.('change', syncBodyOverflow);
 
     return () => {
+      mediaQuery.removeEventListener?.('change', syncBodyOverflow);
       document.body.classList.remove('bg-background');
       document.body.classList.remove('overflow-hidden');
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const expandMobilePanels = () => {
+      if (!mediaQuery.matches || mobilePanelsExpandedRef.current) {
+        return;
+      }
+
+      if (hasLeftPanels) {
+        setLeftPanelClosed(false);
+      }
+
+      if (hasRightPanels) {
+        setRightPanelClosed(false);
+      }
+
+      mobilePanelsExpandedRef.current = true;
+    };
+
+    expandMobilePanels();
+    mediaQuery.addEventListener?.('change', expandMobilePanels);
+
+    return () => {
+      mediaQuery.removeEventListener?.('change', expandMobilePanels);
+    };
+  }, [hasLeftPanels, hasRightPanels]);
 
   const getComponent = id => {
     const entry = extensionManager.getModuleEntry(id);
@@ -150,7 +199,7 @@ function ViewerLayout({
   const viewportComponents = viewports.map(getViewportComponentData);
 
   return (
-    <div>
+    <div className="viewer-layout">
       <ViewerHeader
         hotkeysManager={hotkeysManager}
         extensionManager={extensionManager}
@@ -158,18 +207,27 @@ function ViewerLayout({
         appConfig={appConfig}
       />
       <div
-        className="relative flex w-full flex-row flex-nowrap items-stretch overflow-hidden bg-background"
-        style={{ height: 'calc(100vh - 52px' }}
+        className="viewer-layout__body bg-background relative flex w-full flex-row flex-nowrap items-stretch overflow-hidden"
+        style={{ height: 'calc(100vh - 52px)' }}
       >
         <React.Fragment>
-          {showLoadingIndicator && <LoadingIndicatorProgress className="h-full w-full bg-background" />}
-          <ResizablePanelGroup {...resizablePanelGroupProps}>
+          {showLoadingIndicator && (
+            <LoadingIndicatorProgress className="bg-background h-full w-full" />
+          )}
+          <ResizablePanelGroup
+            {...resizablePanelGroupProps}
+            className="viewer-layout__panel-group"
+          >
             {/* LEFT SIDEPANELS */}
             {hasLeftPanels ? (
               <>
-                <ResizablePanel {...resizableLeftPanelProps}>
+                <ResizablePanel
+                  {...resizableLeftPanelProps}
+                  className="viewer-layout__side-panel-shell viewer-layout__left-panel-shell"
+                >
                   <SidePanelWithServices
                     side="left"
+                    className="viewer-layout__side-panel viewer-layout__left-panel"
                     isExpanded={!leftPanelClosedState}
                     servicesManager={servicesManager}
                     {...leftPanelProps}
@@ -178,15 +236,18 @@ function ViewerLayout({
                 <ResizableHandle
                   onDragging={onHandleDragging}
                   disabled={!leftPanelResizable}
-                  className={resizableHandleClassName}
+                  className={`${resizableHandleClassName} viewer-layout__resize-handle`}
                 />
               </>
             ) : null}
             {/* TOOLBAR + GRID */}
-            <ResizablePanel {...resizableViewportGridPanelProps}>
+            <ResizablePanel
+              {...resizableViewportGridPanelProps}
+              className="viewer-layout__viewport-panel"
+            >
               <div className="flex h-full flex-1 flex-col">
                 <div
-                  className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-background"
+                  className="viewer-layout__viewport-wrapper bg-background relative flex h-full flex-1 items-center justify-center overflow-hidden"
                   onMouseEnter={handleMouseEnter}
                 >
                   <ViewportGridComp
@@ -202,11 +263,15 @@ function ViewerLayout({
                 <ResizableHandle
                   onDragging={onHandleDragging}
                   disabled={!rightPanelResizable}
-                  className={resizableHandleClassName}
+                  className={`${resizableHandleClassName} viewer-layout__resize-handle`}
                 />
-                <ResizablePanel {...resizableRightPanelProps}>
+                <ResizablePanel
+                  {...resizableRightPanelProps}
+                  className="viewer-layout__side-panel-shell viewer-layout__right-panel-shell"
+                >
                   <SidePanelWithServices
                     side="right"
+                    className="viewer-layout__side-panel viewer-layout__right-panel"
                     isExpanded={!rightPanelClosedState}
                     servicesManager={servicesManager}
                     {...rightPanelProps}

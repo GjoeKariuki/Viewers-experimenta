@@ -26,6 +26,7 @@ const StudyItem = ({
 }: withAppTypes) => {
   return (
     <Accordion
+      className="study-browser__study-item"
       type="single"
       collapsible
       onClick={onClick}
@@ -34,10 +35,15 @@ const StudyItem = ({
       tabIndex={0}
       defaultValue={isActive ? 'study-item' : undefined}
     >
-      <AccordionItem value="study-item">
-        <AccordionTrigger className={classnames(
-          'bg-popover text-foreground group w-full rounded hover:bg-accent/50'
-        )}>
+      <AccordionItem
+        className="study-browser__accordion-item"
+        value="study-item"
+      >
+        <AccordionTrigger
+          className={classnames(
+            'study-browser__study-trigger bg-popover text-foreground group w-full rounded hover:bg-accent/50'
+          )}
+        >
           <div className="flex h-[40px] w-full flex-row overflow-hidden">
             <div className="flex w-full flex-row items-center justify-between">
               <div className="flex min-w-0 flex-col items-start text-[13px]">
@@ -77,6 +83,7 @@ const StudyItem = ({
           </div>
         </AccordionTrigger>
         <AccordionContent
+          className="study-browser__study-content"
           onClick={event => {
             event.stopPropagation();
           }}

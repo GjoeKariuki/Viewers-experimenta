@@ -28,7 +28,11 @@ interface ToolbarProps {
   location?: number;
 }
 
-export function Toolbar({ buttonSection = 'primary', viewportId, location }: ToolbarProps) {
+export function Toolbar({
+  buttonSection = 'primary',
+  viewportId,
+  location,
+}: ToolbarProps) {
   const {
     toolbarButtons,
     onInteraction,
@@ -60,7 +64,9 @@ export function Toolbar({ buttonSection = 'primary', viewportId, location }: Too
           isOpen: isItemOpen(id, viewportId),
           isLocked: isItemLocked(id, viewportId),
           onOpen: () => openItem(id, viewportId),
-          onClose: () => closeItem(id, viewportId),
+          onClose: () => {
+            closeItem(id, viewportId);
+          },
           onToggleLock: () => toggleLock(id, viewportId),
           viewportId,
         };

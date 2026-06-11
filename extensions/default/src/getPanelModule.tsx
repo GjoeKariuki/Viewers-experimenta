@@ -1,5 +1,6 @@
 import React from 'react';
 import { WrappedPanelStudyBrowser } from './Panels';
+import PanelStudyReports from './Panels/StudyReports/PanelStudyReports';
 import i18n from 'i18next';
 
 // TODO:
@@ -19,6 +20,18 @@ function getPanelModule({ commandsManager, extensionManager, servicesManager }) 
           {...props}
           commandsManager={commandsManager}
           extensionManager={extensionManager}
+          servicesManager={servicesManager}
+        />
+      ),
+    },
+    {
+      name: 'studyReports',
+      iconName: 'clipboard',
+      iconLabel: 'Reports',
+      label: i18n.t('SidePanel:Reports', 'Reports'),
+      component: props => (
+        <PanelStudyReports
+          {...props}
           servicesManager={servicesManager}
         />
       ),

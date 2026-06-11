@@ -1,0 +1,194 @@
+.viewer-layout {
+  min-height: 100vh;
+  background: hsl(var(--background));
+}
+
+@media (max-width: 767px) {
+  .viewer-layout__body {
+    height: calc(100dvh - 96px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .viewer-layout__panel-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0;
+    height: auto !important;
+    min-height: 100%;
+    overflow: visible !important;
+    width: 100%;
+  }
+
+  .viewer-layout__resize-handle {
+    display: none !important;
+  }
+
+  /*
+    1. Viewport first
+  */
+  .viewer-layout__viewport-panel {
+    order: 1 !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: min(54dvh, 480px) !important;
+    min-height: 320px !important;
+  }
+
+  /*
+    2. Right panel second:
+    Report/tools should appear directly below viewport.
+  */
+  .viewer-layout__right-panel-shell {
+    order: 2 !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: min(32dvh, 300px) !important;
+    min-height: 220px !important;
+  }
+
+  /*
+    3. Left panel last:
+    Series list appears below report/tools.
+  */
+  .viewer-layout__left-panel-shell {
+    order: 3 !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: 260px !important;
+    min-height: 220px !important;
+  }
+
+  .viewer-layout__side-panel-shell {
+    flex: 0 0 auto !important;
+  }
+
+  .viewer-layout__side-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    top: 0 !important;
+  }
+
+  .viewer-layout__viewport-wrapper {
+    min-height: 320px;
+  }
+
+  /*
+    Right/report tools can scroll vertically.
+  */
+  .viewer-layout__right-panel {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  /*
+    Keep left/series panel visible first.
+    Do not force all .flex-col to row globally.
+  */
+  .viewer-layout__left-panel {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+
+  .viewer-layout__left-panel .study-browser-scroll-area {
+    height: calc(100% - 84px) !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+
+  .viewer-layout__left-panel .study-browser-scroll-area [data-radix-scroll-area-viewport] {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .viewer-layout__left-panel .study-browser,
+  .viewer-layout__left-panel .study-browser__content {
+    height: 100%;
+    min-width: max-content;
+  }
+
+  .viewer-layout__left-panel .study-browser__content {
+    flex-direction: row !important;
+    align-items: stretch;
+    width: max-content;
+    min-width: 100%;
+    gap: 8px;
+  }
+
+  .viewer-layout__left-panel .study-browser__settings {
+    flex: 0 0 180px;
+    height: 100%;
+  }
+
+  .viewer-layout__left-panel .study-browser__study-item {
+    flex: 0 0 auto;
+    height: 100%;
+    width: max-content;
+  }
+
+  .viewer-layout__left-panel .study-browser__accordion-item {
+    display: flex;
+    height: 100%;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .viewer-layout__left-panel .study-browser__study-trigger {
+    flex: 0 0 150px;
+    width: 150px !important;
+    height: 100%;
+  }
+
+  .viewer-layout__left-panel .study-browser__study-trigger > div {
+    height: 100%;
+  }
+
+  .viewer-layout__left-panel .study-browser__study-content,
+  .viewer-layout__left-panel .study-browser__thumbnail-list,
+  .viewer-layout__left-panel .study-browser__thumbnail-list-inner {
+    height: 100%;
+    min-width: max-content;
+  }
+
+  .viewer-layout__left-panel .study-browser__thumbnail-list-inner {
+    flex-direction: row !important;
+    align-items: stretch;
+    padding: 4px 8px !important;
+  }
+
+  .viewer-layout__left-panel .study-browser__thumbnail-grid {
+    display: flex !important;
+    width: max-content;
+    min-width: max-content;
+    height: 100%;
+    flex-direction: row !important;
+    align-items: flex-start;
+  }
+
+  .viewer-layout__left-panel .study-browser__thumbnail-grid--list {
+    align-items: stretch;
+  }
+
+  .viewer-layout__left-panel .study-browser__thumbnail {
+    flex: 0 0 auto;
+  }
+
+  .viewer-layout__left-panel .study-browser__thumbnail-grid--list .study-browser__thumbnail {
+    width: 220px;
+  }
+
+  .viewer-layout__left-panel-shell,
+  .viewer-layout__left-panel {
+    scrollbar-width: thin;
+  }
+}

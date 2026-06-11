@@ -15,6 +15,7 @@ const ohif = {
   sopClassHandler: '@ohif/extension-default.sopClassHandlerModule.stack',
   measurements: '@ohif/extension-cornerstone.panelModule.panelMeasurement',
   thumbnailList: '@ohif/extension-default.panelModule.seriesList',
+  studyReports: '@ohif/extension-default.panelModule.studyReports',
 };
 
 const cs3d = {
@@ -138,7 +139,7 @@ function modeFactory({ modeConfiguration }) {
               // TODO: Should be optional, or required to pass empty array for slots?
               leftPanels: [ohif.thumbnailList],
               leftPanelResizable: true,
-              rightPanels: [ohif.measurements],
+              rightPanels: [ohif.measurements, ohif.studyReports],
               rightPanelResizable: true,
               viewports: [
                 {

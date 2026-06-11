@@ -156,12 +156,14 @@ module.exports = (env, argv) => {
       },
       proxy: [
         {
-          '/dicomweb': 'http://localhost:5000',
+          context: ['/dicomweb'],
+          target: 'http://localhost:5000',
         },
       ],
       static: [
         {
           directory: '../../testdata',
+          watch: false,
           staticOptions: {
             extensions: ['gz', 'br', 'mht'],
             index: ['index.json.gz', 'index.mht.gz'],
