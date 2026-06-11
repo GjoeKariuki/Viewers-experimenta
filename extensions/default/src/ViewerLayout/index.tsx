@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 
 import { InvestigationalUseDialog } from '@ohif/ui-next';
@@ -44,6 +44,7 @@ function ViewerLayout({
   const [hasLeftPanels, setHasLeftPanels] = useState(hasPanels('left'));
   const [leftPanelClosedState, setLeftPanelClosed] = useState(leftPanelClosed);
   const [rightPanelClosedState, setRightPanelClosed] = useState(rightPanelClosed);
+  const mobilePanelsExpandedRef = useRef(false);
 
   const [
     leftPanelProps,
@@ -105,6 +106,36 @@ function ViewerLayout({
       document.body.classList.remove('overflow-hidden');
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const expandMobilePanels = () => {
+      if (!mediaQuery.matches || mobilePanelsExpandedRef.current) {
+        return;
+      }
+
+      if (hasLeftPanels) {
+        setLeftPanelClosed(false);
+      }
+
+      if (hasRightPanels) {
+        setRightPanelClosed(false);
+      }
+
+      mobilePanelsExpandedRef.current = true;
+    };
+
+    expandMobilePanels();
+    mediaQuery.addEventListener?.('change', expandMobilePanels);
+
+    return () => {
+      mediaQuery.removeEventListener?.('change', expandMobilePanels);
+    };
+  }, [hasLeftPanels, hasRightPanels]);
 
   const getComponent = id => {
     const entry = extensionManager.getModuleEntry(id);

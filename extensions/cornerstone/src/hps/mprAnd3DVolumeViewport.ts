@@ -1,5 +1,6 @@
 import { HYDRATE_SEG_SYNC_GROUP, VOI_SYNC_GROUP } from './mpr';
 import i18n from 'i18next';
+import { volume3DDisplayPresets } from './volume3DDisplayPresets';
 export const mprAnd3DVolumeViewport = {
   id: 'mprAnd3DVolumeViewport',
   locked: true,
@@ -10,6 +11,7 @@ export const mprAnd3DVolumeViewport = {
   editableBy: {},
   protocolMatchingRules: [],
   imageLoadStrategy: 'interleaveCenter',
+  callbacks: { onViewportDataInitialized: ['setCTBoneOnlyRendering'] },
   displaySetSelectors: {
     activeDisplaySet: {
       seriesMatchingRules: [
@@ -77,11 +79,7 @@ export const mprAnd3DVolumeViewport = {
             {
               id: 'activeDisplaySet',
               options: {
-                displayPreset: {
-                  CT: 'CT-Bones',
-                  MR: 'MR-Default',
-                  default: 'CT-Bones',
-                },
+                displayPreset: volume3DDisplayPresets,
               },
             },
           ],

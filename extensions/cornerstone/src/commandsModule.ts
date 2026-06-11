@@ -75,8 +75,38 @@ const toggleSyncFunctions = {
   voi: toggleVOISliceSync,
 };
 
-const disabledMouseTransformTools = new Set([toolNames.Pan, toolNames.Zoom]);
+const disabledMouseTransformTools = new Set([
+  toolNames.Pan,
+  toolNames.Zoom,
+  toolNames.TrackballRotateTool,
+]);
 const projectionOnlyToolGroupIds = new Set(['mip', 'mipToolGroup']);
+
+const passivateOrDisableTool = (toolGroup, toolName) => {
+  if (!toolName || !toolGroup?.hasTool(toolName)) {
+    return;
+  }
+
+  const toolOptions = toolGroup.getToolConfiguration(toolName);
+  toolOptions?.disableOnPassive
+    ? toolGroup.setToolDisabled(toolName)
+    : toolGroup.setToolPassive(toolName);
+};
+
+const getFallbackPrimaryToolName = (toolGroup, currentToolName) => {
+  const previousToolName = toolGroup.getPrevActivePrimaryToolName?.();
+  const fallbackCandidates =
+    currentToolName === toolNames.TrackballRotateTool
+      ? [previousToolName, toolNames.WindowLevel]
+      : [previousToolName, toolNames.TrackballRotateTool, toolNames.WindowLevel];
+
+  return fallbackCandidates.find(
+    fallbackToolName =>
+      fallbackToolName &&
+      fallbackToolName !== currentToolName &&
+      toolGroup.hasTool(fallbackToolName)
+  );
+};
 
 const { segmentation: segmentationUtils } = cstUtils;
 
@@ -363,6 +393,29 @@ function commandsModule({
   };
 
   const actions = {
+    release3DRotateTool: ({ toolGroupId } = {}) => {
+      const targetToolGroupIds = toolGroupId ? [toolGroupId] : toolGroupService.getToolGroupIds();
+
+      targetToolGroupIds.forEach(toolGroupId => {
+        const toolGroup = toolGroupService.getToolGroup(toolGroupId);
+
+        if (!toolGroup) {
+          return;
+        }
+
+        passivateOrDisableTool(toolGroup, toolNames.TrackballRotateTool);
+
+        if (toolGroup.hasTool(toolNames.WindowLevel)) {
+          toolGroup.setToolActive(toolNames.WindowLevel, {
+            bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
+          });
+        }
+      });
+
+      const renderingEngine = cornerstoneViewportService.getRenderingEngine();
+      renderingEngine?.render?.();
+    },
+
     jumpToMeasurementViewport: ({ annotationUID, measurement }) => {
       cornerstoneTools.annotation.selection.setAnnotationSelected(annotationUID, true);
       const { metadata } = measurement;
@@ -1188,20 +1241,21 @@ function commandsModule({
         }
       }
     },
-    setToolActiveToolbar: ({ value, itemId, toolName, toolGroupIds = [], bindings }) => {
+    setToolActiveToolbar: ({ value, itemId, toolName, toolGroupIds = [], bindings, toggle }) => {
       // Sometimes it is passed as value (tools with options), sometimes as itemId (toolbar buttons)
       toolName = toolName || itemId || value;
 
       toolGroupIds = toolGroupIds.length ? toolGroupIds : toolGroupService.getToolGroupIds();
 
       toolGroupIds.forEach(toolGroupId => {
-        actions.setToolActive({ toolName, toolGroupId, bindings });
+        actions.setToolActive({ toolName, toolGroupId, bindings, toggle });
       });
     },
     setToolActive: ({
       toolName,
       toolGroupId = null,
       bindings = [{ mouseButton: Enums.MouseBindings.Primary }],
+      toggle,
     }) => {
       const { viewports } = viewportGridService.getState();
 
@@ -1227,14 +1281,27 @@ function commandsModule({
       }
 
       const activeToolName = toolGroup.getActivePrimaryMouseButtonTool();
+      const shouldToggle = toggle ?? disabledMouseTransformTools.has(toolName);
 
-      if (activeToolName) {
-        const activeToolOptions = toolGroup.getToolConfiguration(activeToolName);
-        activeToolOptions?.disableOnPassive
-          ? toolGroup.setToolDisabled(activeToolName)
-          : toolGroup.setToolPassive(activeToolName);
+      if (shouldToggle && activeToolName === toolName) {
+        const fallbackToolName = getFallbackPrimaryToolName(toolGroup, activeToolName);
+
+        passivateOrDisableTool(toolGroup, activeToolName);
+
+        if (fallbackToolName) {
+          actions.setToolActive({
+            toolName: fallbackToolName,
+            toolGroupId: toolGroup.id,
+            toggle: false,
+          });
+        }
+
+        return;
       }
 
+      if (activeToolName && activeToolName !== toolName) {
+        passivateOrDisableTool(toolGroup, activeToolName);
+      }
       // Set the new toolName to be active
       toolGroup.setToolActive(toolName, {
         bindings,
@@ -1598,6 +1665,143 @@ function commandsModule({
         preset,
       });
       viewport.render();
+    },
+
+    setCTBoneOnlyRendering: ({ viewportId, retryCount = 0 } = {}) => {
+      const { viewports } = viewportGridService.getState();
+      const maxRetries = 12;
+      const retryDelayMs = 120;
+      let shouldRetry = false;
+
+      const targetViewportIds = viewportId
+        ? [viewportId]
+        : Array.from(viewports.keys()).filter(id => {
+            const viewport = cornerstoneViewportService.getCornerstoneViewport(id);
+            return (
+              viewport instanceof VolumeViewport3D ||
+              viewport?.type === CoreEnums.ViewportType.VOLUME_3D ||
+              String(viewport?.type).toLowerCase().includes('3d')
+            );
+          });
+
+      const scheduleRetry = () => {
+        if (retryCount >= maxRetries) {
+          return;
+        }
+
+        const timeoutFn =
+          typeof window !== 'undefined' && window.setTimeout ? window.setTimeout : setTimeout;
+        timeoutFn(() => {
+          actions.setCTBoneOnlyRendering({ viewportId, retryCount: retryCount + 1 });
+        }, retryDelayMs);
+      };
+
+      targetViewportIds.forEach(targetViewportId => {
+        const viewport = cornerstoneViewportService.getCornerstoneViewport(targetViewportId);
+        if (!viewport) {
+          shouldRetry = true;
+          return;
+        }
+
+        const is3DViewport =
+          viewport instanceof VolumeViewport3D ||
+          viewport.type === CoreEnums.ViewportType.VOLUME_3D ||
+          String(viewport.type).toLowerCase().includes('3d');
+        if (!is3DViewport) {
+          return;
+        }
+
+        const displaySetUIDs =
+          viewportGridService.getDisplaySetsUIDsForViewport(targetViewportId) || [];
+        const displaySets = displaySetUIDs.map(uid => displaySetService.getDisplaySetByUID(uid));
+        const isCT = displaySets.some(displaySet => {
+          const modality = displaySet?.Modality || displaySet?.modality;
+          return String(modality).toUpperCase() === 'CT';
+        });
+        if (!isCT) {
+          return;
+        }
+
+        const actorEntries = viewport.getActors?.() || [];
+        if (!actorEntries.length) {
+          shouldRetry = true;
+          return;
+        }
+
+        let appliedToViewport = false;
+
+        actorEntries.forEach(actorEntry => {
+          const actor = actorEntry?.actor;
+          if (!actor) {
+            return;
+          }
+
+          const property = actor.getProperty?.();
+          const opacity = property?.getScalarOpacity?.(0);
+          const color = property?.getRGBTransferFunction?.(0);
+          if (!property || !opacity || !color) {
+            return;
+          }
+
+          appliedToViewport = true;
+
+          opacity.removeAllPoints();
+          opacity.addPoint(-2000, 0.0);
+          opacity.addPoint(120, 0.0);
+          opacity.addPoint(220, 0.015);
+          opacity.addPoint(320, 0.08);
+          opacity.addPoint(500, 0.32);
+          opacity.addPoint(700, 0.72);
+          opacity.addPoint(1000, 0.96);
+          opacity.addPoint(3000, 1.0);
+
+          color.removeAllPoints();
+          color.addRGBPoint(-2000, 0.0, 0.0, 0.0);
+          color.addRGBPoint(120, 0.0, 0.0, 0.0);
+          color.addRGBPoint(220, 0.22, 0.17, 0.1);
+          color.addRGBPoint(320, 0.48, 0.37, 0.2);
+          color.addRGBPoint(500, 0.78, 0.68, 0.42);
+          color.addRGBPoint(700, 0.92, 0.84, 0.62);
+          color.addRGBPoint(1000, 1.0, 0.96, 0.82);
+          color.addRGBPoint(3000, 1.0, 1.0, 0.95);
+
+          property.setShade(true);
+          property.setAmbient(0.32);
+          property.setDiffuse(0.78);
+          property.setSpecular(0.12);
+          property.setSpecularPower(18);
+          property.setInterpolationTypeToLinear?.();
+          property.setUseGradientOpacity?.(0, true);
+          property.setGradientOpacityMinimumValue?.(0, 8);
+          property.setGradientOpacityMinimumOpacity?.(0, 0.0);
+          property.setGradientOpacityMaximumValue?.(0, 80);
+          property.setGradientOpacityMaximumOpacity?.(0, 1.0);
+
+          const mapper = actor.getMapper?.();
+          if (mapper?.setSampleDistance) {
+            mapper.setSampleDistance(0.55);
+          }
+          if (mapper?.setMaximumSamplesPerRay) {
+            mapper.setMaximumSamplesPerRay(4000);
+          }
+
+          opacity.modified?.();
+          color.modified?.();
+          property.modified?.();
+          actor.modified?.();
+        });
+
+        if (!appliedToViewport) {
+          shouldRetry = true;
+          return;
+        }
+
+        viewport.render();
+      });
+
+      if (shouldRetry) {
+        scheduleRetry();
+      }
     },
 
     /**
@@ -2844,7 +3048,9 @@ function commandsModule({
         ],
       },
     },
-
+    release3DRotateTool: {
+      commandFn: actions.release3DRotateTool,
+    },
     getNearbyToolData: {
       commandFn: actions.getNearbyToolData,
     },
@@ -3010,6 +3216,9 @@ function commandsModule({
     },
     setViewportPreset: {
       commandFn: actions.setViewportPreset,
+    },
+    setCTBoneOnlyRendering: {
+      commandFn: actions.setCTBoneOnlyRendering,
     },
     setVolumeRenderingQulaity: {
       commandFn: actions.setVolumeRenderingQulaity,
