@@ -65,8 +65,8 @@
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    min-height: 260px !important;
-    height: min(38dvh, 360px) !important;
+    height: clamp(140px, 20dvh, 180px) !important;
+    min-height: 140px !important;
     overflow: hidden !important;
   }
 
