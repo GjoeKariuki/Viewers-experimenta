@@ -3,6 +3,11 @@
   background: hsl(var(--background));
 }
 
+.mobile-study-report-dialog .drag-handle {
+  cursor: move;
+  touch-action: none;
+}
+
 @media (max-width: 767px) {
   .viewer-layout__body {
     height: calc(100dvh - 96px) !important;
@@ -61,7 +66,7 @@
     min-width: 100% !important;
     max-width: 100% !important;
     min-height: 260px !important;
-    height: min(42dvh, 420px) !important;
+    height: min(38dvh, 360px) !important;
     overflow: hidden !important;
   }
 
@@ -84,8 +89,9 @@
   }
 
   .viewer-layout__right-panel .study-reports-panel__list {
-    flex: 0 0 auto !important;
-    max-height: 76px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch;

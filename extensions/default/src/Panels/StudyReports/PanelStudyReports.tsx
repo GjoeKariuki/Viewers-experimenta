@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useActiveViewportDisplaySets } from '@ohif/core';
 
+const MOBILE_REPORT_DIALOG_ID = 'mobile-study-report';
+
 type ReportAuthor = {
   name?: string | null;
   role?: string | null;
@@ -289,6 +291,76 @@ function formatDate(value?: string | null) {
   return date.toLocaleString();
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const updateIsMobile = () => setIsMobile(mediaQuery.matches);
+
+    updateIsMobile();
+    mediaQuery.addEventListener?.('change', updateIsMobile);
+
+    return () => {
+      mediaQuery.removeEventListener?.('change', updateIsMobile);
+    };
+  }, []);
+
+  return isMobile;
+}
+
+function StudyReportDialogContent({ report }: { report?: StudyReport }) {
+  if (!report) {
+    return null;
+  }
+
+  const sanitizedContent = sanitizeReportHtml(getContent(report));
+  const pdfUrl = getPdfUrl(report);
+  const authorName = getAuthorName(report);
+
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex-shrink-0">
+        <div className="text-foreground pr-6 text-base font-semibold">
+          {report.title || 'Untitled report'}
+        </div>
+        <div className="text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs">
+          {report.status && <span>{report.status}</span>}
+          {authorName && <span>{authorName}</span>}
+          {report.updated_at && <span>{formatDate(report.updated_at)}</span>}
+        </div>
+        {report.locked_message && (
+          <div className="text-muted-foreground mt-2 text-xs">{report.locked_message}</div>
+        )}
+      </div>
+
+      {sanitizedContent ? (
+        <div
+          className="text-foreground mt-3 min-h-0 flex-1 touch-pan-y overflow-auto overscroll-contain pr-1 text-sm leading-6 [overflow-wrap:anywhere] [&_img]:h-auto [&_img]:max-w-full [&_table]:max-w-full"
+          dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+        />
+      ) : (
+        <div className="text-muted-foreground mt-3 min-h-0 flex-1 overflow-y-auto text-sm">
+          Report content is not available.
+        </div>
+      )}
+
+      {pdfUrl && (
+        <a
+          className="text-primary mt-3 inline-flex flex-shrink-0 text-sm font-medium hover:underline"
+          href={pdfUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open PDF
+        </a>
+      )}
+    </div>
+  );
+}
+
 async function fetchJson(url: string, headers: Record<string, string>, signal: AbortSignal) {
   const response = await fetch(url, {
     headers,
@@ -338,6 +410,7 @@ async function fetchReportDetail(
 
 function PanelStudyReports({ servicesManager }: withAppTypes) {
   const activeDisplaySets = useActiveViewportDisplaySets();
+  const isMobile = useIsMobile();
   const studyIdCandidates = useMemo(
     () => getStudyIdCandidates(activeDisplaySets),
     [activeDisplaySets]
@@ -349,6 +422,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingReportId, setLoadingReportId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const { uiDialogService } = servicesManager.services;
 
   const headers = useMemo(() => {
     const authorizationHeaders =
@@ -419,6 +493,16 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
     setLoadingReportId(null);
   }, [selectedReportId]);
 
+  useEffect(() => {
+    if (!isMobile) {
+      uiDialogService?.hide(MOBILE_REPORT_DIALOG_ID);
+    }
+
+    return () => {
+      uiDialogService?.hide(MOBILE_REPORT_DIALOG_ID);
+    };
+  }, [isMobile, uiDialogService]);
+
   const selectedSummary = reports.find(report => report.id === selectedReportId);
   const selectedReport = selectedReportId
     ? reportDetails[selectedReportId] || selectedSummary
@@ -426,6 +510,31 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   const selectedContent = getContent(selectedReport);
   const selectedPdfUrl = getPdfUrl(selectedReport);
   const sanitizedContent = sanitizeReportHtml(selectedContent);
+
+  const handleSelectReport = (report: StudyReport) => {
+    setSelectedReportId(report.id);
+
+    if (!isMobile || !uiDialogService) {
+      return;
+    }
+
+    const reportToDisplay = reportDetails[report.id] || report;
+    uiDialogService.hide(MOBILE_REPORT_DIALOG_ID);
+    uiDialogService.show({
+      id: MOBILE_REPORT_DIALOG_ID,
+      title: 'Study Report',
+      content: StudyReportDialogContent,
+      contentProps: {
+        report: reportToDisplay,
+      },
+      isDraggable: true,
+      shouldCloseOnEsc: true,
+      shouldCloseOnOverlayClick: false,
+      showOverlay: false,
+      containerClassName:
+        'mobile-study-report-dialog h-[min(78dvh,680px)] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-2xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
+    });
+  };
 
   return (
     <div className="study-reports-panel text-foreground flex h-full flex-col overflow-hidden">
@@ -442,6 +551,9 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
         )}
         {!isLoading && reports.length > 0 && (
           <>
+            <div className="text-muted-foreground px-1 pb-2 text-xs md:hidden">
+              Tap a report to open it. Drag the dialog by its header.
+            </div>
             <div className="study-reports-panel__list space-y-2">
               {reports.map(report => {
                 const isSelected = report.id === selectedReportId;
@@ -454,7 +566,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
                     className={`border-border w-full rounded-md border px-3 py-2 text-left transition ${
                       isSelected ? 'bg-primary/20 text-primary' : 'bg-muted hover:bg-primary/10'
                     }`}
-                    onClick={() => setSelectedReportId(report.id)}
+                    onClick={() => handleSelectReport(report)}
                   >
                     <div className="truncate text-sm font-semibold">
                       {report.title || 'Untitled report'}
@@ -469,7 +581,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
               })}
             </div>
             {selectedReport && (
-              <div className="study-reports-panel__detail border-border mt-3 flex min-h-0 flex-1 flex-col border-t pt-3">
+              <div className="study-reports-panel__detail border-border mt-3 hidden min-h-0 flex-1 flex-col border-t pt-3 md:flex">
                 <div className="text-sm font-semibold">
                   {selectedReport.title || 'Untitled report'}
                 </div>

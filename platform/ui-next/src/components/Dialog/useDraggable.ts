@@ -40,15 +40,35 @@ export function useDraggable(
 
     const deltaX = e.clientX - dragState.current.startX;
     const deltaY = e.clientY - dragState.current.startY;
-    const newOffset = {
+    let newOffset = {
       x: dragState.current.initialOffset.x + deltaX,
       y: dragState.current.initialOffset.y + deltaY,
     };
 
-    offsetRef.current = newOffset;
     if (internalRef.current) {
+      const currentRect = internalRef.current.getBoundingClientRect();
+      const offsetDeltaX = newOffset.x - offsetRef.current.x;
+      const offsetDeltaY = newOffset.y - offsetRef.current.y;
+      const viewportMargin = 8;
+
+      newOffset = {
+        x:
+          offsetRef.current.x +
+          Math.min(
+            Math.max(offsetDeltaX, viewportMargin - currentRect.left),
+            window.innerWidth - viewportMargin - currentRect.right
+          ),
+        y:
+          offsetRef.current.y +
+          Math.min(
+            Math.max(offsetDeltaY, viewportMargin - currentRect.top),
+            window.innerHeight - viewportMargin - currentRect.bottom
+          ),
+      };
+
       internalRef.current.style.transform = `translate(-50%, -50%) translate(${newOffset.x}px, ${newOffset.y}px)`;
     }
+    offsetRef.current = newOffset;
   }, []);
 
   const handlePointerUp = React.useCallback(() => {
@@ -57,6 +77,7 @@ export function useDraggable(
     }
     window.removeEventListener('pointermove', handlePointerMove);
     window.removeEventListener('pointerup', handlePointerUp);
+    window.removeEventListener('pointercancel', handlePointerUp);
     dragState.current = null;
   }, [handlePointerMove]);
 
@@ -78,6 +99,7 @@ export function useDraggable(
 
       window.addEventListener('pointermove', handlePointerMove);
       window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
     },
     [handlePointerMove, handlePointerUp]
   );
