@@ -48,8 +48,8 @@
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    height: min(32dvh, 300px) !important;
-    min-height: 220px !important;
+    height: clamp(150px, 22dvh, 210px) !important;
+    min-height: 150px !important;
   }
 
   /*
@@ -82,12 +82,48 @@
     min-height: 320px;
   }
 
+  .viewer-layout__viewport-wrapper > div,
+  .viewer-layout__viewport-wrapper [data-cy='viewport-grid'],
+  .viewer-layout__viewport-wrapper [data-cy='viewport-pane'],
+  .viewer-layout__viewport-wrapper .viewport-wrapper,
+  .viewer-layout__viewport-wrapper .cornerstone-viewport-element {
+    min-height: 100%;
+  }
+
   /*
     Right/report tools can scroll vertically.
   */
   .viewer-layout__right-panel {
+    min-height: 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__body {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__list {
+    max-height: 76px;
+    overflow-y: auto;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__detail {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__content {
+    max-height: 82px;
+    overflow-y: auto;
+    padding-right: 4px;
+    -webkit-overflow-scrolling: touch;
   }
 
   /*

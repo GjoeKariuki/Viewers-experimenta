@@ -1,5 +1,5 @@
 export const volume3DDisplayPresets = {
-  CT: 'CT-Bone',
+  CT: 'CT-Cropped-Volume-Bone',
 
   // Do not force bone presets on non-CT modalities.
   // MR/PT/NM do not have reliable HU-based cortical bone separation.
@@ -8,5 +8,5 @@ export const volume3DDisplayPresets = {
   NM: 'MR-MIP',
 
   // If your 3D feature is mainly for CT reconstruction, this is okay.
-  default: 'CT-Bone',
+  default: 'CT-Cropped-Volume-Bone',
 };

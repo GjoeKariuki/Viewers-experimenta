@@ -1672,6 +1672,7 @@ function commandsModule({
       const maxRetries = 12;
       const retryDelayMs = 120;
       let shouldRetry = false;
+      let shouldReapply = false;
 
       const targetViewportIds = viewportId
         ? [viewportId]
@@ -1744,30 +1745,33 @@ function commandsModule({
           }
 
           appliedToViewport = true;
+          shouldReapply = true;
 
           opacity.removeAllPoints();
           opacity.addPoint(-2000, 0.0);
-          opacity.addPoint(120, 0.0);
-          opacity.addPoint(220, 0.015);
-          opacity.addPoint(320, 0.08);
-          opacity.addPoint(500, 0.32);
-          opacity.addPoint(700, 0.72);
-          opacity.addPoint(1000, 0.96);
+          opacity.addPoint(260, 0.0);
+          opacity.addPoint(320, 0.015);
+          opacity.addPoint(420, 0.06);
+          opacity.addPoint(520, 0.18);
+          opacity.addPoint(650, 0.48);
+          opacity.addPoint(820, 0.86);
+          opacity.addPoint(1200, 1.0);
           opacity.addPoint(3000, 1.0);
 
           color.removeAllPoints();
           color.addRGBPoint(-2000, 0.0, 0.0, 0.0);
-          color.addRGBPoint(120, 0.0, 0.0, 0.0);
-          color.addRGBPoint(220, 0.22, 0.17, 0.1);
-          color.addRGBPoint(320, 0.48, 0.37, 0.2);
-          color.addRGBPoint(500, 0.78, 0.68, 0.42);
-          color.addRGBPoint(700, 0.92, 0.84, 0.62);
-          color.addRGBPoint(1000, 1.0, 0.96, 0.82);
+          color.addRGBPoint(260, 0.0, 0.0, 0.0);
+          color.addRGBPoint(320, 0.28, 0.2, 0.1);
+          color.addRGBPoint(420, 0.5, 0.38, 0.18);
+          color.addRGBPoint(520, 0.72, 0.58, 0.32);
+          color.addRGBPoint(650, 0.9, 0.8, 0.55);
+          color.addRGBPoint(820, 0.98, 0.94, 0.78);
+          color.addRGBPoint(1200, 1.0, 0.98, 0.9);
           color.addRGBPoint(3000, 1.0, 1.0, 0.95);
 
           property.setShade(true);
-          property.setAmbient(0.32);
-          property.setDiffuse(0.78);
+          property.setAmbient(0.34);
+          property.setDiffuse(0.76);
           property.setSpecular(0.12);
           property.setSpecularPower(18);
           property.setInterpolationTypeToLinear?.();
@@ -1778,6 +1782,7 @@ function commandsModule({
           property.setGradientOpacityMaximumOpacity?.(0, 1.0);
 
           const mapper = actor.getMapper?.();
+          mapper?.setBlendModeToComposite?.();
           if (mapper?.setSampleDistance) {
             mapper.setSampleDistance(0.55);
           }
@@ -1799,7 +1804,7 @@ function commandsModule({
         viewport.render();
       });
 
-      if (shouldRetry) {
+      if (shouldRetry || shouldReapply) {
         scheduleRetry();
       }
     },

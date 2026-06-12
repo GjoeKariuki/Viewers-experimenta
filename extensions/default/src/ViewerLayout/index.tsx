@@ -71,6 +71,20 @@ function ViewerLayout({
     (document.activeElement as HTMLElement)?.blur();
   };
 
+  const scheduleViewportResize = useCallback(() => {
+    const { cornerstoneViewportService } = servicesManager.services;
+
+    const resizeAndRender = () => {
+      cornerstoneViewportService?.resize?.();
+      cornerstoneViewportService?.getRenderingEngineIfExists?.()?.render?.();
+    };
+
+    resizeAndRender();
+    window.requestAnimationFrame?.(resizeAndRender);
+    window.setTimeout(resizeAndRender, 120);
+    window.setTimeout(resizeAndRender, 360);
+  }, [servicesManager.services]);
+
   const LoadingIndicatorProgress = customizationService.getCustomization(
     'ui.loadingIndicatorProgress'
   );
@@ -114,19 +128,23 @@ function ViewerLayout({
 
     const mediaQuery = window.matchMedia('(max-width: 767px)');
     const expandMobilePanels = () => {
-      if (!mediaQuery.matches || mobilePanelsExpandedRef.current) {
+      if (!mediaQuery.matches) {
         return;
       }
 
-      if (hasLeftPanels) {
-        setLeftPanelClosed(false);
+      if (!mobilePanelsExpandedRef.current) {
+        if (hasLeftPanels) {
+          setLeftPanelClosed(false);
+        }
+
+        if (hasRightPanels) {
+          setRightPanelClosed(false);
+        }
+
+        mobilePanelsExpandedRef.current = true;
       }
 
-      if (hasRightPanels) {
-        setRightPanelClosed(false);
-      }
-
-      mobilePanelsExpandedRef.current = true;
+      scheduleViewportResize();
     };
 
     expandMobilePanels();
@@ -135,7 +153,28 @@ function ViewerLayout({
     return () => {
       mediaQuery.removeEventListener?.('change', expandMobilePanels);
     };
-  }, [hasLeftPanels, hasRightPanels]);
+  }, [hasLeftPanels, hasRightPanels, scheduleViewportResize]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleMobileResize = () => {
+      if (mediaQuery.matches) {
+        scheduleViewportResize();
+      }
+    };
+
+    window.addEventListener('resize', handleMobileResize);
+    window.addEventListener('orientationchange', handleMobileResize);
+
+    return () => {
+      window.removeEventListener('resize', handleMobileResize);
+      window.removeEventListener('orientationchange', handleMobileResize);
+    };
+  }, [scheduleViewportResize]);
 
   const getComponent = id => {
     const entry = extensionManager.getModuleEntry(id);

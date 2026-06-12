@@ -316,30 +316,15 @@ async function fetchReportsForStudy(
   headers: Record<string, string>,
   signal: AbortSignal
 ) {
-  try {
-    const payload = await fetchJson(
-      buildUrl('/api/reports/editor-bootstrap/', { study_id: studyId }),
-      headers,
-      signal
-    );
-    const normalized = normalizeBootstrapPayload(payload, studyId);
-
-    if (normalized.reports.length) {
-      return normalized;
-    }
-  } catch (error) {
-    if (signal.aborted) {
-      throw error;
-    }
-  }
-
-  const legacyPayload = await fetchJson(
-    buildUrl(`/medireports/editor/check_exists/${encodeURIComponent(studyId)}/`),
-    headers,
+  const payload = await fetchJson(
+    buildUrl('/api/reports/public-by-study/', { study_id: studyId }),
+    {
+      Accept: 'application/json',
+    },
     signal
   );
 
-  return normalizeLegacyPayload(legacyPayload, studyId);
+  return normalizeBootstrapPayload(payload, studyId);
 }
 
 async function fetchReportDetail(
@@ -400,9 +385,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
 
           setStudyId(payload.studyId || candidate);
           setReports(payload.reports);
-          setReportDetails(
-            payload.activeReport ? { [payload.activeReport.id]: payload.activeReport } : {}
-          );
+          setReportDetails(Object.fromEntries(payload.reports.map(report => [report.id, report])));
           setSelectedReportId(payload.reports[0]?.id || null);
           setError(payload.reports.length ? '' : 'No reports for this study.');
           return;
@@ -433,37 +416,8 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   }, [headers, studyIdCandidates]);
 
   useEffect(() => {
-    if (!selectedReportId || reportDetails[selectedReportId]) {
-      return;
-    }
-
-    const abortController = new AbortController();
-    setLoadingReportId(selectedReportId);
-
-    fetchReportDetail(selectedReportId, headers, abortController.signal)
-      .then(report => {
-        if (!report || abortController.signal.aborted) {
-          return;
-        }
-
-        setReportDetails(current => ({
-          ...current,
-          [report.id]: report,
-        }));
-      })
-      .catch(() => {
-        // A locked in-progress report may be visible as a summary but not readable.
-      })
-      .finally(() => {
-        if (!abortController.signal.aborted) {
-          setLoadingReportId(null);
-        }
-      });
-
-    return () => {
-      abortController.abort();
-    };
-  }, [headers, reportDetails, selectedReportId]);
+    setLoadingReportId(null);
+  }, [selectedReportId]);
 
   const selectedSummary = reports.find(report => report.id === selectedReportId);
   const selectedReport = selectedReportId
@@ -474,12 +428,12 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   const sanitizedContent = sanitizeReportHtml(selectedContent);
 
   return (
-    <div className="text-foreground flex h-full flex-col overflow-hidden">
-      <div className="border-border flex-shrink-0 border-b px-3 py-2">
+    <div className="study-reports-panel text-foreground flex h-full flex-col overflow-hidden">
+      <div className="study-reports-panel__header border-border flex-shrink-0 border-b px-3 py-2">
         <div className="text-base font-semibold">Study Reports</div>
         {studyId && <div className="text-muted-foreground truncate text-xs">{studyId}</div>}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 py-2">
+      <div className="study-reports-panel__body flex min-h-0 flex-1 flex-col overflow-y-auto px-2 py-2">
         {isLoading && (
           <div className="text-muted-foreground px-2 py-3 text-sm">Loading reports...</div>
         )}
@@ -488,7 +442,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
         )}
         {!isLoading && reports.length > 0 && (
           <>
-            <div className="space-y-2">
+            <div className="study-reports-panel__list space-y-2">
               {reports.map(report => {
                 const isSelected = report.id === selectedReportId;
                 const authorName = getAuthorName(report);
@@ -515,7 +469,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
               })}
             </div>
             {selectedReport && (
-              <div className="border-border mt-3 border-t pt-3">
+              <div className="study-reports-panel__detail border-border mt-3 flex min-h-0 flex-1 flex-col border-t pt-3">
                 <div className="text-sm font-semibold">
                   {selectedReport.title || 'Untitled report'}
                 </div>
@@ -529,7 +483,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
                 )}
                 {sanitizedContent ? (
                   <div
-                    className="text-foreground mt-3 max-w-none overflow-hidden text-sm leading-6"
+                    className="study-reports-panel__content text-foreground mt-3 max-w-none overflow-y-auto text-sm leading-6"
                     dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                   />
                 ) : (
