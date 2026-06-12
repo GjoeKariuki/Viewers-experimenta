@@ -38,9 +38,21 @@
     min-height: 320px !important;
   }
 
+  .viewer-layout__viewport-wrapper {
+    min-height: 320px;
+  }
+
+  .viewer-layout__viewport-wrapper > div,
+  .viewer-layout__viewport-wrapper [data-cy='viewport-grid'],
+  .viewer-layout__viewport-wrapper [data-cy='viewport-pane'],
+  .viewer-layout__viewport-wrapper .viewport-wrapper,
+  .viewer-layout__viewport-wrapper .cornerstone-viewport-element {
+    min-height: 100%;
+  }
+
   /*
     2. Right panel second:
-    Report/tools should appear directly below viewport.
+    Study report/tools below viewport.
   */
   .viewer-layout__right-panel-shell {
     order: 2 !important;
@@ -48,13 +60,64 @@
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    height: clamp(150px, 22dvh, 210px) !important;
-    min-height: 150px !important;
+    min-height: 260px !important;
+    height: min(38dvh, 360px) !important;
+    overflow: hidden !important;
+  }
+
+  .viewer-layout__right-panel {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__list {
+    flex: 0 0 auto !important;
+    max-height: 76px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__detail {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__content {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    padding-bottom: 24px;
+  }
+
+  .viewer-layout__right-panel .study-reports-panel__content table,
+  .viewer-layout__right-panel .study-reports-panel__content img {
+    max-width: 100%;
   }
 
   /*
     3. Left panel last:
-    Series list appears below report/tools.
+    Series list below report/tools.
   */
   .viewer-layout__left-panel-shell {
     order: 3 !important;
@@ -78,57 +141,8 @@
     top: 0 !important;
   }
 
-  .viewer-layout__viewport-wrapper {
-    min-height: 320px;
-  }
-
-  .viewer-layout__viewport-wrapper > div,
-  .viewer-layout__viewport-wrapper [data-cy='viewport-grid'],
-  .viewer-layout__viewport-wrapper [data-cy='viewport-pane'],
-  .viewer-layout__viewport-wrapper .viewport-wrapper,
-  .viewer-layout__viewport-wrapper .cornerstone-viewport-element {
-    min-height: 100%;
-  }
-
   /*
-    Right/report tools can scroll vertically.
-  */
-  .viewer-layout__right-panel {
-    min-height: 0 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel {
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__body {
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__list {
-    max-height: 76px;
-    overflow-y: auto;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__detail {
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__content {
-    max-height: 82px;
-    overflow-y: auto;
-    padding-right: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /*
-    Keep left/series panel visible first.
-    Do not force all .flex-col to row globally.
+    Left/series panel horizontal scroll.
   */
   .viewer-layout__left-panel {
     overflow-x: auto !important;
@@ -224,7 +238,9 @@
   }
 
   .viewer-layout__left-panel-shell,
-  .viewer-layout__left-panel {
+  .viewer-layout__left-panel,
+  .viewer-layout__right-panel .study-reports-panel__content,
+  .viewer-layout__right-panel .study-reports-panel__list {
     scrollbar-width: thin;
   }
 }

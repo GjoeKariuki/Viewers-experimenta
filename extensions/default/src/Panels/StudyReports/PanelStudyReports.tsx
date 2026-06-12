@@ -483,7 +483,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
                 )}
                 {sanitizedContent ? (
                   <div
-                    className="study-reports-panel__content text-foreground mt-3 max-w-none overflow-y-auto text-sm leading-6"
+                    className="study-reports-panel__content text-foreground mt-3 min-h-0 max-w-none flex-1 overflow-y-auto text-sm leading-6"
                     dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                   />
                 ) : (
