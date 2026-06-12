@@ -61,7 +61,7 @@
     min-width: 100% !important;
     max-width: 100% !important;
     min-height: 260px !important;
-    height: min(38dvh, 360px) !important;
+    height: min(42dvh, 420px) !important;
     overflow: hidden !important;
   }
 
