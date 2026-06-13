@@ -253,6 +253,14 @@ function getAuthorName(report: StudyReport) {
   return report.author?.name || report.author_name || report.report_created_by_name || '';
 }
 
+function getVisibleLockedMessage(report?: StudyReport | null) {
+  return (
+    report?.locked_message
+      ?.replace(/Only a lead can reopen another radiologist['’]s report in the editor\.?/gi, '')
+      .trim() || ''
+  );
+}
+
 function sanitizeReportHtml(html: string) {
   if (!html || typeof window === 'undefined' || !window.DOMParser) {
     return '';
@@ -319,6 +327,7 @@ function StudyReportDialogContent({ report }: { report?: StudyReport }) {
   const sanitizedContent = sanitizeReportHtml(getContent(report));
   const pdfUrl = getPdfUrl(report);
   const authorName = getAuthorName(report);
+  const lockedMessage = getVisibleLockedMessage(report);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -331,9 +340,7 @@ function StudyReportDialogContent({ report }: { report?: StudyReport }) {
           {authorName && <span>{authorName}</span>}
           {report.updated_at && <span>{formatDate(report.updated_at)}</span>}
         </div>
-        {report.locked_message && (
-          <div className="text-muted-foreground mt-2 text-xs">{report.locked_message}</div>
-        )}
+        {lockedMessage && <div className="text-muted-foreground mt-2 text-xs">{lockedMessage}</div>}
       </div>
 
       {sanitizedContent ? (
@@ -510,6 +517,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   const selectedContent = getContent(selectedReport);
   const selectedPdfUrl = getPdfUrl(selectedReport);
   const sanitizedContent = sanitizeReportHtml(selectedContent);
+  const lockedMessage = getVisibleLockedMessage(selectedReport);
 
   const handleSelectReport = (report: StudyReport) => {
     setSelectedReportId(report.id);
@@ -585,10 +593,8 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
                 <div className="text-sm font-semibold">
                   {selectedReport.title || 'Untitled report'}
                 </div>
-                {selectedReport.locked_message && (
-                  <div className="text-muted-foreground mt-2 text-xs">
-                    {selectedReport.locked_message}
-                  </div>
+                {lockedMessage && (
+                  <div className="text-muted-foreground mt-2 text-xs">{lockedMessage}</div>
                 )}
                 {loadingReportId === selectedReport.id && (
                   <div className="text-muted-foreground mt-3 text-sm">Loading report...</div>
