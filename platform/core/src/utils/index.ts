@@ -47,6 +47,11 @@ import calculateScanAxisNormal from './calculateScanAxisNormal';
 import areAllImageOrientationsEqual from './areAllImageOrientationsEqual';
 import { structuredCloneWithFunctions } from './structuredCloneWithFunctions';
 import { buildButtonCommands } from './buildButtonCommands';
+import {
+  applyMobileRenderingConfig,
+  getMobileVolumeRenderingSettings,
+  isMobileRenderingEnvironment,
+} from './mobileRuntimeConfig';
 
 import { downloadBlob, downloadUrl, downloadCsv, downloadDicom } from './downloadBlob';
 
@@ -105,6 +110,9 @@ const utils = {
   downloadUrl,
   downloadCsv,
   downloadDicom,
+  applyMobileRenderingConfig,
+  getMobileVolumeRenderingSettings,
+  isMobileRenderingEnvironment,
 };
 
 export {
@@ -147,6 +155,9 @@ export {
   downloadUrl,
   downloadCsv,
   downloadDicom,
+  applyMobileRenderingConfig,
+  getMobileVolumeRenderingSettings,
+  isMobileRenderingEnvironment,
 };
 
 export default utils;

@@ -9,8 +9,17 @@
 }
 
 @media (max-width: 767px) {
+  .viewer-layout {
+    display: flex;
+    height: 100dvh;
+    min-height: 100dvh;
+    flex-direction: column;
+  }
+
   .viewer-layout__body {
-    height: calc(100dvh - 96px) !important;
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 0;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch;

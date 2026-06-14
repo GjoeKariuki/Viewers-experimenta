@@ -1669,6 +1669,9 @@ function commandsModule({
 
     setCTBoneOnlyRendering: ({ viewportId, retryCount = 0 } = {}) => {
       const { viewports } = viewportGridService.getState();
+      const mobileVolumeRenderingSettings = utils.getMobileVolumeRenderingSettings(
+        extensionManager.appConfig
+      );
       const maxRetries = 12;
       const retryDelayMs = 120;
       let shouldRetry = false;
@@ -1784,10 +1787,12 @@ function commandsModule({
           const mapper = actor.getMapper?.();
           mapper?.setBlendModeToComposite?.();
           if (mapper?.setSampleDistance) {
-            mapper.setSampleDistance(0.55);
+            mapper.setSampleDistance(mobileVolumeRenderingSettings?.sampleDistance ?? 0.55);
           }
           if (mapper?.setMaximumSamplesPerRay) {
-            mapper.setMaximumSamplesPerRay(4000);
+            mapper.setMaximumSamplesPerRay(
+              mobileVolumeRenderingSettings?.maximumSamplesPerRay ?? 4000
+            );
           }
 
           opacity.modified?.();

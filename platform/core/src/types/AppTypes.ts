@@ -97,6 +97,7 @@ declare global {
       strictZSpacingForVolumeViewport?: boolean;
       useCursors?: boolean;
       maxCacheSize?: number;
+      webGlContextCount?: number;
       max3DTextureSize?: number;
       showWarningMessageForCrossOrigin?: boolean;
       showCPUFallbackMessage?: boolean;
@@ -107,6 +108,29 @@ declare global {
         compute?: number;
       };
       maxNumberOfWebWorkers?: number;
+      mobileRendering?: {
+        enabled?: boolean;
+        autoPlayCine?: boolean;
+        maxCacheSize?: number;
+        maxNumberOfWebWorkers?: number;
+        webGlContextCount?: number;
+        maxNumRequests?: {
+          interaction?: number;
+          prefetch?: number;
+          thumbnail?: number;
+          compute?: number;
+        };
+        studyPrefetcher?: {
+          displaySetsCount?: number;
+          prefetchAllDisplaySets?: boolean;
+          maxNumPrefetchRequests?: number;
+          waitForActiveDisplaySet?: boolean;
+        };
+        volumeRendering?: {
+          sampleDistance?: number;
+          maximumSamplesPerRay?: number;
+        };
+      };
       acceptHeader?: string[];
       investigationalUseDialog?: {
         option: 'always' | 'never' | 'configure';

@@ -21,7 +21,7 @@ import {
   WorkflowStepsService,
   StudyPrefetcherService,
   MultiMonitorService,
-  // utils,
+  utils,
 } from '@ohif/core';
 
 import loadModules, { loadModule as peerImport } from './pluginImports';
@@ -41,11 +41,12 @@ async function appInit(appConfigOrFunc, defaultExtensions, defaultModes) {
   const serviceProvidersManager = new ServiceProvidersManager();
   const hotkeysManager = new HotkeysManager(commandsManager, servicesManager);
 
-  const appConfig = {
+  const baseAppConfig = {
     ...(typeof appConfigOrFunc === 'function'
       ? await appConfigOrFunc({ servicesManager, peerImport })
       : appConfigOrFunc),
   };
+  const appConfig = utils.applyMobileRenderingConfig(baseAppConfig);
   // Default the peer import function
   appConfig.peerImport ||= peerImport;
   appConfig.measurementTrackingMode ||= 'standard';

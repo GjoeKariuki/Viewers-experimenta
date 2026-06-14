@@ -169,10 +169,14 @@ function ViewerLayout({
 
     window.addEventListener('resize', handleMobileResize);
     window.addEventListener('orientationchange', handleMobileResize);
+    window.visualViewport?.addEventListener('resize', handleMobileResize);
+    window.visualViewport?.addEventListener('scroll', handleMobileResize);
 
     return () => {
       window.removeEventListener('resize', handleMobileResize);
       window.removeEventListener('orientationchange', handleMobileResize);
+      window.visualViewport?.removeEventListener('resize', handleMobileResize);
+      window.visualViewport?.removeEventListener('scroll', handleMobileResize);
     };
   }, [scheduleViewportResize]);
 
