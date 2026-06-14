@@ -306,7 +306,9 @@ function ViewerLayout({
                 />
                 <ResizablePanel
                   {...resizableRightPanelProps}
-                  className="viewer-layout__side-panel-shell viewer-layout__right-panel-shell"
+                  className={`viewer-layout__side-panel-shell viewer-layout__right-panel-shell ${
+                    rightPanelClosedState ? '' : 'viewer-layout__right-panel-shell--expanded'
+                  }`}
                 >
                   <SidePanelWithServices
                     side="right"

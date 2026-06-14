@@ -68,6 +68,14 @@
     height: clamp(140px, 20dvh, 180px) !important;
     min-height: 140px !important;
     overflow: hidden !important;
+    transition:
+      height 180ms ease,
+      min-height 180ms ease;
+  }
+
+  .viewer-layout__right-panel-shell--expanded {
+    height: clamp(260px, 38dvh, 360px) !important;
+    min-height: 260px !important;
   }
 
   .viewer-layout__right-panel {
