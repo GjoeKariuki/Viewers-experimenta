@@ -29,9 +29,6 @@ const PROJECTION_MODE_ORDER: ProjectionMode[] = [
   PROJECTION_MODES.COMPOSITE,
 ];
 
-const MPR_PROTOCOL_ID = 'mpr';
-const MPR_TOOL_GROUP_ID = 'mpr';
-
 export function useShouldHideProjectionControls(viewportId?: string): boolean {
   const { servicesManager } = useSystem();
   const { cornerstoneViewportService, hangingProtocolService, viewportGridService } =
@@ -74,17 +71,11 @@ export function useShouldHideProjectionControls(viewportId?: string): boolean {
     };
   }, [cornerstoneViewportService, hangingProtocolService, viewportGridService, viewportId]);
 
-  const activeProtocolId = hangingProtocolService.getState?.()?.protocolId;
-
-  if (activeProtocolId === MPR_PROTOCOL_ID) {
-    return true;
-  }
-
   const viewportOptions = viewportId
     ? cornerstoneViewportService.getViewportInfo(viewportId)?.getViewportOptions?.()
     : undefined;
 
-  return viewportOptions?.toolGroupId === MPR_TOOL_GROUP_ID;
+  return Boolean(viewportOptions?.customViewportProps?.hideProjectionControls);
 }
 
 export function ProjectionMenu({ viewportId, className, variant = 'card' }: ProjectionMenuProps) {

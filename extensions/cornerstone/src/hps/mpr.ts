@@ -1,5 +1,6 @@
 import { Types } from '@ohif/core';
 import i18n from 'i18next';
+import { DEFAULT_MIP_SLAB_THICKNESS } from '../utils/projectionUtils';
 export const VOI_SYNC_GROUP = {
   type: 'voi',
   id: 'mpr',
@@ -95,6 +96,10 @@ export const mpr: Types.HangingProtocol.Protocol = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -112,6 +117,10 @@ export const mpr: Types.HangingProtocol.Protocol = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -129,6 +138,10 @@ export const mpr: Types.HangingProtocol.Protocol = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },

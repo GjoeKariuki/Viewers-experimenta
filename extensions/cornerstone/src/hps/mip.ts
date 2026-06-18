@@ -51,14 +51,14 @@ export const mip: Types.HangingProtocol.Protocol = {
             viewportId: 'mip',
             toolGroupId: 'mip',
             viewportType: 'volume',
-            orientation: 'coronal',
+            orientation: 'acquisition',
             background: [0, 0, 0],
             initialImageOptions: {
               preset: 'middle',
             },
             syncGroups: [VOI_SYNC_GROUP, HYDRATE_SEG_SYNC_GROUP],
             customViewportProps: {
-              hideOverlays: true,
+              hideOverlays: false,
             },
           },
           displaySets: [

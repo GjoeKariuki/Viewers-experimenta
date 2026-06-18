@@ -49,7 +49,7 @@ export const only3D = {
             viewportType: 'volume3d',
             orientation: 'coronal',
             customViewportProps: {
-              hideOverlays: true,
+              hideOverlays: false,
               syncGroups: [HYDRATE_SEG_SYNC_GROUP],
             },
           },

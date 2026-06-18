@@ -46,6 +46,10 @@ export interface IViewportService {
    */
   destroy(): void;
   /**
+   * Debounced recovery for resize, WebGL context, or cache-related rendering failures.
+   */
+  scheduleRenderingRecovery(reason?: string): void;
+  /**
    * Disables the viewport inside the renderingEngine, if no viewport is left
    * it destroys the renderingEngine.
    * @param viewportId

@@ -280,6 +280,11 @@ export default async function init({
   const imageLoadFailedHandler = ({ detail }) => {
     const handler = errorHandler.getHTTPErrorHandler();
     handler(detail.error);
+
+    const message = String(detail?.error?.message || detail?.error || '');
+    if (/purged|cache|context|webgl/i.test(message)) {
+      cornerstoneViewportService.scheduleRenderingRecovery?.('image load/cache failure');
+    }
   };
 
   eventTarget.addEventListener(EVENTS.IMAGE_LOAD_FAILED, imageLoadFailedHandler);
@@ -288,7 +293,7 @@ export default async function init({
   const getDisplaySetFromVolumeId = (volumeId: string) => {
     const allDisplaySets = displaySetService.getActiveDisplaySets();
     const volume = cornerstone.cache.getVolume(volumeId);
-    const imageIds = volume.imageIds;
+    const imageIds = volume?.imageIds || [];
     return allDisplaySets.find(ds => ds.imageIds?.some(id => imageIds.includes(id)));
   };
 

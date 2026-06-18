@@ -112,6 +112,15 @@ const getPosition = (location: number): ColorbarPositionType => {
 };
 
 const GAMMA = 1 / 5;
+const linkedProjectionProtocolIds = new Set([
+  'mpr',
+  'mipAndMpr',
+  'main3D',
+  'mprAnd3DVolumeViewport',
+  'fourUp',
+  'primary3D',
+  'primaryAxial',
+]);
 
 const linearToOpacity = (linearValue: number): number => {
   return Math.pow(linearValue, GAMMA);
@@ -138,8 +147,13 @@ export function useViewportRendering(
   options?: ViewportRenderingOptions
 ): WindowLevelHook {
   const { servicesManager, commandsManager } = useSystem();
-  const { cornerstoneViewportService, colorbarService, customizationService } =
-    servicesManager.services;
+  const {
+    cornerstoneViewportService,
+    colorbarService,
+    customizationService,
+    hangingProtocolService,
+    viewportGridService,
+  } = servicesManager.services;
 
   const [is3DVolume, setIs3DVolume] = useState(
     is3DViewport({ viewportId, cornerstoneViewportService })
@@ -217,6 +231,65 @@ export function useViewportRendering(
     };
   }, [activeDisplaySetInstanceUID, cornerstoneViewportService, viewportId]);
 
+  const getLinkedProjectionViewportIds = useCallback(() => {
+    const protocolId = hangingProtocolService.getState?.()?.protocolId;
+
+    if (!linkedProjectionProtocolIds.has(protocolId)) {
+      return [];
+    }
+
+    const { viewports } = viewportGridService.getState();
+    const linkedViewportIds = [];
+
+    viewports.forEach((_viewportConfig, candidateViewportId) => {
+      if (candidateViewportId === viewportId) {
+        return;
+      }
+
+      const candidateViewport =
+        cornerstoneViewportService.getCornerstoneViewport(candidateViewportId);
+
+      if (
+        !(candidateViewport instanceof BaseVolumeViewport) ||
+        candidateViewport instanceof VolumeViewport3D
+      ) {
+        return;
+      }
+
+      const displaySetUIDs =
+        viewportGridService.getDisplaySetsUIDsForViewport(candidateViewportId) || [];
+
+      if (activeDisplaySetInstanceUID && !displaySetUIDs.includes(activeDisplaySetInstanceUID)) {
+        return;
+      }
+
+      linkedViewportIds.push(candidateViewportId);
+    });
+
+    return linkedViewportIds;
+  }, [
+    activeDisplaySetInstanceUID,
+    cornerstoneViewportService,
+    hangingProtocolService,
+    viewportGridService,
+    viewportId,
+  ]);
+
+  const setLinkedProjectionViewports = useCallback(
+    (mode: ProjectionMode, thickness: number | 'minimum') => {
+      getLinkedProjectionViewportIds().forEach(linkedViewportId => {
+        commandsManager.runCommand('setViewportProjectionMode', {
+          viewportId: linkedViewportId,
+          displaySetInstanceUID: activeDisplaySetInstanceUID,
+          mode,
+          slabThickness: thickness,
+          syncSlabThickness: false,
+        });
+      });
+    },
+    [activeDisplaySetInstanceUID, commandsManager, getLinkedProjectionViewportIds]
+  );
+
   const syncProjectionState = useCallback(
     (preserveSelectedThickness = false) => {
       const { viewport, actorEntry, volumeId } = getProjectionViewportContext();
@@ -237,7 +310,7 @@ export function useViewportRendering(
       );
       const mapper = actorEntry?.actor?.getMapper?.();
       const nextProjectionMode = blendModeToProjectionMode(
-        mapper?.getBlendMode?.() ?? viewport.getBlendMode?.()
+        mapper?.getBlendMode?.() ?? (viewport as any).getBlendMode?.()
       );
 
       setSlabThicknessRange(range);
@@ -609,6 +682,9 @@ export function useViewportRendering(
 
       if (mode === PROJECTION_MODES.COMPOSITE) {
         viewport.setSlabThickness(slabThicknessRange.min, actorUIDs);
+        slabThicknessRef.current = slabThicknessRange.min;
+        setSlabThicknessState(slabThicknessRange.min);
+        setLinkedProjectionViewports(mode, slabThicknessRange.min);
       } else {
         const { actorEntry, volumeId } = getProjectionViewportContext();
         const mapper = actorEntry?.actor?.getMapper?.();
@@ -620,13 +696,14 @@ export function useViewportRendering(
         viewport.setSlabThickness(nextThickness, actorUIDs);
         slabThicknessRef.current = nextThickness;
         setSlabThicknessState(nextThickness);
+        setLinkedProjectionViewports(mode, nextThickness);
       }
 
       viewport.render();
       projectionModeRef.current = mode;
       setProjectionModeState(mode);
     },
-    [getProjectionViewportContext, slabThicknessRange]
+    [getProjectionViewportContext, setLinkedProjectionViewports, slabThicknessRange]
   );
 
   const setSlabThickness = useCallback(
@@ -648,8 +725,9 @@ export function useViewportRendering(
 
       viewport.setSlabThickness(clampedThickness, actorUIDs);
       viewport.render();
+      setLinkedProjectionViewports(projectionModeRef.current, clampedThickness);
     },
-    [getProjectionViewportContext, slabThicknessRange]
+    [getProjectionViewportContext, setLinkedProjectionViewports, slabThicknessRange]
   );
 
   const toggleColorbar = useCallback(

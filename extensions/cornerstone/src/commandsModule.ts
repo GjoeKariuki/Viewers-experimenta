@@ -55,6 +55,7 @@ import { getCenterExtent } from './utils/getCenterExtent';
 import { EasingFunctionEnum } from './utils/transitions';
 import { createSegmentationForViewport } from './utils/createSegmentationForViewport';
 import { utilities as segmentationUtilities } from '@cornerstonejs/tools/segmentation';
+import { WITH_NAVIGATION } from './services/ViewportService/CornerstoneViewportService';
 import i18n from '@ohif/i18n';
 import {
   DEFAULT_MIP_SLAB_THICKNESS,
@@ -81,6 +82,34 @@ const disabledMouseTransformTools = new Set([
   toolNames.TrackballRotateTool,
 ]);
 const projectionOnlyToolGroupIds = new Set(['mip', 'mipToolGroup']);
+const linkedProjectionProtocolIds = new Set([
+  'mpr',
+  'mipAndMpr',
+  'main3D',
+  'mprAnd3DVolumeViewport',
+  'fourUp',
+  'primary3D',
+  'primaryAxial',
+]);
+const clinicalMipPresets: Record<
+  string,
+  {
+    mode: ProjectionMode;
+    slabThickness: number | 'fullVolume';
+  }
+> = {
+  ctaThin: { mode: PROJECTION_MODES.MIP, slabThickness: DEFAULT_MIP_SLAB_THICKNESS },
+  ctaThick: { mode: PROJECTION_MODES.MIP, slabThickness: 40 },
+  mraThin: { mode: PROJECTION_MODES.MIP, slabThickness: 8 },
+  petFull: { mode: PROJECTION_MODES.MIP, slabThickness: 'fullVolume' as const },
+};
+type ProjectionCommandOptions = {
+  viewportId?: string;
+  displaySetInstanceUID?: string;
+  mode?: ProjectionMode;
+  slabThickness?: number | 'fullVolume' | 'minimum' | 'preserve' | 'default';
+  syncSlabThickness?: boolean;
+};
 
 const passivateOrDisableTool = (toolGroup, toolName) => {
   if (!toolName || !toolGroup?.hasTool(toolName)) {
@@ -280,12 +309,14 @@ function commandsModule({
 
     viewport.setBlendMode(nextBlendMode, actorUIDs, false);
 
+    let nextThickness = range.min;
+
     if (mode === PROJECTION_MODES.COMPOSITE) {
-      viewport.setSlabThickness(range.min, actorUIDs);
+      viewport.setSlabThickness(nextThickness, actorUIDs);
     } else {
       _applyProjectionSampleDistance(viewport, actorEntry, volumeId);
 
-      const nextThickness =
+      nextThickness =
         resolveProjectionSlabThickness(slabThickness, range, currentThickness) ?? range.min;
       viewport.setSlabThickness(nextThickness, actorUIDs);
     }
@@ -293,7 +324,86 @@ function commandsModule({
     viewport.render();
     toolbarService.refreshToolbarState({ viewportId: targetViewportId });
 
-    return true;
+    return {
+      mode,
+      slabThickness: nextThickness,
+      viewportId: targetViewportId,
+    };
+  }
+
+  function _getViewportProjectionMode(viewportId?: string): ProjectionMode {
+    const targetViewportId = viewportId ?? viewportGridService.getActiveViewportId();
+    const viewport = cornerstoneViewportService.getCornerstoneViewport(targetViewportId);
+
+    if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+      return PROJECTION_MODES.COMPOSITE;
+    }
+
+    return blendModeToProjectionMode((viewport as any).getBlendMode?.());
+  }
+
+  function _getLinkedProjectionViewportIds(
+    sourceViewportId?: string,
+    displaySetInstanceUID?: string
+  ) {
+    const { protocolId } = hangingProtocolService.getState();
+    const sourceId = sourceViewportId ?? viewportGridService.getActiveViewportId();
+
+    if (!linkedProjectionProtocolIds.has(protocolId)) {
+      return [sourceId].filter(Boolean);
+    }
+
+    const sourceDisplaySetUIDs = viewportGridService.getDisplaySetsUIDsForViewport(sourceId) || [];
+    const displaySetUID = displaySetInstanceUID ?? sourceDisplaySetUIDs.find(Boolean) ?? undefined;
+    const { viewports } = viewportGridService.getState();
+    const linkedViewportIds = [];
+
+    viewports.forEach((_viewportConfig, viewportId) => {
+      const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+      if (!(viewport instanceof BaseVolumeViewport) || viewport instanceof VolumeViewport3D) {
+        return;
+      }
+
+      const displaySetUIDs = viewportGridService.getDisplaySetsUIDsForViewport(viewportId) || [];
+      if (displaySetUID && !displaySetUIDs.includes(displaySetUID)) {
+        return;
+      }
+
+      linkedViewportIds.push(viewportId);
+    });
+
+    if (!linkedViewportIds.includes(sourceId) && sourceId) {
+      linkedViewportIds.unshift(sourceId);
+    }
+
+    return linkedViewportIds;
+  }
+
+  function _syncLinkedProjectionViewports({
+    sourceViewportId,
+    displaySetInstanceUID,
+    mode,
+    slabThickness,
+  }: {
+    sourceViewportId?: string;
+    displaySetInstanceUID?: string;
+    mode: ProjectionMode;
+    slabThickness: number | 'fullVolume' | 'minimum' | 'preserve' | 'default';
+  }) {
+    const linkedViewportIds = _getLinkedProjectionViewportIds(
+      sourceViewportId,
+      displaySetInstanceUID
+    ).filter(viewportId => viewportId !== sourceViewportId);
+
+    linkedViewportIds.forEach(viewportId => {
+      _setViewportProjectionMode({
+        viewportId,
+        displaySetInstanceUID,
+        mode,
+        slabThickness,
+      });
+    });
   }
 
   function _getPreferredMipViewportId() {
@@ -1624,6 +1734,75 @@ function commandsModule({
 
       const renderingEngine = cornerstoneViewportService.getRenderingEngine();
       renderingEngine.render();
+    },
+    setViewportProjectionMode: ({
+      viewportId,
+      displaySetInstanceUID,
+      mode = PROJECTION_MODES.MIP,
+      slabThickness = 'preserve',
+      syncSlabThickness = true,
+    }: ProjectionCommandOptions = {}) => {
+      const targetViewportId = viewportId ?? viewportGridService.getActiveViewportId();
+      const result = _setViewportProjectionMode({
+        viewportId: targetViewportId,
+        displaySetInstanceUID,
+        mode,
+        slabThickness,
+      });
+
+      if (!result || !syncSlabThickness) {
+        return result;
+      }
+
+      _syncLinkedProjectionViewports({
+        sourceViewportId: result.viewportId,
+        displaySetInstanceUID,
+        mode,
+        slabThickness:
+          slabThickness === 'preserve' || slabThickness === 'default'
+            ? result.slabThickness
+            : slabThickness,
+      });
+
+      return result;
+    },
+    toggleViewportProjection: ({
+      viewportId,
+      displaySetInstanceUID,
+      mode = PROJECTION_MODES.MIP,
+      slabThickness = 'default',
+      syncSlabThickness = true,
+    }: ProjectionCommandOptions = {}) => {
+      const targetViewportId = viewportId ?? viewportGridService.getActiveViewportId();
+      const currentMode = _getViewportProjectionMode(targetViewportId);
+      const nextMode = currentMode === mode ? PROJECTION_MODES.COMPOSITE : mode;
+
+      return actions.setViewportProjectionMode({
+        viewportId: targetViewportId,
+        displaySetInstanceUID,
+        mode: nextMode,
+        slabThickness,
+        syncSlabThickness,
+      });
+    },
+    applyClinicalMipPreset: ({
+      presetId = 'ctaThin',
+      viewportId,
+      displaySetInstanceUID,
+    }: {
+      presetId?: string;
+      viewportId?: string;
+      displaySetInstanceUID?: string;
+    } = {}) => {
+      const preset = clinicalMipPresets[presetId] ?? clinicalMipPresets.ctaThin;
+
+      return actions.setViewportProjectionMode({
+        viewportId,
+        displaySetInstanceUID,
+        mode: preset.mode,
+        slabThickness: preset.slabThickness,
+        syncSlabThickness: true,
+      });
     },
     storePresentation: ({ viewportId }) => {
       cornerstoneViewportService.storePresentation({ viewportId });
@@ -3199,15 +3378,6 @@ function commandsModule({
     },
     setViewportForToolConfiguration: {
       commandFn: actions.setViewportForToolConfiguration,
-    },
-    setViewportProjectionMode: {
-      commandFn: actions.setViewportProjectionMode,
-    },
-    toggleViewportProjection: {
-      commandFn: actions.toggleViewportProjection,
-    },
-    applyClinicalMipPreset: {
-      commandFn: actions.applyClinicalMipPreset,
     },
     setViewportProjectionMode: {
       commandFn: actions.setViewportProjectionMode,

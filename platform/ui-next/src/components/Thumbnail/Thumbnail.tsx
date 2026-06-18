@@ -65,17 +65,17 @@ const Thumbnail = ({
           isActive && 'bg-popover rounded'
         )}
       >
-        <div className="h-[114px] w-[128px]">
-          <div className="relative bg-background">
+        <div className="h-[142px] w-[160px]">
+          <div className="bg-background relative">
             {imageSrc ? (
               <img
                 src={imageSrc}
                 alt={imageAltText}
-                className="h-[114px] w-[128px] rounded object-contain"
+                className="h-[142px] w-[160px] rounded object-contain"
                 crossOrigin="anonymous"
               />
             ) : (
-              <div className="bg-background h-[114px] w-[128px] rounded"></div>
+              <div className="bg-background h-[142px] w-[160px] rounded"></div>
             )}
 
             {/* bottom left */}
@@ -88,7 +88,7 @@ const Thumbnail = ({
                 )}
               ></div>
               <div
-                className="text-[11px] font-semibold text-foreground"
+                className="text-foreground text-[11px] font-semibold"
                 data-cy="series-modality-label"
               >
                 {modality}
@@ -135,12 +135,12 @@ const Thumbnail = ({
             </div>
           </div>
         </div>
-        <div className="flex h-[52px] w-[128px] flex-col justify-start pt-px">
+        <div className="flex h-[54px] w-[160px] flex-col justify-start pt-px">
           <Tooltip>
             <TooltipContent>{description}</TooltipContent>
             <TooltipTrigger>
               <div
-                className="min-h-[18px] w-[128px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4 text-foreground"
+                className="text-foreground min-h-[18px] w-[160px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4"
                 data-cy="series-description-label"
               >
                 {description}
@@ -184,7 +184,7 @@ const Thumbnail = ({
           <div className="flex h-full w-[calc(100%-12px)] flex-col justify-start">
             <div className="flex items-center gap-[7px]">
               <div
-                className="text-[13px] font-semibold text-foreground"
+                className="text-foreground text-[13px] font-semibold"
                 data-cy="series-modality-label"
               >
                 {modality}
@@ -193,7 +193,7 @@ const Thumbnail = ({
                 <TooltipContent>{description}</TooltipContent>
                 <TooltipTrigger className="w-full overflow-hidden">
                   <div
-                    className="max-w-[160px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left text-[13px] font-normal text-foreground"
+                    className="text-foreground max-w-[160px] overflow-hidden overflow-ellipsis whitespace-nowrap text-left text-[13px] font-normal"
                     data-cy="series-description-label"
                   >
                     {description}
@@ -261,7 +261,7 @@ const Thumbnail = ({
       className={classnames(
         className,
         'study-browser__thumbnail bg-muted hover:bg-primary/30 group flex cursor-pointer select-none flex-col rounded outline-none',
-        viewPreset === 'thumbnails' && 'h-[170px] w-[135px]',
+        viewPreset === 'thumbnails' && 'h-[204px] w-[168px]',
         viewPreset === 'list' && 'h-[40px] w-full'
       )}
       id={`thumbnail-${displaySetInstanceUID}`}

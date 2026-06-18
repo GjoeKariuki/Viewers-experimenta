@@ -1,5 +1,6 @@
 import { HYDRATE_SEG_SYNC_GROUP, VOI_SYNC_GROUP } from './mpr';
 import i18n from 'i18next';
+import { DEFAULT_MIP_SLAB_THICKNESS } from '../utils/projectionUtils';
 export const primaryAxial = {
   id: 'primaryAxial',
   locked: true,
@@ -73,6 +74,10 @@ export const primaryAxial = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -89,6 +94,10 @@ export const primaryAxial = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -105,6 +114,10 @@ export const primaryAxial = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },

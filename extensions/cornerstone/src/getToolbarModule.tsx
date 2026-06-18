@@ -21,9 +21,6 @@ const getDisabledState = (disabledText?: string) => ({
   disabledText: disabledText ?? i18n.t('Buttons:Not available on the current viewport'),
 });
 
-const MPR_PROTOCOL_ID = 'mpr';
-const MPR_TOOL_GROUP_ID = 'mpr';
-
 export default function getToolbarModule({ servicesManager, extensionManager }: withAppTypes) {
   const {
     toolGroupService,
@@ -34,22 +31,7 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
     displaySetService,
     viewportGridService,
     segmentationService,
-    hangingProtocolService,
   } = servicesManager.services;
-
-  const shouldHideProjectionControls = (viewportId: string): boolean => {
-    const activeProtocolId = hangingProtocolService.getState?.()?.protocolId;
-
-    if (activeProtocolId === MPR_PROTOCOL_ID) {
-      return true;
-    }
-
-    const viewportOptions = cornerstoneViewportService
-      .getViewportInfo(viewportId)
-      ?.getViewportOptions?.();
-
-    return viewportOptions?.toolGroupId === MPR_TOOL_GROUP_ID;
-  };
 
   return [
     {
@@ -299,7 +281,11 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
     {
       name: 'evaluate.projectionMenu',
       evaluate: ({ viewportId }) => {
-        if (shouldHideProjectionControls(viewportId)) {
+        const viewportOptions = cornerstoneViewportService
+          .getViewportInfo(viewportId)
+          ?.getViewportOptions?.();
+
+        if (viewportOptions?.customViewportProps?.hideProjectionControls) {
           return {
             disabled: true,
           };
@@ -649,7 +635,7 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
           return getDisabledState(disabledText);
         }
 
-        const currentMode = blendModeToProjectionMode(viewport.getBlendMode?.());
+        const currentMode = blendModeToProjectionMode((viewport as any).getBlendMode?.());
 
         return {
           disabled: false,
@@ -671,7 +657,7 @@ export default function getToolbarModule({ servicesManager, extensionManager }: 
           };
         }
 
-        const currentMode = blendModeToProjectionMode(viewport.getBlendMode?.());
+        const currentMode = blendModeToProjectionMode((viewport as any).getBlendMode?.());
         if (currentMode === PROJECTION_MODES.COMPOSITE) {
           return {
             disabled: false,

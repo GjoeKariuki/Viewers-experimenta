@@ -1,6 +1,7 @@
 import { HYDRATE_SEG_SYNC_GROUP, VOI_SYNC_GROUP } from './mpr';
 import i18n from 'i18next';
 import { volume3DDisplayPresets } from './volume3DDisplayPresets';
+import { DEFAULT_MIP_SLAB_THICKNESS } from '../utils/projectionUtils';
 export const primary3D = {
   id: 'primary3D',
   locked: true,
@@ -74,7 +75,7 @@ export const primary3D = {
             viewportType: 'volume3d',
             orientation: 'coronal',
             customViewportProps: {
-              hideOverlays: true,
+              hideOverlays: false,
             },
           },
           displaySets: [
@@ -99,6 +100,10 @@ export const primary3D = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -115,6 +120,10 @@ export const primary3D = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -131,6 +140,10 @@ export const primary3D = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },

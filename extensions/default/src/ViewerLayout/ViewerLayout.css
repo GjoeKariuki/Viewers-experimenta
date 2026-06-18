@@ -8,7 +8,33 @@
   touch-action: none;
 }
 
+.viewer-layout__mobile-report-action {
+  display: none;
+}
+
 @media (max-width: 767px) {
+  .viewer-layout__mobile-report-action {
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--muted));
+    color: hsl(var(--foreground));
+    display: inline-flex;
+    height: 32px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 6px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .viewer-layout__mobile-report-action:active {
+    background: hsl(var(--primary) / 0.18);
+  }
+
   .viewer-layout {
     display: flex;
     height: 100dvh;
@@ -65,85 +91,18 @@
   }
 
   /*
-    2. Right panel second:
-    Study report/tools below viewport.
+    Reports are opened from the mobile tool strip, not mounted as a side panel.
   */
   .viewer-layout__right-panel-shell {
-    order: 2 !important;
-    flex: 0 0 auto !important;
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    height: clamp(140px, 20dvh, 180px) !important;
-    min-height: 140px !important;
-    overflow: hidden !important;
-    transition:
-      height 180ms ease,
-      min-height 180ms ease;
-  }
-
-  .viewer-layout__right-panel-shell--expanded {
-    height: clamp(260px, 38dvh, 360px) !important;
-    min-height: 260px !important;
-  }
-
-  .viewer-layout__right-panel {
-    height: 100% !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel {
-    height: 100% !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__body {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__list {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__detail {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__content {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    overscroll-behavior: contain;
-    padding-right: 4px;
-    padding-bottom: 24px;
-  }
-
-  .viewer-layout__right-panel .study-reports-panel__content table,
-  .viewer-layout__right-panel .study-reports-panel__content img {
-    max-width: 100%;
+    display: none !important;
   }
 
   /*
-    3. Left panel last:
-    Series list below report/tools.
+    2. Left panel last:
+    Series list below viewport.
   */
   .viewer-layout__left-panel-shell {
-    order: 3 !important;
+    order: 2 !important;
     flex: 0 0 auto !important;
     width: 100% !important;
     min-width: 100% !important;

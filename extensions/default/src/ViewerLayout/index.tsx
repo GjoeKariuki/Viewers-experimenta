@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 
 import { InvestigationalUseDialog } from '@ohif/ui-next';
@@ -11,6 +11,8 @@ import useResizablePanels from './ResizablePanelsHook';
 import './ViewerLayout.css';
 
 const resizableHandleClassName = 'mt-[1px] bg-border';
+const MOBILE_STUDY_REPORTS_DIALOG_ID = 'mobile-study-reports-dialog';
+const MOBILE_REPORT_DIALOG_ID = 'mobile-study-report';
 
 function ViewerLayout({
   // From Extension Module Params
@@ -32,7 +34,8 @@ function ViewerLayout({
 }: withAppTypes): React.FunctionComponent {
   const [appConfig] = useAppConfig();
 
-  const { panelService, hangingProtocolService, customizationService } = servicesManager.services;
+  const { panelService, hangingProtocolService, customizationService, uiDialogService } =
+    servicesManager.services;
   const [showLoadingIndicator, setShowLoadingIndicator] = useState(appConfig.showLoadingIndicator);
 
   const hasPanels = useCallback(
@@ -44,6 +47,10 @@ function ViewerLayout({
   const [hasLeftPanels, setHasLeftPanels] = useState(hasPanels('left'));
   const [leftPanelClosedState, setLeftPanelClosed] = useState(leftPanelClosed);
   const [rightPanelClosedState, setRightPanelClosed] = useState(rightPanelClosed);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+  const wasMobileRef = useRef(isMobile);
   const mobilePanelsExpandedRef = useRef(false);
 
   const [
@@ -55,9 +62,9 @@ function ViewerLayout({
     resizableRightPanelProps,
     onHandleDragging,
   ] = useResizablePanels(
-    leftPanelClosed,
+    leftPanelClosedState,
     setLeftPanelClosed,
-    rightPanelClosed,
+    rightPanelClosedState,
     setRightPanelClosed,
     hasLeftPanels,
     hasRightPanels,
@@ -121,24 +128,62 @@ function ViewerLayout({
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
 
     const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const syncIsMobile = () => {
+      const nextIsMobile = mediaQuery.matches;
+      const wasMobile = wasMobileRef.current;
+
+      if (wasMobile && !nextIsMobile) {
+        uiDialogService?.hide?.(MOBILE_STUDY_REPORTS_DIALOG_ID);
+        uiDialogService?.hide?.(MOBILE_REPORT_DIALOG_ID);
+        setRightPanelClosed(true);
+      }
+
+      if (nextIsMobile && hasPanels('right')) {
+        setRightPanelClosed(true);
+      }
+
+      wasMobileRef.current = nextIsMobile;
+      setIsMobile(nextIsMobile);
+    };
+
+    syncIsMobile();
+    mediaQuery.addEventListener?.('change', syncIsMobile);
+
+    return () => {
+      mediaQuery.removeEventListener?.('change', syncIsMobile);
+    };
+  }, [hasPanels, uiDialogService]);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const expandMobilePanels = () => {
-      if (!mediaQuery.matches) {
+      if (!isMobile) {
+        if (mobilePanelsExpandedRef.current && hasRightPanels) {
+          rightPanelProps.onClose?.();
+          setRightPanelClosed(true);
+          scheduleViewportResize();
+        }
+
+        mobilePanelsExpandedRef.current = false;
         return;
+      }
+
+      if (hasRightPanels) {
+        setRightPanelClosed(true);
       }
 
       if (!mobilePanelsExpandedRef.current) {
         if (hasLeftPanels) {
           setLeftPanelClosed(false);
-        }
-
-        if (hasRightPanels) {
-          setRightPanelClosed(false);
         }
 
         mobilePanelsExpandedRef.current = true;
@@ -148,12 +193,7 @@ function ViewerLayout({
     };
 
     expandMobilePanels();
-    mediaQuery.addEventListener?.('change', expandMobilePanels);
-
-    return () => {
-      mediaQuery.removeEventListener?.('change', expandMobilePanels);
-    };
-  }, [hasLeftPanels, hasRightPanels, scheduleViewportResize]);
+  }, [hasLeftPanels, hasRightPanels, isMobile, rightPanelProps.onClose, scheduleViewportResize]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -223,11 +263,21 @@ function ViewerLayout({
     const { unsubscribe } = panelService.subscribe(
       panelService.EVENTS.PANELS_CHANGED,
       ({ options }) => {
-        setHasLeftPanels(hasPanels('left'));
-        setHasRightPanels(hasPanels('right'));
+        const nextHasLeftPanels = hasPanels('left');
+        const nextHasRightPanels = hasPanels('right');
+
+        setHasLeftPanels(nextHasLeftPanels);
+        setHasRightPanels(nextHasRightPanels);
+
         if (options && options.leftPanelClosed !== undefined) {
           setLeftPanelClosed(options.leftPanelClosed);
         }
+
+        if (isMobile && nextHasRightPanels) {
+          setRightPanelClosed(true);
+          return;
+        }
+
         if (options && options.rightPanelClosed !== undefined) {
           setRightPanelClosed(options.rightPanelClosed);
         }
@@ -237,7 +287,7 @@ function ViewerLayout({
     return () => {
       unsubscribe();
     };
-  }, [panelService, hasPanels]);
+  }, [panelService, hasPanels, isMobile]);
 
   const viewportComponents = viewports.map(getViewportComponentData);
 
@@ -301,7 +351,7 @@ function ViewerLayout({
                 </div>
               </div>
             </ResizablePanel>
-            {hasRightPanels ? (
+            {hasRightPanels && !isMobile ? (
               <>
                 <ResizableHandle
                   onDragging={onHandleDragging}

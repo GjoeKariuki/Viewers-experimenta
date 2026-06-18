@@ -3,6 +3,22 @@ import PropTypes from 'prop-types';
 import { Enums, VolumeViewport3D, utilities as csUtils } from '@cornerstonejs/core';
 import { ImageScrollbar } from '@ohif/ui-next';
 
+type ImageSliceData = {
+  imageIndex: number;
+  numberOfSlices: number;
+};
+
+type CornerstoneImageScrollbarProps = withAppTypes<{
+  viewportData?: {
+    viewportType?: Enums.ViewportType;
+  };
+  viewportId: string;
+  element: HTMLElement;
+  imageSliceData: ImageSliceData;
+  setImageSliceData: (imageSliceData: ImageSliceData) => void;
+  scrollbarHeight: string;
+}>;
+
 function CornerstoneImageScrollbar({
   viewportData,
   viewportId,
@@ -11,26 +27,37 @@ function CornerstoneImageScrollbar({
   setImageSliceData,
   scrollbarHeight,
   servicesManager,
-}: withAppTypes<{
-  element: HTMLElement;
-}>) {
+}: CornerstoneImageScrollbarProps) {
   const { cineService, cornerstoneViewportService } = servicesManager.services;
 
-  const onImageScrollbarChange = (imageIndex, viewportId) => {
+  const onImageScrollbarChange = (imageIndex: number, viewportId: string) => {
     const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
 
-    const { isCineEnabled } = cineService.getState();
+    if (!viewport || viewport instanceof VolumeViewport3D || !viewport.element) {
+      return;
+    }
+
+    const { isCineEnabled, cines } = cineService.getState();
 
     if (isCineEnabled) {
       // on image scrollbar change, stop the CINE if it is playing
       cineService.stopClip(element, { viewportId });
-      cineService.setCine({ id: viewportId, isPlaying: false });
+      cineService.setCine({
+        id: viewportId,
+        frameRate: cines?.[viewportId]?.frameRate ?? 24,
+        isPlaying: false,
+      });
     }
 
-    csUtils.jumpToSlice(viewport.element, {
-      imageIndex,
-      debounceLoading: true,
-    });
+    try {
+      csUtils.jumpToSlice(viewport.element, {
+        imageIndex,
+        debounceLoading: true,
+      });
+    } catch (error) {
+      console.warn('Unable to jump to image slice from scrollbar', error);
+      cornerstoneViewportService.scheduleRenderingRecovery?.('image scrollbar slice jump failed');
+    }
   };
 
   useEffect(() => {
@@ -45,17 +72,24 @@ function CornerstoneImageScrollbar({
     }
 
     try {
-      const imageIndex = viewport.getCurrentImageIdIndex();
-      const numberOfSlices = viewport.getNumberOfSlices();
+      const imageIndex = viewport.getCurrentImageIdIndex?.();
+      const numberOfSlices = viewport.getNumberOfSlices?.();
+
+      if (!Number.isFinite(imageIndex) || !Number.isFinite(numberOfSlices)) {
+        return;
+      }
 
       setImageSliceData({
-        imageIndex: imageIndex,
+        imageIndex,
         numberOfSlices,
       });
     } catch (error) {
       console.warn(error);
+      cornerstoneViewportService.scheduleRenderingRecovery?.(
+        'image scrollbar initialization failed'
+      );
     }
-  }, [viewportId, viewportData]);
+  }, [cornerstoneViewportService, setImageSliceData, viewportData, viewportId]);
 
   useEffect(() => {
     if (!viewportData) {
@@ -67,16 +101,27 @@ function CornerstoneImageScrollbar({
       (viewportType === Enums.ViewportType.ORTHOGRAPHIC && Enums.Events.VOLUME_NEW_IMAGE) ||
       Enums.Events.IMAGE_RENDERED;
 
-    const updateIndex = event => {
+    const updateIndex = (event: Event) => {
       const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
       if (!viewport || viewport instanceof VolumeViewport3D) {
         return;
       }
-      const { imageIndex, newImageIdIndex = imageIndex, imageIdIndex } = event.detail;
-      const numberOfSlices = viewport.getNumberOfSlices();
+      const {
+        imageIndex,
+        newImageIdIndex = imageIndex,
+        imageIdIndex,
+      } = (event as CustomEvent).detail || {};
+      const nextImageIndex =
+        newImageIdIndex ?? imageIdIndex ?? viewport.getCurrentImageIdIndex?.() ?? 0;
+      const numberOfSlices = viewport.getNumberOfSlices?.();
+
+      if (!Number.isFinite(nextImageIndex) || !Number.isFinite(numberOfSlices)) {
+        return;
+      }
+
       // find the index of imageId in the imageIds
       setImageSliceData({
-        imageIndex: newImageIdIndex ?? imageIdIndex,
+        imageIndex: nextImageIndex,
         numberOfSlices,
       });
     };
@@ -86,7 +131,7 @@ function CornerstoneImageScrollbar({
     return () => {
       element.removeEventListener(eventId, updateIndex);
     };
-  }, [viewportData, element]);
+  }, [cornerstoneViewportService, element, setImageSliceData, viewportData, viewportId]);
 
   return (
     <ImageScrollbar

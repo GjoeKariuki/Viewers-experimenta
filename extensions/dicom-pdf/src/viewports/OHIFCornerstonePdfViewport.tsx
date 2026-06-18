@@ -5,6 +5,7 @@ import './OHIFCornerstonePdfViewport.css';
 
 function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }) {
   const [url, setUrl] = useState(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [autoRotation, setAutoRotation] = useState(0);
   const containerRef = useRef(null);
   const viewportElementRef = useRef(null);
@@ -38,6 +39,7 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
 
   useEffect(() => {
     const load = async () => {
+      setLoadFailed(false);
       setUrl(await renderedUrl);
     };
 
@@ -69,6 +71,7 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
   }, [url]);
 
   const isSideways = autoRotation === 90 || autoRotation === 270;
+  const embeddedUrl = url ? `${url}#toolbar=1&navpanes=0&scrollbar=1` : undefined;
 
   return (
     <div
@@ -90,14 +93,29 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
           transformOrigin: 'center center',
         }}
       >
-        <object
-          data={url}
-          type="application/pdf"
+        <iframe
+          src={embeddedUrl}
+          title="DICOM PDF document"
           className={style}
-        >
-          <div>No online PDF viewer installed</div>
-        </object>
+          onLoad={() => setLoadFailed(false)}
+          onError={() => setLoadFailed(true)}
+        />
       </div>
+      {url && (
+        <a
+          className="pdf-open-link"
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open PDF
+        </a>
+      )}
+      {loadFailed && (
+        <div className="pdf-fallback-message">
+          Unable to embed PDF in this browser. Open PDF to view it.
+        </div>
+      )}
     </div>
   );
 }

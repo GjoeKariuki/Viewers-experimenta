@@ -98,29 +98,38 @@ const OHIFCornerstoneViewport = React.memo(
     const [viewportDialogState] = useViewportDialog();
     // useCallback for scroll bar height calculation
     const setImageScrollBarHeight = useCallback(() => {
-      const scrollbarHeight = `${elementRef.current.clientHeight - 10}px`;
+      if (!elementRef.current) {
+        return;
+      }
+
+      const scrollbarHeight = `${Math.max(elementRef.current.clientHeight - 10, 0)}px`;
       setScrollbarHeight(scrollbarHeight);
     }, [elementRef]);
 
     // useCallback for onResize
     const onResize = useCallback(
       (entries: ResizeObserverEntry[]) => {
-        if (elementRef.current && entries?.length) {
-          const entry = entries[0];
-          const { width, height } = entry.contentRect;
+        try {
+          if (elementRef.current && entries?.length) {
+            const entry = entries[0];
+            const { width, height } = entry.contentRect;
 
-          const prevDimensions = viewportDimensions.get(viewportId) || { width: 0, height: 0 };
+            const prevDimensions = viewportDimensions.get(viewportId) || { width: 0, height: 0 };
 
-          // Check if dimensions actually changed and then only resize if they have changed
-          const hasDimensionsChanged =
-            prevDimensions.width !== width || prevDimensions.height !== height;
+            // Check if dimensions actually changed and then only resize if they have changed
+            const hasDimensionsChanged =
+              prevDimensions.width !== width || prevDimensions.height !== height;
 
-          if (width > 0 && height > 0 && hasDimensionsChanged) {
-            viewportDimensions.set(viewportId, { width, height });
-            // Perform resize operations
-            cornerstoneViewportService.resize();
-            setImageScrollBarHeight();
+            if (width > 0 && height > 0 && hasDimensionsChanged) {
+              viewportDimensions.set(viewportId, { width, height });
+              // Perform resize operations
+              cornerstoneViewportService.resize();
+              setImageScrollBarHeight();
+            }
           }
+        } catch (error) {
+          console.warn(`Unable to resize viewport ${viewportId}`, error);
+          cornerstoneViewportService.scheduleRenderingRecovery?.('viewport resize observer failed');
         }
       },
       [viewportId, elementRef, cornerstoneViewportService, setImageScrollBarHeight]
@@ -141,6 +150,32 @@ const OHIFCornerstoneViewport = React.memo(
         resizeObserver.disconnect();
       };
     }, [onResize]);
+
+    useEffect(() => {
+      const element = elementRef.current;
+      if (!element) {
+        return;
+      }
+
+      const handleContextLost = (event: Event) => {
+        event.preventDefault?.();
+        console.warn(`WebGL context lost for viewport ${viewportId}`);
+        cornerstoneViewportService.scheduleRenderingRecovery?.('webgl context lost');
+      };
+
+      const handleContextRestored = () => {
+        console.warn(`WebGL context restored for viewport ${viewportId}`);
+        cornerstoneViewportService.scheduleRenderingRecovery?.('webgl context restored');
+      };
+
+      element.addEventListener('webglcontextlost', handleContextLost, true);
+      element.addEventListener('webglcontextrestored', handleContextRestored, true);
+
+      return () => {
+        element.removeEventListener('webglcontextlost', handleContextLost, true);
+        element.removeEventListener('webglcontextrestored', handleContextRestored, true);
+      };
+    }, [cornerstoneViewportService, viewportId]);
 
     const cleanUpServices = useCallback(
       viewportInfo => {
@@ -245,26 +280,37 @@ const OHIFCornerstoneViewport = React.memo(
             return;
           }
 
-          const viewportInfo = cornerstoneViewportService.getViewportInfo(viewportId);
+          try {
+            const viewportInfo = cornerstoneViewportService.getViewportInfo(viewportId);
 
-          if (viewportInfo.hasDisplaySet(invalidatedDisplaySetInstanceUID)) {
-            const viewportData = viewportInfo.getViewportData();
-            const newViewportData = await cornerstoneCacheService.invalidateViewportData(
-              viewportData,
-              invalidatedDisplaySetInstanceUID,
-              dataSource,
-              displaySetService
-            );
+            if (viewportInfo?.hasDisplaySet(invalidatedDisplaySetInstanceUID)) {
+              const viewportData = viewportInfo.getViewportData();
+              const newViewportData = await cornerstoneCacheService.invalidateViewportData(
+                viewportData,
+                invalidatedDisplaySetInstanceUID,
+                dataSource,
+                displaySetService
+              );
 
-            const keepCamera = true;
-            cornerstoneViewportService.updateViewport(viewportId, newViewportData, keepCamera);
+              const keepCamera = true;
+              cornerstoneViewportService.updateViewport(viewportId, newViewportData, keepCamera);
+            }
+          } catch (error) {
+            console.warn(`Unable to invalidate viewport data for ${viewportId}`, error);
+            cornerstoneViewportService.scheduleRenderingRecovery?.('viewport invalidation failed');
           }
         }
       );
       return () => {
         unsubscribe();
       };
-    }, [viewportId]);
+    }, [
+      cornerstoneCacheService,
+      cornerstoneViewportService,
+      dataSource,
+      displaySetService,
+      viewportId,
+    ]);
 
     useEffect(() => {
       // handle the default viewportType to be stack
@@ -272,37 +318,65 @@ const OHIFCornerstoneViewport = React.memo(
         viewportOptions.viewportType = STACK;
       }
 
+      let isMounted = true;
+
       const loadViewportData = async () => {
-        const viewportData = await cornerstoneCacheService.createViewportData(
-          displaySets,
-          viewportOptions,
-          dataSource,
-          initialImageIndex
-        );
+        try {
+          const viewportData = await cornerstoneCacheService.createViewportData(
+            displaySets,
+            viewportOptions,
+            dataSource,
+            initialImageIndex
+          );
 
-        const presentations = getViewportPresentations(viewportId, viewportOptions);
+          if (!isMounted) {
+            return;
+          }
 
-        // Note: This is a hack to get the grid to re-render the OHIFCornerstoneViewport component
-        // Used for segmentation hydration right now, since the logic to decide whether
-        // a viewport needs to render a segmentation lives inside the CornerstoneViewportService
-        // so we need to re-render (force update via change of the needsRerendering) so that React
-        // does the diffing and decides we should render this again (although the id and element has not changed)
-        // so that the CornerstoneViewportService can decide whether to render the segmentation or not. Not that we reached here we can turn it off.
-        if (viewportOptions.needsRerendering) {
-          viewportOptions.needsRerendering = false;
+          const presentations = getViewportPresentations(viewportId, viewportOptions);
+
+          // Note: This is a hack to get the grid to re-render the OHIFCornerstoneViewport component
+          // Used for segmentation hydration right now, since the logic to decide whether
+          // a viewport needs to render a segmentation lives inside the CornerstoneViewportService
+          // so we need to re-render (force update via change of the needsRerendering) so that React
+          // does the diffing and decides we should render this again (although the id and element has not changed)
+          // so that the CornerstoneViewportService can decide whether to render the segmentation or not. Not that we reached here we can turn it off.
+          if (viewportOptions.needsRerendering) {
+            viewportOptions.needsRerendering = false;
+          }
+
+          cornerstoneViewportService.setViewportData(
+            viewportId,
+            viewportData,
+            viewportOptions,
+            displaySetOptions,
+            presentations
+          );
+        } catch (error) {
+          if (!isMounted) {
+            return;
+          }
+
+          console.warn(`Unable to load viewport data for ${viewportId}`, error);
+          cornerstoneViewportService.scheduleRenderingRecovery?.('viewport data creation failed');
         }
-
-        cornerstoneViewportService.setViewportData(
-          viewportId,
-          viewportData,
-          viewportOptions,
-          displaySetOptions,
-          presentations
-        );
       };
 
       loadViewportData();
-    }, [viewportOptions, displaySets, dataSource]);
+
+      return () => {
+        isMounted = false;
+      };
+    }, [
+      cornerstoneCacheService,
+      cornerstoneViewportService,
+      dataSource,
+      displaySetOptions,
+      displaySets,
+      initialImageIndex,
+      viewportId,
+      viewportOptions,
+    ]);
 
     const Notification = customizationService.getCustomization('ui.notificationComponent');
 

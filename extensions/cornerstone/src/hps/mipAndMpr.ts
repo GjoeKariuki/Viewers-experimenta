@@ -51,7 +51,7 @@ export const mipAndMpr: Types.HangingProtocol.Protocol = {
             viewportId: 'mip-overview',
             toolGroupId: 'mip',
             viewportType: 'volume',
-            orientation: 'coronal',
+            orientation: 'acquisition',
             background: [0, 0, 0],
             initialImageOptions: {
               preset: 'middle',
@@ -82,6 +82,10 @@ export const mipAndMpr: Types.HangingProtocol.Protocol = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -99,6 +103,10 @@ export const mipAndMpr: Types.HangingProtocol.Protocol = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
@@ -116,6 +124,10 @@ export const mipAndMpr: Types.HangingProtocol.Protocol = {
           displaySets: [
             {
               id: 'activeDisplaySet',
+              options: {
+                blendMode: 'mip',
+                slabThickness: DEFAULT_MIP_SLAB_THICKNESS,
+              },
             },
           ],
         },
