@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useActiveViewportDisplaySets } from '@ohif/core';
 
-const MOBILE_REPORT_DIALOG_ID = 'mobile-study-report';
-
 type ReportAuthor = {
   name?: string | null;
   role?: string | null;
@@ -153,14 +151,21 @@ function normalizeReport(payload: unknown): StudyReport | null {
         record,
         'content',
         'report_content',
+        'reportContent',
         'report_text',
+        'reportText',
         'report_html',
+        'reportHtml',
         'html',
         'body',
         'text',
-        'description'
+        'description',
+        'findings',
+        'impression'
       ) ?? null,
-    rich_text_field: pickString(record, 'rich_text_field') ?? null,
+    rich_text_field:
+      pickString(record, 'rich_text_field', 'richTextField', 'rich_text', 'richText', 'report') ??
+      null,
     created_at: pickString(record, 'created_at') ?? null,
     updated_at: pickString(record, 'updated_at') ?? null,
     author: author
@@ -175,8 +180,20 @@ function normalizeReport(payload: unknown): StudyReport | null {
     locked_message: pickString(record, 'locked_message') ?? null,
     detail_url: pickString(record, 'detail_url', 'api_url') ?? null,
     pdf_file:
-      pickString(record, 'pdf_file', 'pdf_url', 'pdf_file_url', 'pdf_path', 'file_url', 'file') ??
-      null,
+      pickString(
+        record,
+        'pdf_file',
+        'pdfFile',
+        'pdf_url',
+        'pdfUrl',
+        'pdf_file_url',
+        'pdfFileUrl',
+        'pdf_path',
+        'pdfPath',
+        'file_url',
+        'fileUrl',
+        'file'
+      ) ?? null,
     pdf: pdf
       ? {
           file_url: pickString(pdf, 'file_url', 'file'),
@@ -215,6 +232,30 @@ function getReportList(payload: unknown) {
   }
 
   return [];
+}
+
+function normalizeReportDetailPayload(payload: unknown): StudyReport | null {
+  const directReport = normalizeReport(payload);
+  if (directReport) {
+    return directReport;
+  }
+
+  const record = asRecord(payload);
+  if (!record) {
+    return null;
+  }
+
+  for (const key of ['report', 'data', 'result', 'item', 'active_report']) {
+    const nestedReport = normalizeReport(record[key]);
+    if (nestedReport) {
+      return nestedReport;
+    }
+  }
+
+  const [firstReport] = getReportList(payload)
+    .map(normalizeReport)
+    .filter(Boolean) as StudyReport[];
+  return firstReport || null;
 }
 
 function mergeReports(reports: StudyReport[], activeReport?: StudyReport | null) {
@@ -341,27 +382,7 @@ function formatDate(value?: string | null) {
   return date.toLocaleString();
 }
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
-  );
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const updateIsMobile = () => setIsMobile(mediaQuery.matches);
-
-    updateIsMobile();
-    mediaQuery.addEventListener?.('change', updateIsMobile);
-
-    return () => {
-      mediaQuery.removeEventListener?.('change', updateIsMobile);
-    };
-  }, []);
-
-  return isMobile;
-}
-
-function StudyReportDialogContent({
+function StudyReportContent({
   report,
   isLoading = false,
   error,
@@ -453,6 +474,7 @@ async function fetchReportsForStudy(
     buildUrl('/api/reports/public-by-study/', { study_id: studyId }),
     {
       Accept: 'application/json',
+      ...headers,
     },
     signal
   );
@@ -469,12 +491,11 @@ async function fetchReportDetail(
     ? normalizeExternalUrl(report.detail_url)
     : buildUrl(`/api/reports/${report.id}/`);
   const payload = await fetchJson(url, headers, signal);
-  return normalizeReport(payload);
+  return normalizeReportDetailPayload(payload);
 }
 
 function PanelStudyReports({ servicesManager }: withAppTypes) {
   const activeDisplaySets = useActiveViewportDisplaySets();
-  const isMobile = useIsMobile();
   const studyIdCandidates = useMemo(
     () => getStudyIdCandidates(activeDisplaySets),
     [activeDisplaySets]
@@ -485,10 +506,10 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   const [reportDetails, setReportDetails] = useState<Record<string, StudyReport>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [loadingReportId, setLoadingReportId] = useState<string | null>(null);
+  const [reportDetailError, setReportDetailError] = useState('');
   const [error, setError] = useState('');
   const fetchedReportIdsRef = useRef<Set<string>>(new Set());
   const detailAbortControllerRef = useRef<AbortController | null>(null);
-  const { uiDialogService } = servicesManager.services;
 
   const headers = useMemo(() => {
     const authorizationHeaders =
@@ -504,10 +525,12 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
     fetchedReportIdsRef.current.clear();
     detailAbortControllerRef.current?.abort();
     detailAbortControllerRef.current = null;
+    setReportDetailError('');
 
     if (!studyIdCandidates.length) {
       setStudyId('');
       setReports([]);
+      setSelectedReportId(null);
       setError('No study is selected.');
       return;
     }
@@ -530,6 +553,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
           setStudyId(payload.studyId || candidate);
           setReports(payload.reports);
           setReportDetails(Object.fromEntries(payload.reports.map(report => [report.id, report])));
+          setReportDetailError('');
           fetchedReportIdsRef.current = new Set(
             payload.reports
               .filter(report => hasDisplayableReportContent(report))
@@ -550,6 +574,7 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
       setStudyId(studyIdCandidates[0]);
       setReports([]);
       setSelectedReportId(null);
+      setReportDetailError('');
       setError(lastError || 'No reports for this study.');
     }
 
@@ -575,53 +600,10 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isMobile) {
-      uiDialogService?.hide(MOBILE_REPORT_DIALOG_ID);
-    }
-
-    return () => {
-      uiDialogService?.hide(MOBILE_REPORT_DIALOG_ID);
-    };
-  }, [isMobile, uiDialogService]);
-
   const selectedSummary = reports.find(report => report.id === selectedReportId);
   const selectedReport = selectedReportId
     ? reportDetails[selectedReportId] || selectedSummary
     : undefined;
-  const selectedContent = getContent(selectedReport);
-  const selectedPdfUrl = getPdfUrl(selectedReport);
-  const sanitizedContent = sanitizeReportHtml(selectedContent);
-  const lockedMessage = getVisibleLockedMessage(selectedReport);
-
-  const showMobileReportDialog = (
-    report: StudyReport,
-    options?: {
-      isLoading?: boolean;
-      error?: string;
-    }
-  ) => {
-    if (!isMobile || !uiDialogService) {
-      return;
-    }
-
-    uiDialogService.show({
-      id: MOBILE_REPORT_DIALOG_ID,
-      title: 'Study Report',
-      content: StudyReportDialogContent,
-      contentProps: {
-        report,
-        isLoading: options?.isLoading,
-        error: options?.error,
-      },
-      isDraggable: true,
-      shouldCloseOnEsc: true,
-      shouldCloseOnOverlayClick: false,
-      showOverlay: false,
-      containerClassName:
-        'mobile-study-report-dialog h-[min(78dvh,680px)] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-2xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
-    });
-  };
 
   const loadReportDetail = async (report: StudyReport) => {
     const currentReport = reportDetails[report.id] || report;
@@ -669,25 +651,18 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
 
   const handleSelectReport = async (report: StudyReport) => {
     setSelectedReportId(report.id);
-
-    const initialReport = reportDetails[report.id] || report;
-    const needsDetail = !(
-      fetchedReportIdsRef.current.has(report.id) || hasDisplayableReportContent(initialReport)
-    );
-
-    showMobileReportDialog(initialReport, { isLoading: needsDetail });
+    setReportDetailError('');
 
     try {
-      const detailedReport = await loadReportDetail(report);
-      showMobileReportDialog(detailedReport);
+      await loadReportDetail(report);
     } catch (detailError) {
       if (detailError instanceof DOMException && detailError.name === 'AbortError') {
         return;
       }
 
-      showMobileReportDialog(initialReport, {
-        error: detailError instanceof Error ? detailError.message : 'Unable to open this report.',
-      });
+      setReportDetailError(
+        detailError instanceof Error ? detailError.message : 'Unable to open this report.'
+      );
     }
   };
 
@@ -706,70 +681,52 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
         )}
         {!isLoading && reports.length > 0 && (
           <>
-            <div className="text-muted-foreground px-1 pb-2 text-xs md:hidden">
-              Tap a report to open it. Drag the dialog by its header.
-            </div>
-            <div className="study-reports-panel__list space-y-2">
-              {reports.map(report => {
-                const isSelected = report.id === selectedReportId;
-                const authorName = getAuthorName(report);
+            <div className="study-reports-panel__mobile-layout min-h-0 flex-1 md:block">
+              <div className="study-reports-panel__list space-y-2">
+                {reports.map(report => {
+                  const isSelected = report.id === selectedReportId;
+                  const authorName = getAuthorName(report);
 
-                return (
-                  <button
-                    key={report.id}
-                    type="button"
-                    className={`border-border w-full rounded-md border px-3 py-2 text-left transition ${
-                      isSelected ? 'bg-primary/20 text-primary' : 'bg-muted hover:bg-primary/10'
-                    }`}
-                    onClick={() => handleSelectReport(report)}
-                  >
-                    <div className="truncate text-sm font-semibold">
-                      {report.title || 'Untitled report'}
-                    </div>
-                    <div className="text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs">
-                      {report.status && <span>{report.status}</span>}
-                      {authorName && <span>{authorName}</span>}
-                      {report.updated_at && <span>{formatDate(report.updated_at)}</span>}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            {selectedReport && (
-              <div className="study-reports-panel__detail border-border mt-3 hidden min-h-0 flex-1 flex-col border-t pt-3 md:flex">
-                <div className="text-sm font-semibold">
-                  {selectedReport.title || 'Untitled report'}
-                </div>
-                {lockedMessage && (
-                  <div className="text-muted-foreground mt-2 text-xs">{lockedMessage}</div>
-                )}
-                {loadingReportId === selectedReport.id && (
-                  <div className="text-muted-foreground mt-3 text-sm">Loading report...</div>
-                )}
-                {sanitizedContent ? (
-                  <div
-                    className="study-reports-panel__content text-foreground mt-3 min-h-0 max-w-none flex-1 overflow-y-auto text-sm leading-6"
-                    dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-                  />
-                ) : (
-                  loadingReportId !== selectedReport.id && (
-                    <div className="text-muted-foreground mt-3 text-sm">
-                      Report content is not available.
-                    </div>
-                  )
-                )}
-                {selectedPdfUrl && (
-                  <a
-                    className="text-primary mt-3 inline-flex text-sm font-medium hover:underline"
-                    href={selectedPdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open PDF
-                  </a>
-                )}
+                  return (
+                    <button
+                      key={report.id}
+                      type="button"
+                      className={`border-border w-full rounded-md border px-3 py-2 text-left transition ${
+                        isSelected ? 'bg-primary/20 text-primary' : 'bg-muted hover:bg-primary/10'
+                      }`}
+                      onClick={() => handleSelectReport(report)}
+                    >
+                      <div className="truncate text-sm font-semibold">
+                        {report.title || 'Untitled report'}
+                      </div>
+                      <div className="text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs">
+                        {report.status && <span>{report.status}</span>}
+                        {authorName && <span>{authorName}</span>}
+                        {report.updated_at && <span>{formatDate(report.updated_at)}</span>}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            )}
+              {selectedReport && (
+                <>
+                  <div className="study-reports-panel__mobile-detail border-border mt-3 flex min-h-[260px] flex-col border-t pt-3 md:hidden">
+                    <StudyReportContent
+                      report={selectedReport}
+                      isLoading={loadingReportId === selectedReport.id}
+                      error={reportDetailError}
+                    />
+                  </div>
+                  <div className="study-reports-panel__detail border-border mt-3 hidden min-h-0 flex-1 flex-col border-t pt-3 md:flex">
+                    <StudyReportContent
+                      report={selectedReport}
+                      isLoading={loadingReportId === selectedReport.id}
+                      error={reportDetailError}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
           </>
         )}
       </div>

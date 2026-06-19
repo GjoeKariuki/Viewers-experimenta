@@ -1,5 +1,5 @@
 import { vec3 } from 'gl-matrix';
-import { PubSubService, utils as ohifUtils } from '@ohif/core';
+import { PubSubService } from '@ohif/core';
 import { Types as OhifTypes } from '@ohif/core';
 import {
   RenderingEngine,
@@ -56,7 +56,6 @@ const MIN_STACK_VIEWPORTS_TO_ENQUEUE_RESIZE = 12;
 const MIN_VOLUME_VIEWPORTS_TO_ENQUEUE_RESIZE = 6;
 const DEFAULT_INITIAL_VIEWPORT_ZOOM_SCALE = 1.08;
 const RENDERING_ENGINE_DESTROY_DELAY_MS = 1000;
-const MOBILE_CPU_STACK_MODALITIES = new Set(['CR', 'DX', 'MG']);
 
 export const WITH_NAVIGATION = { withNavigation: true, withOrientation: false };
 export const WITH_ORIENTATION = { withNavigation: true, withOrientation: true };
@@ -931,43 +930,6 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     }
   }
 
-  private _shouldUseMobileCpuStackRendering(displaySet, imageIds?: string[]): boolean {
-    if (!ohifUtils.isMobileRenderingEnvironment?.() || imageIds?.length !== 1 || !displaySet) {
-      return false;
-    }
-
-    const firstInstance =
-      displaySet.instances?.[0] || displaySet.firstInstance || displaySet.instance;
-    const modality = displaySet.Modality || firstInstance?.Modality;
-    const numberOfFrames = Number(firstInstance?.NumberOfFrames || 1);
-
-    return (
-      MOBILE_CPU_STACK_MODALITIES.has(modality) &&
-      (!Number.isFinite(numberOfFrames) || numberOfFrames <= 1)
-    );
-  }
-
-  private _setStackRenderingPipeline(
-    viewport: Types.IStackViewport,
-    displaySetInstanceUID: string,
-    imageIds?: string[]
-  ): void {
-    const stackViewport = viewport as Types.IStackViewport & {
-      setUseCPURendering?: (value: boolean) => void;
-    };
-
-    if (typeof stackViewport.setUseCPURendering !== 'function') {
-      return;
-    }
-
-    const { displaySetService } = this.servicesManager.services;
-    const displaySet = displaySetService?.getDisplaySetByUID?.(displaySetInstanceUID);
-    const useCpuRendering =
-      getShouldUseCPURendering() || this._shouldUseMobileCpuStackRendering(displaySet, imageIds);
-
-    stackViewport.setUseCPURendering(useCpuRendering);
-  }
-
   private async _setStackViewport(
     viewport: Types.IStackViewport,
     viewportData: StackViewportData,
@@ -984,7 +946,6 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     this.viewportsDisplaySets.set(viewport.id, [...displaySetInstanceUIDs]);
 
     const { initialImageIndex, imageIds } = viewportData.data[0];
-    this._setStackRenderingPipeline(viewport, viewportData.data[0].displaySetInstanceUID, imageIds);
 
     // Use the slice index from any provided view reference, as the view reference
     // is being used to navigate to the initial view position for measurement

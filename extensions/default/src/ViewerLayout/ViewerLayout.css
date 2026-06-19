@@ -3,12 +3,12 @@
   background: hsl(var(--background));
 }
 
-.mobile-study-report-dialog .drag-handle {
+.mobile-study-reports-dialog .drag-handle {
   cursor: move;
   touch-action: none;
 }
 
-.mobile-study-report-dialog {
+.mobile-study-reports-dialog {
   z-index: 60 !important;
 }
 
@@ -228,5 +228,41 @@
   .viewer-layout__right-panel .study-reports-panel__content,
   .viewer-layout__right-panel .study-reports-panel__list {
     scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 767px) and (orientation: landscape) {
+  .mobile-study-reports-dialog {
+    width: min(96vw, 960px) !important;
+    height: min(88dvh, 680px) !important;
+    max-width: 96vw !important;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__body {
+    overflow: hidden;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__mobile-layout {
+    display: grid;
+    grid-template-columns: minmax(180px, 34%) minmax(0, 1fr);
+    gap: 12px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__list {
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__mobile-detail {
+    min-height: 0;
+    margin-top: 0;
+    overflow: hidden;
+    border-top: 0;
+    border-left: 1px solid hsl(var(--border));
+    padding-top: 0;
+    padding-left: 12px;
   }
 }

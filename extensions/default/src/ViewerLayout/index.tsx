@@ -12,7 +12,6 @@ import './ViewerLayout.css';
 
 const resizableHandleClassName = 'mt-[1px] bg-border';
 const MOBILE_STUDY_REPORTS_DIALOG_ID = 'mobile-study-reports-dialog';
-const MOBILE_REPORT_DIALOG_ID = 'mobile-study-report';
 
 function ViewerLayout({
   // From Extension Module Params
@@ -140,7 +139,6 @@ function ViewerLayout({
 
       if (wasMobile && !nextIsMobile) {
         uiDialogService?.hide?.(MOBILE_STUDY_REPORTS_DIALOG_ID);
-        uiDialogService?.hide?.(MOBILE_REPORT_DIALOG_ID);
         setLeftPanelClosed(true);
         setRightPanelClosed(true);
       }
