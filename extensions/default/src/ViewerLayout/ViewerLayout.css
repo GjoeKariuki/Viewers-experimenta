@@ -8,6 +8,10 @@
   touch-action: none;
 }
 
+.mobile-study-report-dialog {
+  z-index: 60 !important;
+}
+
 .viewer-layout__mobile-report-action {
   display: none;
 }

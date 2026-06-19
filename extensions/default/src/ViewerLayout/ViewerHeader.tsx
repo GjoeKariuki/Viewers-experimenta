@@ -85,7 +85,6 @@ function ViewerHeader({ appConfig }: withAppTypes<{ appConfig: AppTypes.Config }
   }
 
   const showMobileStudyReports = React.useCallback(() => {
-    uiDialogService?.hide(MOBILE_STUDY_REPORTS_DIALOG_ID);
     uiDialogService?.show({
       id: MOBILE_STUDY_REPORTS_DIALOG_ID,
       title: t('SidePanel:Reports', 'Reports'),

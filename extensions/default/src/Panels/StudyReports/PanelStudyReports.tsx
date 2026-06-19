@@ -605,7 +605,6 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
       return;
     }
 
-    uiDialogService.hide(MOBILE_REPORT_DIALOG_ID);
     uiDialogService.show({
       id: MOBILE_REPORT_DIALOG_ID,
       title: 'Study Report',

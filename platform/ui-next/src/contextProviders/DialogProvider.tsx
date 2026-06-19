@@ -48,7 +48,16 @@ const DialogProvider: React.FC<DialogProviderProps> = ({
 
   const show = useCallback((options: ManagedDialogProps) => {
     const id = options.id;
-    setDialogs(prev => [...prev, { ...options, id }]);
+    setDialogs(prev => {
+      const nextDialog = { ...options, id };
+      const existingIndex = prev.findIndex(dialog => dialog.id === id);
+
+      if (existingIndex === -1) {
+        return [...prev, nextDialog];
+      }
+
+      return prev.map((dialog, index) => (index === existingIndex ? nextDialog : dialog));
+    });
     return id;
   }, []);
 
