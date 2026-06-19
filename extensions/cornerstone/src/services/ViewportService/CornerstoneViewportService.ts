@@ -1,5 +1,5 @@
 import { vec3 } from 'gl-matrix';
-import { PubSubService } from '@ohif/core';
+import { PubSubService, utils as ohifUtils } from '@ohif/core';
 import { Types as OhifTypes } from '@ohif/core';
 import {
   RenderingEngine,
@@ -7,6 +7,7 @@ import {
   Types,
   getRenderingEngine,
   getShouldUseCPURendering,
+  setUseCPURendering,
   utilities as csUtils,
   VolumeViewport,
   VolumeViewport3D,
@@ -56,6 +57,7 @@ const MIN_STACK_VIEWPORTS_TO_ENQUEUE_RESIZE = 12;
 const MIN_VOLUME_VIEWPORTS_TO_ENQUEUE_RESIZE = 6;
 const DEFAULT_INITIAL_VIEWPORT_ZOOM_SCALE = 1.08;
 const RENDERING_ENGINE_DESTROY_DELAY_MS = 1000;
+const MOBILE_CPU_STACK_MODALITIES = new Set(['CR', 'DX', 'MG']);
 
 export const WITH_NAVIGATION = { withNavigation: true, withOrientation: false };
 export const WITH_ORIENTATION = { withNavigation: true, withOrientation: true };
@@ -85,6 +87,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
   renderingEngineDestroyTimer = null;
   renderingRecoveryTimer = null;
   renderingRecoveryInProgress = false;
+  defaultUseCPURendering: boolean | null = null;
 
   // Some configs
   servicesManager: AppTypes.ServicesManager = null;
@@ -485,6 +488,8 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     publicDisplaySetOptions: DisplaySetOptions[],
     presentations?: Presentations
   ): void {
+    this._syncMobileStackRenderingMode(viewportData);
+
     const renderingEngine = this.getRenderingEngine();
     const requestId = (this.viewportDataRequestIds.get(viewportId) ?? 0) + 1;
     this.viewportDataRequestIds.set(viewportId, requestId);
@@ -928,6 +933,57 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     } catch {
       // Some specialized viewport types do not expose stack-style zoom controls.
     }
+  }
+
+  private _syncMobileStackRenderingMode(
+    viewportData: StackViewportData | VolumeViewportData
+  ): void {
+    if (this.defaultUseCPURendering === null) {
+      this.defaultUseCPURendering = getShouldUseCPURendering();
+    }
+
+    const shouldUseCPURendering =
+      this.defaultUseCPURendering || this._shouldUseMobileCpuStackRendering(viewportData);
+
+    if (getShouldUseCPURendering() === shouldUseCPURendering) {
+      return;
+    }
+
+    setUseCPURendering(shouldUseCPURendering, false);
+  }
+
+  private _shouldUseMobileCpuStackRendering(
+    viewportData: StackViewportData | VolumeViewportData
+  ): boolean {
+    if (
+      viewportData.viewportType !== csEnums.ViewportType.STACK ||
+      !ohifUtils.isMobileRenderingEnvironment?.()
+    ) {
+      return false;
+    }
+
+    const [primaryStackData] = (viewportData as StackViewportData).data;
+    if (primaryStackData?.imageIds?.length !== 1) {
+      return false;
+    }
+
+    const { displaySetService } = this.servicesManager.services;
+    const displaySet = displaySetService?.getDisplaySetByUID?.(
+      primaryStackData.displaySetInstanceUID
+    );
+    if (!displaySet) {
+      return false;
+    }
+
+    const firstInstance =
+      displaySet.instances?.[0] || displaySet.firstInstance || displaySet.instance;
+    const modality = displaySet.Modality || firstInstance?.Modality;
+    const numberOfFrames = Number(firstInstance?.NumberOfFrames || 1);
+
+    return (
+      MOBILE_CPU_STACK_MODALITIES.has(modality) &&
+      (!Number.isFinite(numberOfFrames) || numberOfFrames <= 1)
+    );
   }
 
   private async _setStackViewport(
