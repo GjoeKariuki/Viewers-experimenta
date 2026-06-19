@@ -14,6 +14,7 @@ import createRenderedRetrieve from './createRenderedRetrieve';
  * @param {string} params.singlepart is the type of the part to retrieve
  * @param {string} params.fetchPart unknown?
  * @param {string} params.url unknown?
+ * @param {boolean} params.forceRetrieve prefers an authenticated blob URL over a direct URL
  * @returns an absolute URL to the resource, if the absolute URL can be retrieved as singlepart,
  *    or is already retrieved, or a promise to a URL for such use if a BulkDataURI
  */
@@ -25,6 +26,7 @@ const getDirectURL = (config, params) => {
     defaultType = 'video/mp4',
     singlepart: fetchPart = 'video',
     url = null,
+    forceRetrieve = false,
   } = params;
 
   if (url) {
@@ -33,6 +35,20 @@ const getDirectURL = (config, params) => {
 
   const value = instance[tag];
   if (value) {
+    if (forceRetrieve && value.DirectRetrieveURL?.startsWith?.('blob:')) {
+      return value.DirectRetrieveURL;
+    }
+
+    if (forceRetrieve && value.retrieveBulkData) {
+      const options = {
+        mediaType: defaultType,
+      };
+      return value.retrieveBulkData(options).then(arr => {
+        value.DirectRetrieveURL = URL.createObjectURL(new Blob([arr], { type: defaultType }));
+        return value.DirectRetrieveURL;
+      });
+    }
+
     if (value.DirectRetrieveURL) {
       return value.DirectRetrieveURL;
     }

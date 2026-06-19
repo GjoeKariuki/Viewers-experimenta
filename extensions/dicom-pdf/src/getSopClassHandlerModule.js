@@ -19,6 +19,7 @@ const _getDisplaySetsFromSeries = (instances, servicesManager, extensionManager)
       tag: 'EncapsulatedDocument',
       defaultType: MIMETypeOfEncapsulatedDocument || 'application/pdf',
       singlepart: 'pdf',
+      forceRetrieve: true,
     });
 
     const displaySet = {

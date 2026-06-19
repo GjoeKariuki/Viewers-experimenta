@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
 import { useDrag } from 'react-dnd';
@@ -44,17 +44,48 @@ const Thumbnail = ({
     },
   });
 
-  const [lastTap, setLastTap] = useState(0);
+  const lastTapRef = useRef(0);
+  const suppressClickRef = useRef(false);
+
+  const isInteractiveTarget = target => {
+    return (
+      target instanceof HTMLElement &&
+      !!target.closest('button,a,[role="menuitem"],[data-radix-collection-item]')
+    );
+  };
 
   const handleTouchEnd = e => {
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - lastTap;
-    if (tapLength < 300 && tapLength > 0) {
-      onDoubleClick(e);
-    } else {
-      onClick(e);
+    if (isInteractiveTarget(e.target)) {
+      return;
     }
-    setLastTap(currentTime);
+
+    suppressClickRef.current = true;
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 400);
+
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
+    const currentTime = Date.now();
+    const tapLength = currentTime - lastTapRef.current;
+    lastTapRef.current = currentTime;
+
+    if (tapLength < 300 && tapLength > 0) {
+      return;
+    }
+
+    onClick(e);
+  };
+
+  const handleClick = e => {
+    if (suppressClickRef.current) {
+      e.preventDefault();
+      return;
+    }
+
+    onClick(e);
   };
 
   const renderThumbnailPreset = () => {
@@ -271,7 +302,7 @@ const Thumbnail = ({
           : 'study-browser-thumbnail'
       }
       data-series={seriesNumber}
-      onClick={onClick}
+      onClick={handleClick}
       onDoubleClick={onDoubleClick}
       onTouchEnd={handleTouchEnd}
       role="button"

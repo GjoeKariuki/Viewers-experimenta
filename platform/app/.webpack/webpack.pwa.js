@@ -25,6 +25,7 @@ const PROXY_DOMAIN = process.env.PROXY_DOMAIN;
 const PROXY_PATH_REWRITE_FROM = process.env.PROXY_PATH_REWRITE_FROM;
 const PROXY_PATH_REWRITE_TO = process.env.PROXY_PATH_REWRITE_TO;
 const IS_COVERAGE = process.env.COVERAGE === 'true';
+const USE_WATCH_POLLING = process.env.WEBPACK_POLL !== 'false';
 
 const OHIF_PORT = Number(process.env.OHIF_PORT || 3000);
 const ENTRY_TARGET = process.env.ENTRY_TARGET || `${SRC_DIR}/index.js`;
@@ -56,6 +57,7 @@ module.exports = (env, argv) => {
   const baseConfig = webpackBase(env, argv, { SRC_DIR, DIST_DIR });
   const isProdBuild = process.env.NODE_ENV === 'production';
   const hasProxy = PROXY_TARGET && PROXY_DOMAIN;
+  const shouldInjectServiceWorker = isProdBuild && !IS_COVERAGE;
 
   const mergedConfig = merge(baseConfig, {
     entry: {
@@ -128,10 +130,9 @@ module.exports = (env, argv) => {
           PUBLIC_URL: PUBLIC_URL,
         },
       }),
-      // Generate a service worker for fast local loads
-      ...(IS_COVERAGE
-        ? []
-        : [
+      // Generate a service worker for production loads
+      ...(shouldInjectServiceWorker
+        ? [
             new InjectManifest({
               swDest: 'sw.js',
               swSrc: path.join(SRC_DIR, 'service-worker.js'),
@@ -140,7 +141,8 @@ module.exports = (env, argv) => {
               // Cache large files for the manifests to avoid warning messages
               maximumFileSizeToCacheInBytes: 1024 * 1024 * 50,
             }),
-          ]),
+          ]
+        : []),
     ],
     // https://webpack.js.org/configuration/dev-server/
     devServer: {
@@ -209,7 +211,9 @@ module.exports = (env, argv) => {
   }
 
   mergedConfig.watchOptions = {
-    ignored: /node_modules\/@cornerstonejs/,
+    ignored: /([\\/]node_modules[\\/]|[\\/]\.git[\\/]|[\\/]dist[\\/]|[\\/]coverage[\\/])/,
+    aggregateTimeout: 300,
+    ...(USE_WATCH_POLLING ? { poll: Number(process.env.WEBPACK_POLL_INTERVAL || 1000) } : {}),
   };
 
   return mergedConfig;

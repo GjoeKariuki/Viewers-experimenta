@@ -12,6 +12,15 @@ import { type TabsProps } from '@ohif/core/src/utils/createStudyBrowserTabs';
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
 const thumbnailNoImageModalities = ['SR', 'SEG', 'RTSTRUCT', 'RTPLAN', 'RTDOSE', 'DOC', 'PMAP'];
+const mobileThumbnailClickMediaQuery = '(hover: none), (pointer: coarse), (max-width: 767px)';
+
+function shouldLoadDisplaySetOnThumbnailClick() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(mobileThumbnailClickMediaQuery).matches
+  );
+}
 
 /**
  * Study Browser component that displays and manages studies and their display sets
@@ -104,6 +113,32 @@ function PanelStudyBrowser({
       isHangingProtocolLayout,
       customizationService,
     ]
+  );
+
+  const scheduleMobileViewportRepaint = useCallback(() => {
+    const { cornerstoneViewportService } = servicesManager.services;
+
+    const resizeAndRender = () => {
+      cornerstoneViewportService?.resize?.();
+      cornerstoneViewportService?.getRenderingEngineIfExists?.()?.render?.();
+    };
+
+    resizeAndRender();
+    window.requestAnimationFrame?.(resizeAndRender);
+    window.setTimeout(resizeAndRender, 120);
+    window.setTimeout(resizeAndRender, 360);
+  }, [servicesManager.services]);
+
+  const onClickThumbnailHandler = useCallback(
+    async displaySetInstanceUID => {
+      if (!shouldLoadDisplaySetOnThumbnailClick()) {
+        return;
+      }
+
+      await onDoubleClickThumbnailHandler(displaySetInstanceUID);
+      scheduleMobileViewportRepaint();
+    },
+    [onDoubleClickThumbnailHandler, scheduleMobileViewportRepaint]
   );
 
   // ~~ studyDisplayList
@@ -430,7 +465,7 @@ function PanelStudyBrowser({
           setActiveTabName(clickedTabName);
         }}
         onClickUntrack={onClickUntrack}
-        onClickThumbnail={() => {}}
+        onClickThumbnail={onClickThumbnailHandler}
         onDoubleClickThumbnail={onDoubleClickThumbnailHandler}
         activeDisplaySetInstanceUIDs={activeDisplaySetInstanceUIDs}
         showSettings={actionIcons.find(icon => icon.id === 'settings')?.value}

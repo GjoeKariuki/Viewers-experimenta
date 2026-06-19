@@ -114,6 +114,16 @@ const fromDirectory = (srcDir, path) => {
   return path;
 };
 
+const getCopyPluginGlobOptions = folderName => {
+  if (folderName !== 'dist') {
+    return undefined;
+  }
+
+  return {
+    ignore: ['**/app.js', '**/app.js.map', '**/app.js.LICENSE.txt'],
+  };
+};
+
 const createCopyPluginToDistForLink = (srcDir, distDir, plugins, folderName) => {
   return plugins
     .map(plugin => {
@@ -125,6 +135,7 @@ const createCopyPluginToDistForLink = (srcDir, distDir, plugins, folderName) => 
             from,
             to: `${distDir}${plugin.to || ''}`,
             toType: 'dir',
+            globOptions: getCopyPluginGlobOptions(folderName),
           }
         : undefined;
     })
@@ -141,6 +152,7 @@ const createCopyPluginToDistForBuild = (SRC_DIR, DIST_DIR, plugins, folderName) 
             from,
             to: DIST_DIR,
             toType: 'dir',
+            globOptions: getCopyPluginGlobOptions(folderName),
           }
         : undefined;
     })

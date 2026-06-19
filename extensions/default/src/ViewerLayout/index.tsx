@@ -141,6 +141,7 @@ function ViewerLayout({
       if (wasMobile && !nextIsMobile) {
         uiDialogService?.hide?.(MOBILE_STUDY_REPORTS_DIALOG_ID);
         uiDialogService?.hide?.(MOBILE_REPORT_DIALOG_ID);
+        setLeftPanelClosed(true);
         setRightPanelClosed(true);
       }
 
@@ -167,9 +168,17 @@ function ViewerLayout({
 
     const expandMobilePanels = () => {
       if (!isMobile) {
-        if (mobilePanelsExpandedRef.current && hasRightPanels) {
-          rightPanelProps.onClose?.();
-          setRightPanelClosed(true);
+        if (mobilePanelsExpandedRef.current) {
+          if (hasLeftPanels) {
+            leftPanelProps.onClose?.();
+            setLeftPanelClosed(true);
+          }
+
+          if (hasRightPanels) {
+            rightPanelProps.onClose?.();
+            setRightPanelClosed(true);
+          }
+
           scheduleViewportResize();
         }
 
@@ -193,7 +202,14 @@ function ViewerLayout({
     };
 
     expandMobilePanels();
-  }, [hasLeftPanels, hasRightPanels, isMobile, rightPanelProps.onClose, scheduleViewportResize]);
+  }, [
+    hasLeftPanels,
+    hasRightPanels,
+    isMobile,
+    leftPanelProps.onClose,
+    rightPanelProps.onClose,
+    scheduleViewportResize,
+  ]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
