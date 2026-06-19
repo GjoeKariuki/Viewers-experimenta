@@ -14,6 +14,33 @@
   justify-content: center;
 }
 
+.pdf-viewport-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+}
+
+.pdf-viewport-control {
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.9;
+  padding: 8px 10px;
+}
+
+.pdf-viewport-control:hover,
+.pdf-viewport-control:focus-visible {
+  opacity: 1;
+}
+
 .pdf-viewport-inner {
   width: 100%;
   height: 100%;
@@ -65,16 +92,30 @@
   padding: 12px;
 }
 
+.pdf-canvas-pages[data-has-wide-pages='true'] {
+  align-items: flex-start;
+}
+
 .pdf-canvas-page-wrapper {
   display: flex;
   max-width: 100%;
+  width: 100%;
   justify-content: center;
+}
+
+.pdf-canvas-page-wrapper-wide {
+  width: max-content;
+  max-width: none;
 }
 
 .pdf-canvas-page {
   max-width: 100%;
   height: auto !important;
   background: #fff;
+}
+
+.pdf-canvas-page-wrapper-wide .pdf-canvas-page {
+  max-width: none;
 }
 
 .pdf-canvas-status {

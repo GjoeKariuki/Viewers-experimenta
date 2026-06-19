@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useActiveViewportDisplaySets } from '@ohif/core';
 
 const MOBILE_REPORT_DIALOG_ID = 'mobile-study-report';
@@ -22,9 +22,12 @@ type StudyReport = {
   report_created_by_name?: string | null;
   editable?: boolean;
   locked_message?: string | null;
+  detail_url?: string | null;
   pdf_file?: string | null;
   pdf?: {
     file_url?: string | null;
+    url?: string | null;
+    download_url?: string | null;
   } | null;
 };
 
@@ -50,6 +53,10 @@ function pickString(record: Record<string, unknown> | null, ...keys: string[]) {
     const value = record[key];
     if (typeof value === 'string' && value.trim()) {
       return value.trim();
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value);
     }
   }
 
@@ -113,6 +120,18 @@ function buildUrl(path: string, params?: Record<string, string>) {
   return url.toString();
 }
 
+function normalizeExternalUrl(value?: string | null) {
+  if (!value) {
+    return '';
+  }
+
+  if (/^(https?:|blob:|data:)/i.test(value)) {
+    return value;
+  }
+
+  return buildUrl(value);
+}
+
 function normalizeReport(payload: unknown): StudyReport | null {
   const record = asRecord(payload);
   const id = pickString(record, 'id', 'report_id');
@@ -122,13 +141,25 @@ function normalizeReport(payload: unknown): StudyReport | null {
   }
 
   const author = asRecord(record?.author);
+  const pdf = asRecord(record?.pdf);
 
   return {
     id,
     title: pickString(record, 'title') ?? null,
     study_id: pickString(record, 'study_id', 'studyId') ?? null,
     status: pickString(record, 'status') ?? null,
-    content: pickString(record, 'content') ?? null,
+    content:
+      pickString(
+        record,
+        'content',
+        'report_content',
+        'report_text',
+        'report_html',
+        'html',
+        'body',
+        'text',
+        'description'
+      ) ?? null,
     rich_text_field: pickString(record, 'rich_text_field') ?? null,
     created_at: pickString(record, 'created_at') ?? null,
     updated_at: pickString(record, 'updated_at') ?? null,
@@ -142,10 +173,15 @@ function normalizeReport(payload: unknown): StudyReport | null {
     report_created_by_name: pickString(record, 'report_created_by_name') ?? null,
     editable: typeof record?.editable === 'boolean' ? record.editable : undefined,
     locked_message: pickString(record, 'locked_message') ?? null,
-    pdf_file: pickString(record, 'pdf_file') ?? null,
-    pdf: asRecord(record?.pdf)
+    detail_url: pickString(record, 'detail_url', 'api_url') ?? null,
+    pdf_file:
+      pickString(record, 'pdf_file', 'pdf_url', 'pdf_file_url', 'pdf_path', 'file_url', 'file') ??
+      null,
+    pdf: pdf
       ? {
-          file_url: pickString(asRecord(record?.pdf), 'file_url'),
+          file_url: pickString(pdf, 'file_url', 'file'),
+          url: pickString(pdf, 'url'),
+          download_url: pickString(pdf, 'download_url'),
         }
       : null,
   };
@@ -246,7 +282,9 @@ function getContent(report?: StudyReport | null) {
 }
 
 function getPdfUrl(report?: StudyReport | null) {
-  return report?.pdf?.file_url || report?.pdf_file || '';
+  return normalizeExternalUrl(
+    report?.pdf?.file_url || report?.pdf?.download_url || report?.pdf?.url || report?.pdf_file
+  );
 }
 
 function getAuthorName(report: StudyReport) {
@@ -259,6 +297,10 @@ function getVisibleLockedMessage(report?: StudyReport | null) {
       ?.replace(/Only a lead can reopen another radiologist['’]s report in the editor\.?/gi, '')
       .trim() || ''
   );
+}
+
+function hasDisplayableReportContent(report?: StudyReport | null) {
+  return !!(getContent(report) || getPdfUrl(report));
 }
 
 function sanitizeReportHtml(html: string) {
@@ -319,31 +361,43 @@ function useIsMobile() {
   return isMobile;
 }
 
-function StudyReportDialogContent({ report }: { report?: StudyReport }) {
-  if (!report) {
-    return null;
-  }
-
+function StudyReportDialogContent({
+  report,
+  isLoading = false,
+  error,
+}: {
+  report?: StudyReport;
+  isLoading?: boolean;
+  error?: string;
+}) {
   const sanitizedContent = sanitizeReportHtml(getContent(report));
   const pdfUrl = getPdfUrl(report);
-  const authorName = getAuthorName(report);
+  const authorName = report ? getAuthorName(report) : '';
   const lockedMessage = getVisibleLockedMessage(report);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex-shrink-0">
         <div className="text-foreground pr-6 text-base font-semibold">
-          {report.title || 'Untitled report'}
+          {report?.title || 'Study report'}
         </div>
         <div className="text-muted-foreground mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs">
-          {report.status && <span>{report.status}</span>}
+          {report?.status && <span>{report.status}</span>}
           {authorName && <span>{authorName}</span>}
-          {report.updated_at && <span>{formatDate(report.updated_at)}</span>}
+          {report?.updated_at && <span>{formatDate(report.updated_at)}</span>}
         </div>
         {lockedMessage && <div className="text-muted-foreground mt-2 text-xs">{lockedMessage}</div>}
       </div>
 
-      {sanitizedContent ? (
+      {isLoading ? (
+        <div className="text-muted-foreground mt-3 min-h-0 flex-1 overflow-y-auto text-sm">
+          Loading report...
+        </div>
+      ) : error ? (
+        <div className="text-muted-foreground mt-3 min-h-0 flex-1 overflow-y-auto text-sm">
+          {error}
+        </div>
+      ) : sanitizedContent ? (
         <div
           className="text-foreground mt-3 min-h-0 flex-1 touch-pan-y overflow-auto overscroll-contain pr-1 text-sm leading-6 [overflow-wrap:anywhere] [&_img]:h-auto [&_img]:max-w-full [&_table]:max-w-full"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
@@ -407,11 +461,14 @@ async function fetchReportsForStudy(
 }
 
 async function fetchReportDetail(
-  reportId: string,
+  report: StudyReport,
   headers: Record<string, string>,
   signal: AbortSignal
 ) {
-  const payload = await fetchJson(buildUrl(`/api/reports/${reportId}/`), headers, signal);
+  const url = report.detail_url
+    ? normalizeExternalUrl(report.detail_url)
+    : buildUrl(`/api/reports/${report.id}/`);
+  const payload = await fetchJson(url, headers, signal);
   return normalizeReport(payload);
 }
 
@@ -429,6 +486,8 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingReportId, setLoadingReportId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const fetchedReportIdsRef = useRef<Set<string>>(new Set());
+  const detailAbortControllerRef = useRef<AbortController | null>(null);
   const { uiDialogService } = servicesManager.services;
 
   const headers = useMemo(() => {
@@ -442,6 +501,10 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   }, [servicesManager.services.userAuthenticationService]);
 
   useEffect(() => {
+    fetchedReportIdsRef.current.clear();
+    detailAbortControllerRef.current?.abort();
+    detailAbortControllerRef.current = null;
+
     if (!studyIdCandidates.length) {
       setStudyId('');
       setReports([]);
@@ -467,6 +530,11 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
           setStudyId(payload.studyId || candidate);
           setReports(payload.reports);
           setReportDetails(Object.fromEntries(payload.reports.map(report => [report.id, report])));
+          fetchedReportIdsRef.current = new Set(
+            payload.reports
+              .filter(report => hasDisplayableReportContent(report))
+              .map(report => report.id)
+          );
           setSelectedReportId(payload.reports[0]?.id || null);
           setError(payload.reports.length ? '' : 'No reports for this study.');
           return;
@@ -493,12 +561,19 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
 
     return () => {
       abortController.abort();
+      detailAbortControllerRef.current?.abort();
     };
   }, [headers, studyIdCandidates]);
 
   useEffect(() => {
     setLoadingReportId(null);
   }, [selectedReportId]);
+
+  useEffect(() => {
+    return () => {
+      detailAbortControllerRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isMobile) {
@@ -519,21 +594,26 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   const sanitizedContent = sanitizeReportHtml(selectedContent);
   const lockedMessage = getVisibleLockedMessage(selectedReport);
 
-  const handleSelectReport = (report: StudyReport) => {
-    setSelectedReportId(report.id);
-
+  const showMobileReportDialog = (
+    report: StudyReport,
+    options?: {
+      isLoading?: boolean;
+      error?: string;
+    }
+  ) => {
     if (!isMobile || !uiDialogService) {
       return;
     }
 
-    const reportToDisplay = reportDetails[report.id] || report;
     uiDialogService.hide(MOBILE_REPORT_DIALOG_ID);
     uiDialogService.show({
       id: MOBILE_REPORT_DIALOG_ID,
       title: 'Study Report',
       content: StudyReportDialogContent,
       contentProps: {
-        report: reportToDisplay,
+        report,
+        isLoading: options?.isLoading,
+        error: options?.error,
       },
       isDraggable: true,
       shouldCloseOnEsc: true,
@@ -542,6 +622,74 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
       containerClassName:
         'mobile-study-report-dialog h-[min(78dvh,680px)] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-2xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
     });
+  };
+
+  const loadReportDetail = async (report: StudyReport) => {
+    const currentReport = reportDetails[report.id] || report;
+
+    if (fetchedReportIdsRef.current.has(report.id) || hasDisplayableReportContent(currentReport)) {
+      return currentReport;
+    }
+
+    detailAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    detailAbortControllerRef.current = abortController;
+    setLoadingReportId(report.id);
+
+    try {
+      const detail = await fetchReportDetail(report, headers, abortController.signal);
+      const mergedReport = {
+        ...currentReport,
+        ...(detail || {}),
+      };
+
+      fetchedReportIdsRef.current.add(report.id);
+      setReportDetails(previousDetails => ({
+        ...previousDetails,
+        [report.id]: mergedReport,
+      }));
+      setReports(previousReports =>
+        previousReports.map(previousReport =>
+          previousReport.id === report.id ? { ...previousReport, ...mergedReport } : previousReport
+        )
+      );
+
+      return mergedReport;
+    } finally {
+      if (!abortController.signal.aborted) {
+        setLoadingReportId(currentLoadingReportId =>
+          currentLoadingReportId === report.id ? null : currentLoadingReportId
+        );
+      }
+
+      if (detailAbortControllerRef.current === abortController) {
+        detailAbortControllerRef.current = null;
+      }
+    }
+  };
+
+  const handleSelectReport = async (report: StudyReport) => {
+    setSelectedReportId(report.id);
+
+    const initialReport = reportDetails[report.id] || report;
+    const needsDetail = !(
+      fetchedReportIdsRef.current.has(report.id) || hasDisplayableReportContent(initialReport)
+    );
+
+    showMobileReportDialog(initialReport, { isLoading: needsDetail });
+
+    try {
+      const detailedReport = await loadReportDetail(report);
+      showMobileReportDialog(detailedReport);
+    } catch (detailError) {
+      if (detailError instanceof DOMException && detailError.name === 'AbortError') {
+        return;
+      }
+
+      showMobileReportDialog(initialReport, {
+        error: detailError instanceof Error ? detailError.message : 'Unable to open this report.',
+      });
+    }
   };
 
   return (

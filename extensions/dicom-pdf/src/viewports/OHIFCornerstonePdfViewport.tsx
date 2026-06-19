@@ -5,6 +5,7 @@ import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 import './OHIFCornerstonePdfViewport.css';
 
 const pdfCanvasMediaQuery = '(hover: none), (pointer: coarse), (max-width: 767px)';
+const documentPhotoAspectRatioThreshold = 1.45;
 const pdfWorkerSrc = new URL(
   'pdfjs-dist/legacy/build/pdf.worker.min.js',
   import.meta.url
@@ -20,9 +21,53 @@ function shouldPreferPdfCanvas() {
   );
 }
 
+function normalizeRotation(rotation) {
+  return ((rotation % 360) + 360) % 360;
+}
+
+function hasQuarterTurn(rotation) {
+  const normalizedRotation = normalizeRotation(rotation);
+  return normalizedRotation === 90 || normalizedRotation === 270;
+}
+
+function getDocumentPhotoRotation(viewport, hasSearchableText) {
+  if (hasSearchableText || !viewport?.width || !viewport?.height) {
+    return 0;
+  }
+
+  return viewport.height / viewport.width >= documentPhotoAspectRatioThreshold ? 90 : 0;
+}
+
+async function pageHasSearchableText(page) {
+  try {
+    const textContent = await page.getTextContent();
+    return textContent.items.some(item => item?.str?.trim());
+  } catch {
+    return false;
+  }
+}
+
+function getPageScale({ viewport, pagesContainer, fitRotatedDocumentPhotoToHeight }) {
+  const availableWidth = Math.max(pagesContainer.clientWidth - 24, 320);
+  const scaleToWidth = availableWidth / viewport.width;
+
+  if (!fitRotatedDocumentPhotoToHeight) {
+    return Math.min(2.5, scaleToWidth);
+  }
+
+  const availableHeight = Math.max(pagesContainer.clientHeight - 24, availableWidth);
+  const scaleToHeight = availableHeight / viewport.height;
+
+  return Math.min(2.5, Math.max(scaleToWidth, scaleToHeight));
+}
+
 function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }) {
   const [url, setUrl] = useState(null);
-  const [autoRotation, setAutoRotation] = useState(0);
+  const [orientation, setOrientation] = useState({
+    documentPhotoRotation: 0,
+    metadataRotation: 0,
+  });
+  const [manualRotation, setManualRotation] = useState(0);
   const [usePdfCanvas, setUsePdfCanvas] = useState(shouldPreferPdfCanvas);
   const [pdfRenderStatus, setPdfRenderStatus] = useState('idle');
   const [pdfRenderError, setPdfRenderError] = useState(null);
@@ -74,39 +119,81 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
   const { renderedUrl } = displaySets[0];
 
   useEffect(() => {
+    let cancelled = false;
+
+    setUrl(null);
+    setOrientation({ documentPhotoRotation: 0, metadataRotation: 0 });
+    setManualRotation(0);
+    setPdfRenderStatus('idle');
+    setPdfRenderError(null);
+
     const load = async () => {
-      setUrl(await renderedUrl);
+      const nextUrl = await renderedUrl;
+
+      if (!cancelled) {
+        setUrl(nextUrl);
+      }
     };
 
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [renderedUrl]);
 
-  // Detect the PDF page /Rotate value from the raw bytes and counter-rotate
+  // Detect the first page orientation so scanned document photos open in a readable layout.
   useEffect(() => {
-    if (!url) return;
-    const detectRotation = async () => {
+    if (!url) {
+      return;
+    }
+
+    let cancelled = false;
+    let loadingTask;
+
+    const detectOrientation = async () => {
       try {
-        const response = await fetch(url, { headers: { Range: 'bytes=0-32767' } });
-        const buffer = await response.arrayBuffer();
-        // PDF stores rotation as plain ASCII: /Rotate <number>
-        const text = new TextDecoder('latin1').decode(buffer);
-        const match = text.match(/\/Rotate\s+(\d+)/);
-        if (match) {
-          const pdfRotate = parseInt(match[1], 10) % 360;
-          // Counter-rotate so content reads upright
-          setAutoRotation(pdfRotate > 0 ? 360 - pdfRotate : 0);
-        } else {
-          setAutoRotation(0);
+        loadingTask = pdfjsLib.getDocument({ url });
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const unrotatedViewport = page.getViewport({ scale: 1, rotation: 0 });
+        const hasSearchableText = await pageHasSearchableText(page);
+        const nextOrientation = {
+          documentPhotoRotation: getDocumentPhotoRotation(unrotatedViewport, hasSearchableText),
+          metadataRotation: normalizeRotation(page.rotate || 0),
+        };
+
+        page.cleanup?.();
+        await pdf.destroy?.();
+        loadingTask = null;
+
+        if (!cancelled) {
+          setOrientation(nextOrientation);
         }
       } catch {
-        setAutoRotation(0);
+        if (!cancelled) {
+          setOrientation({ documentPhotoRotation: 0, metadataRotation: 0 });
+        }
       }
     };
-    detectRotation();
+
+    detectOrientation();
+
+    return () => {
+      cancelled = true;
+      loadingTask?.destroy?.();
+    };
   }, [url]);
 
+  const canvasRotation = normalizeRotation(orientation.documentPhotoRotation + manualRotation);
+  const objectRotation = normalizeRotation(
+    orientation.documentPhotoRotation + manualRotation - orientation.metadataRotation
+  );
+  const shouldRenderPdfCanvas =
+    usePdfCanvas || orientation.documentPhotoRotation !== 0 || manualRotation !== 0;
+
   useEffect(() => {
-    if (!url || !usePdfCanvas) {
+    if (!url || !shouldRenderPdfCanvas) {
       return;
     }
 
@@ -123,10 +210,12 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
       setPdfRenderStatus('loading');
       setPdfRenderError(null);
       pagesContainer.innerHTML = '';
+      pagesContainer.dataset.hasWidePages = 'false';
 
       try {
         loadingTask = pdfjsLib.getDocument({ url });
         const pdf = await loadingTask.promise;
+        let hasWidePages = false;
 
         for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
           if (cancelled) {
@@ -134,10 +223,15 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
           }
 
           const page = await pdf.getPage(pageNumber);
-          const baseViewport = page.getViewport({ scale: 1 });
-          const availableWidth = Math.max(pagesContainer.clientWidth - 24, 320);
-          const scale = Math.min(2.5, availableWidth / baseViewport.width);
-          const viewport = page.getViewport({ scale });
+          const baseViewport = page.getViewport({ scale: 1, rotation: canvasRotation });
+          const fitRotatedDocumentPhotoToHeight =
+            orientation.documentPhotoRotation !== 0 && hasQuarterTurn(canvasRotation);
+          const scale = getPageScale({
+            viewport: baseViewport,
+            pagesContainer,
+            fitRotatedDocumentPhotoToHeight,
+          });
+          const viewport = page.getViewport({ scale, rotation: canvasRotation });
           const outputScale = Math.min(window.devicePixelRatio || 1, 2);
           const canvas = document.createElement('canvas');
           const canvasContext = canvas.getContext('2d');
@@ -154,8 +248,14 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
 
           const pageElement = document.createElement('div');
           pageElement.className = 'pdf-canvas-page-wrapper';
+          pageElement.dataset.rotation = String(canvasRotation);
+          if (viewport.width > pagesContainer.clientWidth) {
+            pageElement.classList.add('pdf-canvas-page-wrapper-wide');
+            hasWidePages = true;
+          }
           pageElement.appendChild(canvas);
           pagesContainer.appendChild(pageElement);
+          pagesContainer.dataset.hasWidePages = hasWidePages ? 'true' : 'false';
 
           const renderTask = page.render({
             canvasContext,
@@ -168,6 +268,7 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
         }
 
         await pdf.destroy?.();
+        loadingTask = null;
 
         if (!cancelled) {
           setPdfRenderStatus('ready');
@@ -188,10 +289,18 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
       loadingTask?.destroy?.();
       pagesContainer.innerHTML = '';
     };
-  }, [url, usePdfCanvas]);
+  }, [url, shouldRenderPdfCanvas, canvasRotation, orientation.documentPhotoRotation]);
 
-  const isSideways = autoRotation === 90 || autoRotation === 270;
   const embeddedUrl = url ? `${url}#toolbar=1&navpanes=0&scrollbar=1` : undefined;
+  const isSideways = hasQuarterTurn(objectRotation);
+  const rotatePdfClockwise = event => {
+    event.stopPropagation();
+    setManualRotation(rotation => normalizeRotation(rotation + 90));
+  };
+  const resetPdfRotation = event => {
+    event.stopPropagation();
+    setManualRotation(0);
+  };
 
   return (
     <div
@@ -204,14 +313,36 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
       }}
       data-viewport-id={viewportId}
     >
-      {usePdfCanvas ? (
+      {url && (
+        <div className="pdf-viewport-controls">
+          <button
+            type="button"
+            className="pdf-viewport-control"
+            title="Rotate PDF clockwise"
+            aria-label="Rotate PDF clockwise"
+            onClick={rotatePdfClockwise}
+          >
+            Rotate
+          </button>
+          {manualRotation !== 0 && (
+            <button
+              type="button"
+              className="pdf-viewport-control"
+              title="Reset PDF rotation"
+              aria-label="Reset PDF rotation"
+              onClick={resetPdfRotation}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      )}
+      {shouldRenderPdfCanvas ? (
         <div
           className="pdf-canvas-viewer"
           aria-label="DICOM PDF document"
         >
-          {pdfRenderStatus === 'loading' && (
-            <div className="pdf-canvas-status">Loading PDF...</div>
-          )}
+          {pdfRenderStatus === 'loading' && <div className="pdf-canvas-status">Loading PDF...</div>}
           {pdfRenderStatus === 'error' && (
             <div className="pdf-canvas-status">
               PDF preview could not be rendered in this browser.
@@ -227,7 +358,7 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
         <div
           className="pdf-viewport-inner"
           style={{
-            transform: `rotate(${autoRotation}deg)`,
+            transform: `rotate(${objectRotation}deg)`,
             width: isSideways ? '100vh' : '100%',
             height: isSideways ? '100vw' : '100%',
             transformOrigin: 'center center',
