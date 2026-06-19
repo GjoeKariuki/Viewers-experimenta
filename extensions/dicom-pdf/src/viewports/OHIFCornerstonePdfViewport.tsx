@@ -67,7 +67,6 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
     documentPhotoRotation: 0,
     metadataRotation: 0,
   });
-  const [manualRotation, setManualRotation] = useState(0);
   const [usePdfCanvas, setUsePdfCanvas] = useState(shouldPreferPdfCanvas);
   const [pdfRenderStatus, setPdfRenderStatus] = useState('idle');
   const [pdfRenderError, setPdfRenderError] = useState(null);
@@ -123,7 +122,6 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
 
     setUrl(null);
     setOrientation({ documentPhotoRotation: 0, metadataRotation: 0 });
-    setManualRotation(0);
     setPdfRenderStatus('idle');
     setPdfRenderError(null);
 
@@ -185,12 +183,11 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
     };
   }, [url]);
 
-  const canvasRotation = normalizeRotation(orientation.documentPhotoRotation + manualRotation);
+  const canvasRotation = normalizeRotation(orientation.documentPhotoRotation);
   const objectRotation = normalizeRotation(
-    orientation.documentPhotoRotation + manualRotation - orientation.metadataRotation
+    orientation.documentPhotoRotation - orientation.metadataRotation
   );
-  const shouldRenderPdfCanvas =
-    usePdfCanvas || orientation.documentPhotoRotation !== 0 || manualRotation !== 0;
+  const shouldRenderPdfCanvas = usePdfCanvas;
 
   useEffect(() => {
     if (!url || !shouldRenderPdfCanvas) {
@@ -293,14 +290,6 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
 
   const embeddedUrl = url ? `${url}#toolbar=1&navpanes=0&scrollbar=1` : undefined;
   const isSideways = hasQuarterTurn(objectRotation);
-  const rotatePdfClockwise = event => {
-    event.stopPropagation();
-    setManualRotation(rotation => normalizeRotation(rotation + 90));
-  };
-  const resetPdfRotation = event => {
-    event.stopPropagation();
-    setManualRotation(0);
-  };
 
   return (
     <div
@@ -313,30 +302,6 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
       }}
       data-viewport-id={viewportId}
     >
-      {url && (
-        <div className="pdf-viewport-controls">
-          <button
-            type="button"
-            className="pdf-viewport-control"
-            title="Rotate PDF clockwise"
-            aria-label="Rotate PDF clockwise"
-            onClick={rotatePdfClockwise}
-          >
-            Rotate
-          </button>
-          {manualRotation !== 0 && (
-            <button
-              type="button"
-              className="pdf-viewport-control"
-              title="Reset PDF rotation"
-              aria-label="Reset PDF rotation"
-              onClick={resetPdfRotation}
-            >
-              Reset
-            </button>
-          )}
-        </div>
-      )}
       {shouldRenderPdfCanvas ? (
         <div
           className="pdf-canvas-viewer"
