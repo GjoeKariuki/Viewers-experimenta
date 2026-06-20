@@ -10,6 +10,14 @@
 
 .mobile-study-reports-dialog {
   z-index: 60 !important;
+  min-width: min(320px, calc(100vw - 20px));
+  min-height: min(280px, calc(100dvh - 20px));
+  max-width: calc(100vw - 8px) !important;
+  max-height: calc(100dvh - 8px) !important;
+}
+
+.study-reports-panel__resize-handle {
+  display: none;
 }
 
 .viewer-layout__mobile-report-action {
@@ -229,12 +237,71 @@
   .viewer-layout__right-panel .study-reports-panel__list {
     scrollbar-width: thin;
   }
+
+  .mobile-study-reports-dialog .study-reports-panel {
+    position: relative;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__header {
+    position: relative;
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+    padding-top: 14px;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__resize-handle {
+    display: block;
+    touch-action: none;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__resize-handle--top {
+    position: absolute;
+    top: 0;
+    right: 52px;
+    left: 52px;
+    z-index: 2;
+    height: 14px;
+    cursor: ns-resize;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__resize-handle--top::before {
+    position: absolute;
+    top: 5px;
+    right: 16px;
+    left: 16px;
+    height: 3px;
+    border-radius: 999px;
+    background: hsl(var(--muted-foreground) / 0.55);
+    content: '';
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__resize-handle--corner {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    cursor: nwse-resize;
+  }
+
+  .mobile-study-reports-dialog .study-reports-panel__resize-handle--corner::after {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 12px;
+    height: 12px;
+    border-right: 2px solid hsl(var(--muted-foreground) / 0.6);
+    border-bottom: 2px solid hsl(var(--muted-foreground) / 0.6);
+    content: '';
+  }
 }
 
 @media (max-width: 767px) and (orientation: landscape) {
   .mobile-study-reports-dialog {
-    width: min(96vw, 960px) !important;
-    height: min(88dvh, 680px) !important;
+    width: min(96vw, 960px);
+    height: min(88dvh, 680px);
     max-width: 96vw !important;
   }
 

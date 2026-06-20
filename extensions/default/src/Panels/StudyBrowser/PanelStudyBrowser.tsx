@@ -12,13 +12,13 @@ import { type TabsProps } from '@ohif/core/src/utils/createStudyBrowserTabs';
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
 const thumbnailNoImageModalities = ['SR', 'SEG', 'RTSTRUCT', 'RTPLAN', 'RTDOSE', 'DOC', 'PMAP'];
-const mobileThumbnailClickMediaQuery = '(hover: none), (pointer: coarse), (max-width: 767px)';
+const mobileViewportRepaintMediaQuery = '(hover: none), (pointer: coarse), (max-width: 767px)';
 
-function shouldLoadDisplaySetOnThumbnailClick() {
+function shouldRepaintViewportAfterThumbnailLoad() {
   return (
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
-    window.matchMedia(mobileThumbnailClickMediaQuery).matches
+    window.matchMedia(mobileViewportRepaintMediaQuery).matches
   );
 }
 
@@ -85,6 +85,20 @@ function PanelStudyBrowser({
 
   const mapDisplaySetsWithState = customMapDisplaySets || _mapDisplaySets;
 
+  const scheduleMobileViewportRepaint = useCallback(() => {
+    const { cornerstoneViewportService } = servicesManager.services;
+
+    const resizeAndRender = () => {
+      cornerstoneViewportService?.resize?.();
+      cornerstoneViewportService?.getRenderingEngineIfExists?.()?.render?.();
+    };
+
+    resizeAndRender();
+    window.requestAnimationFrame?.(resizeAndRender);
+    window.setTimeout(resizeAndRender, 120);
+    window.setTimeout(resizeAndRender, 360);
+  }, [servicesManager.services]);
+
   const onDoubleClickThumbnailHandler = useCallback(
     async displaySetInstanceUID => {
       const customHandler = customizationService.getCustomization(
@@ -105,6 +119,10 @@ function PanelStudyBrowser({
         await handler(displaySetInstanceUID);
       }
       onDoubleClickThumbnailHandlerCallBack?.(displaySetInstanceUID);
+
+      if (shouldRepaintViewportAfterThumbnailLoad()) {
+        scheduleMobileViewportRepaint();
+      }
     },
     [
       activeViewportId,
@@ -112,34 +130,15 @@ function PanelStudyBrowser({
       servicesManager,
       isHangingProtocolLayout,
       customizationService,
+      extensionManager,
+      onDoubleClickThumbnailHandlerCallBack,
+      scheduleMobileViewportRepaint,
     ]
   );
 
-  const scheduleMobileViewportRepaint = useCallback(() => {
-    const { cornerstoneViewportService } = servicesManager.services;
-
-    const resizeAndRender = () => {
-      cornerstoneViewportService?.resize?.();
-      cornerstoneViewportService?.getRenderingEngineIfExists?.()?.render?.();
-    };
-
-    resizeAndRender();
-    window.requestAnimationFrame?.(resizeAndRender);
-    window.setTimeout(resizeAndRender, 120);
-    window.setTimeout(resizeAndRender, 360);
-  }, [servicesManager.services]);
-
-  const onClickThumbnailHandler = useCallback(
-    async displaySetInstanceUID => {
-      if (!shouldLoadDisplaySetOnThumbnailClick()) {
-        return;
-      }
-
-      await onDoubleClickThumbnailHandler(displaySetInstanceUID);
-      scheduleMobileViewportRepaint();
-    },
-    [onDoubleClickThumbnailHandler, scheduleMobileViewportRepaint]
-  );
+  const onClickThumbnailHandler = useCallback(() => {
+    // Loading a series is intentionally left to double-click/double-tap.
+  }, []);
 
   // ~~ studyDisplayList
   useEffect(() => {

@@ -46,6 +46,7 @@ const Thumbnail = ({
 
   const lastTapRef = useRef(0);
   const suppressClickRef = useRef(false);
+  const doubleTapDelay = 300;
 
   const isInteractiveTarget = target => {
     return (
@@ -70,12 +71,14 @@ const Thumbnail = ({
 
     const currentTime = Date.now();
     const tapLength = currentTime - lastTapRef.current;
-    lastTapRef.current = currentTime;
 
-    if (tapLength < 300 && tapLength > 0) {
+    if (tapLength < doubleTapDelay && tapLength > 0) {
+      lastTapRef.current = 0;
+      onDoubleClick(e);
       return;
     }
 
+    lastTapRef.current = currentTime;
     onClick(e);
   };
 

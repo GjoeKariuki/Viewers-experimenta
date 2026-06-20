@@ -92,8 +92,10 @@ function ViewerHeader({ appConfig }: withAppTypes<{ appConfig: AppTypes.Config }
       contentProps: {
         servicesManager,
       },
+      isDraggable: true,
       shouldCloseOnEsc: true,
-      shouldCloseOnOverlayClick: true,
+      shouldCloseOnOverlayClick: false,
+      showOverlay: false,
       containerClassName:
         'mobile-study-reports-dialog h-[min(82dvh,720px)] max-h-[calc(100dvh-20px)] w-[calc(100vw-20px)] max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-0',
     });

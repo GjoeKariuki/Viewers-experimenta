@@ -84,6 +84,10 @@ function unique(values: Array<string | undefined | null>) {
   });
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function getReportConfig() {
   if (typeof window === 'undefined') {
     return {};
@@ -666,9 +670,77 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
     }
   };
 
+  const startMobileDialogResize = (
+    event: React.PointerEvent<HTMLDivElement>,
+    direction: 'top' | 'corner'
+  ) => {
+    const dialogElement = event.currentTarget.closest(
+      '.mobile-study-reports-dialog'
+    ) as HTMLElement | null;
+
+    if (!dialogElement || typeof window === 'undefined') {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startRect = dialogElement.getBoundingClientRect();
+    const availableWidth = Math.max(160, window.innerWidth - 16);
+    const availableHeight = Math.max(220, window.innerHeight - 16);
+    const minWidth = Math.min(320, availableWidth);
+    const minHeight = Math.min(280, availableHeight);
+    const maxWidth = Math.max(minWidth, window.innerWidth - 8);
+    const maxHeight = Math.max(minHeight, window.innerHeight - 8);
+    const previousUserSelect = document.body.style.userSelect;
+    const previousTouchAction = document.body.style.touchAction;
+
+    document.body.style.userSelect = 'none';
+    document.body.style.touchAction = 'none';
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      moveEvent.preventDefault();
+
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      const nextWidth =
+        direction === 'corner'
+          ? clamp(startRect.width + deltaX, minWidth, maxWidth)
+          : startRect.width;
+      const nextHeight =
+        direction === 'top'
+          ? clamp(startRect.height - deltaY, minHeight, maxHeight)
+          : clamp(startRect.height + deltaY, minHeight, maxHeight);
+
+      dialogElement.style.width = `${nextWidth}px`;
+      dialogElement.style.height = `${nextHeight}px`;
+    };
+
+    const stopResize = () => {
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.touchAction = previousTouchAction;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopResize);
+      window.removeEventListener('pointercancel', stopResize);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', stopResize);
+    window.addEventListener('pointercancel', stopResize);
+  };
+
   return (
     <div className="study-reports-panel text-foreground flex h-full flex-col overflow-hidden">
-      <div className="study-reports-panel__header border-border flex-shrink-0 border-b px-3 py-2">
+      <div className="study-reports-panel__header drag-handle border-border flex-shrink-0 border-b px-3 py-2">
+        <div
+          className="study-reports-panel__resize-handle study-reports-panel__resize-handle--top"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize reports window"
+          onPointerDown={event => startMobileDialogResize(event, 'top')}
+        />
         <div className="text-base font-semibold">Study Reports</div>
         {studyId && <div className="text-muted-foreground truncate text-xs">{studyId}</div>}
       </div>
@@ -730,6 +802,13 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
           </>
         )}
       </div>
+      <div
+        className="study-reports-panel__resize-handle study-reports-panel__resize-handle--corner"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize reports window"
+        onPointerDown={event => startMobileDialogResize(event, 'corner')}
+      />
     </div>
   );
 }
