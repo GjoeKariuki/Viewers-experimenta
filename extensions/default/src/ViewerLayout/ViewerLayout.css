@@ -319,6 +319,7 @@
 
   .mobile-study-reports-dialog .study-reports-panel__list {
     min-height: 0;
+    max-height: none;
     overflow-y: auto;
     padding-right: 4px;
   }

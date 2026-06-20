@@ -22,27 +22,11 @@
   background: #fff;
 }
 
-.pdfjs-pages {
-  display: flex;
-  min-height: 100%;
+.pdfjs-viewer-frame {
+  height: 100%;
   width: 100%;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-}
-
-.pdfjs-page {
-  max-width: 100%;
-  overflow: hidden;
+  border: 0;
   background: #fff;
-  box-shadow: 0 2px 10px hsl(var(--background) / 0.35);
-}
-
-.pdfjs-page canvas {
-  display: block;
-  max-width: 100%;
-  height: auto;
 }
 
 .pdf-status {

@@ -93,18 +93,21 @@ function getReportConfig() {
     return {};
   }
 
-  return (
+  const config =
     (window as any).OHIFStudyReports ||
     (window as any).studyReports ||
     (window as any).config?.studyReports ||
-    {}
-  );
+    {};
+
+  return asRecord(config) || {};
 }
 
 const REPORTS_API_BASE_URL = 'https://home.kpnmedpacs.com';
 
-function normalizeBaseUrl(value: string) {
-  return value.replace(/\/+$/, '');
+function normalizeBaseUrl(value?: unknown) {
+  const baseUrl = typeof value === 'string' && value.trim() ? value.trim() : REPORTS_API_BASE_URL;
+
+  return baseUrl.replace(/\/+$/, '');
 }
 
 function buildUrl(path: string, params?: Record<string, string>) {
@@ -499,6 +502,8 @@ async function fetchReportDetail(
 }
 
 function PanelStudyReports({ servicesManager }: withAppTypes) {
+  const panelRootRef = useRef<HTMLDivElement | null>(null);
+  const [isFloatingDialog, setIsFloatingDialog] = useState(false);
   const activeDisplaySets = useActiveViewportDisplaySets();
   const studyIdCandidates = useMemo(
     () => getStudyIdCandidates(activeDisplaySets),
@@ -517,13 +522,17 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
 
   const headers = useMemo(() => {
     const authorizationHeaders =
-      servicesManager.services.userAuthenticationService?.getAuthorizationHeader?.() || {};
+      servicesManager?.services?.userAuthenticationService?.getAuthorizationHeader?.() || {};
 
     return {
       Accept: 'application/json',
       ...authorizationHeaders,
     };
-  }, [servicesManager.services.userAuthenticationService]);
+  }, [servicesManager?.services?.userAuthenticationService]);
+
+  useEffect(() => {
+    setIsFloatingDialog(!!panelRootRef.current?.closest('.mobile-study-reports-dialog'));
+  }, []);
 
   useEffect(() => {
     fetchedReportIdsRef.current.clear();
@@ -732,19 +741,28 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
   };
 
   return (
-    <div className="study-reports-panel text-foreground flex h-full flex-col overflow-hidden">
-      <div className="study-reports-panel__header drag-handle border-border flex-shrink-0 border-b px-3 py-2">
-        <div
-          className="study-reports-panel__resize-handle study-reports-panel__resize-handle--top"
-          role="separator"
-          aria-orientation="horizontal"
-          aria-label="Resize reports window"
-          onPointerDown={event => startMobileDialogResize(event, 'top')}
-        />
+    <div
+      ref={panelRootRef}
+      className="study-reports-panel text-foreground flex h-full flex-col overflow-hidden"
+    >
+      <div
+        className={`study-reports-panel__header border-border flex-shrink-0 border-b px-3 py-2 ${
+          isFloatingDialog ? 'drag-handle' : ''
+        }`}
+      >
+        {isFloatingDialog && (
+          <div
+            className="study-reports-panel__resize-handle study-reports-panel__resize-handle--top"
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize reports window"
+            onPointerDown={event => startMobileDialogResize(event, 'top')}
+          />
+        )}
         <div className="text-base font-semibold">Study Reports</div>
         {studyId && <div className="text-muted-foreground truncate text-xs">{studyId}</div>}
       </div>
-      <div className="study-reports-panel__body flex min-h-0 flex-1 flex-col overflow-y-auto px-2 py-2">
+      <div className="study-reports-panel__body flex min-h-0 flex-1 flex-col overflow-hidden px-2 py-2">
         {isLoading && (
           <div className="text-muted-foreground px-2 py-3 text-sm">Loading reports...</div>
         )}
@@ -753,8 +771,8 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
         )}
         {!isLoading && reports.length > 0 && (
           <>
-            <div className="study-reports-panel__mobile-layout min-h-0 flex-1 md:block">
-              <div className="study-reports-panel__list space-y-2">
+            <div className="study-reports-panel__mobile-layout flex min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="study-reports-panel__list max-h-[38%] flex-shrink-0 space-y-2 overflow-y-auto pr-1">
                 {reports.map(report => {
                   const isSelected = report.id === selectedReportId;
                   const authorName = getAuthorName(report);
@@ -782,14 +800,14 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
               </div>
               {selectedReport && (
                 <>
-                  <div className="study-reports-panel__mobile-detail border-border mt-3 flex min-h-[260px] flex-col border-t pt-3 md:hidden">
+                  <div className="study-reports-panel__mobile-detail border-border mt-3 flex min-h-[220px] flex-1 flex-col overflow-hidden border-t pt-3 md:hidden">
                     <StudyReportContent
                       report={selectedReport}
                       isLoading={loadingReportId === selectedReport.id}
                       error={reportDetailError}
                     />
                   </div>
-                  <div className="study-reports-panel__detail border-border mt-3 hidden min-h-0 flex-1 flex-col border-t pt-3 md:flex">
+                  <div className="study-reports-panel__detail border-border mt-3 hidden min-h-0 flex-1 flex-col overflow-hidden border-t pt-3 md:flex">
                     <StudyReportContent
                       report={selectedReport}
                       isLoading={loadingReportId === selectedReport.id}
@@ -802,13 +820,15 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
           </>
         )}
       </div>
-      <div
-        className="study-reports-panel__resize-handle study-reports-panel__resize-handle--corner"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize reports window"
-        onPointerDown={event => startMobileDialogResize(event, 'corner')}
-      />
+      {isFloatingDialog && (
+        <div
+          className="study-reports-panel__resize-handle study-reports-panel__resize-handle--corner"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize reports window"
+          onPointerDown={event => startMobileDialogResize(event, 'corner')}
+        />
+      )}
     </div>
   );
 }
