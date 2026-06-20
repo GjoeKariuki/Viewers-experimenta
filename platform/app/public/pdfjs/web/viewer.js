@@ -14084,7 +14084,31 @@ function webViewerLoad() {
     console.error(`webviewerloaded: ${ex}`);
     document.dispatchEvent(event);
   }
+  if (!window.__OHIFPdfJsDataBridgeInstalled) {
+    window.__OHIFPdfJsDataBridgeInstalled = true;
+    window.addEventListener("message", async event => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      const data = event.data;
+      if (data?.type !== "ohif-open-pdf-data" || !data.pdfData) {
+        return;
+      }
+      try {
+        await _app.PDFViewerApplication.initializedPromise;
+        await _app.PDFViewerApplication.open({
+          data: data.pdfData,
+          originalUrl: data.fileName || "dicom-document.pdf"
+        });
+      } catch (error) {
+        console.error(`ohif-open-pdf-data: ${error?.message || error}`);
+      }
+    });
+  }
   _app.PDFViewerApplication.run(config);
+  parent.postMessage({
+    type: "ohif-pdfjs-viewer-ready"
+  }, window.location.origin);
 }
 document.blockUnblockOnload?.(true);
 if (document.readyState === "interactive" || document.readyState === "complete") {

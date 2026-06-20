@@ -23,7 +23,119 @@ function getPublicAssetPath(path) {
 function getPdfJsViewerUrl(url) {
   const viewerUrl = getPublicAssetPath('pdfjs/web/viewer.html');
 
+  if (!url) {
+    return `${viewerUrl}?file=#zoom=page-width`;
+  }
+
   return `${viewerUrl}?file=${encodeURIComponent(url)}#zoom=page-width`;
+}
+
+function PdfJsViewerFrame({ url }) {
+  const iframeRef = useRef(null);
+  const pdfDataRef = useRef(null);
+  const [loadState, setLoadState] = useState({ isLoading: true, error: '' });
+  const viewerUrl = getPdfJsViewerUrl('');
+
+  useEffect(() => {
+    let isCancelled = false;
+    const abortController = new AbortController();
+
+    pdfDataRef.current = null;
+    setLoadState({ isLoading: true, error: '' });
+
+    async function loadPdfData() {
+      try {
+        const response = await fetch(url, {
+          credentials: 'include',
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Unable to load PDF. Request failed with status ${response.status}.`);
+        }
+
+        const pdfData = await response.arrayBuffer();
+
+        if (isCancelled) {
+          return;
+        }
+
+        pdfDataRef.current = pdfData;
+        setLoadState({ isLoading: false, error: '' });
+        postPdfDataToViewer();
+      } catch (error) {
+        if (isCancelled || abortController.signal.aborted) {
+          return;
+        }
+
+        setLoadState({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Unable to load this PDF.',
+        });
+      }
+    }
+
+    loadPdfData();
+
+    return () => {
+      isCancelled = true;
+      abortController.abort();
+    };
+  }, [url]);
+
+  useEffect(() => {
+    const handleViewerMessage = event => {
+      if (
+        event.origin !== window.location.origin ||
+        event.source !== iframeRef.current?.contentWindow
+      ) {
+        return;
+      }
+
+      if (event.data?.type === 'ohif-pdfjs-viewer-ready') {
+        postPdfDataToViewer();
+      }
+    };
+
+    window.addEventListener('message', handleViewerMessage);
+
+    return () => {
+      window.removeEventListener('message', handleViewerMessage);
+    };
+  }, []);
+
+  const postPdfDataToViewer = () => {
+    const pdfData = pdfDataRef.current;
+    const targetWindow = iframeRef.current?.contentWindow;
+
+    if (!pdfData || !targetWindow) {
+      return;
+    }
+
+    targetWindow.postMessage(
+      {
+        type: 'ohif-open-pdf-data',
+        pdfData,
+        fileName: 'dicom-document.pdf',
+      },
+      window.location.origin
+    );
+  };
+
+  return (
+    <>
+      {loadState.isLoading && <div className="pdf-status">Loading PDF...</div>}
+      {loadState.error && <div className="pdf-status">{loadState.error}</div>}
+      <iframe
+        ref={iframeRef}
+        src={viewerUrl}
+        title="DICOM PDF document"
+        className="pdfjs-viewer-frame"
+        allow="fullscreen"
+        onLoad={postPdfDataToViewer}
+      />
+    </>
+  );
 }
 
 function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }) {
@@ -99,12 +211,7 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
     >
       <div className="pdf-viewport-inner">
         {usePdfJsPreview && url ? (
-          <iframe
-            src={getPdfJsViewerUrl(url)}
-            title="DICOM PDF document"
-            className="pdfjs-viewer-frame"
-            allow="fullscreen"
-          />
+          <PdfJsViewerFrame url={url} />
         ) : embeddedUrl ? (
           <object
             data={embeddedUrl}
