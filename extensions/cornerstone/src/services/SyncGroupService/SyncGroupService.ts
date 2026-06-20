@@ -172,16 +172,25 @@ export default class SyncGroupService {
   }
 
   public getSynchronizersForViewport(viewportId: string): Synchronizer[] {
-    const renderingEngine =
-      getRenderingEngines().find(re => {
-        return re.getViewports().find(vp => vp.id === viewportId);
-      }) || getRenderingEngines()[0];
+    if (!viewportId) {
+      return [];
+    }
+
+    const renderingEngines = getRenderingEngines();
+    const renderingEngine = renderingEngines.find(re => {
+      return re.getViewports().find(vp => vp.id === viewportId);
+    });
+
+    if (!renderingEngine) {
+      return [];
+    }
 
     const synchronizers = SynchronizerManager.getAllSynchronizers();
     return synchronizers.filter(
       s =>
-        s.hasSourceViewport(renderingEngine.id, viewportId) ||
-        s.hasTargetViewport(renderingEngine.id, viewportId)
+        s &&
+        (s.hasSourceViewport(renderingEngine.id, viewportId) ||
+          s.hasTargetViewport(renderingEngine.id, viewportId))
     );
   }
 
