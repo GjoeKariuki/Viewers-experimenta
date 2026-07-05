@@ -38,6 +38,15 @@ export default {
         formatDate(referenceInstance.StudyDate),
     },
     {
+      id: 'StudyTime',
+      inheritsFrom: 'ohif.overlayItem',
+      label: '',
+      title: 'Study time',
+      condition: ({ referenceInstance }) => referenceInstance?.StudyTime,
+      contentF: ({ referenceInstance, formatters: { formatTime } }) =>
+        formatTime(referenceInstance.StudyTime),
+    },
+    {
       id: 'SeriesDescription',
       inheritsFrom: 'ohif.overlayItem',
       label: '',
