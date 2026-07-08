@@ -8,12 +8,31 @@ const SOP_CLASS_UIDS = {
 
 const sopClassUids = Object.values(SOP_CLASS_UIDS);
 
+async function getPdfThumbnailSrc(renderedUrl) {
+  const url = await renderedUrl;
+
+  if (!url) {
+    return null;
+  }
+
+  return `${url.split('#')[0]}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH`;
+}
+
 const _getDisplaySetsFromSeries = (instances, servicesManager, extensionManager) => {
   const dataSource = extensionManager.getActiveDataSource()[0];
   return instances.map(instance => {
     const { Modality, SOPInstanceUID } = instance;
     const { SeriesDescription = 'PDF', MIMETypeOfEncapsulatedDocument } = instance;
-    const { SeriesNumber, SeriesDate, SeriesInstanceUID, StudyInstanceUID, SOPClassUID } = instance;
+    const {
+      SeriesNumber,
+      SeriesDate,
+      SeriesTime,
+      SeriesInstanceUID,
+      StudyDescription,
+      StudyInstanceUID,
+      StudyTime,
+      SOPClassUID,
+    } = instance;
     const renderedUrl = dataSource.retrieve.directURL({
       instance,
       tag: 'EncapsulatedDocument',
@@ -29,16 +48,21 @@ const _getDisplaySetsFromSeries = (instances, servicesManager, extensionManager)
       SeriesDescription,
       SeriesNumber,
       SeriesDate,
+      SeriesTime,
       SOPInstanceUID,
       SeriesInstanceUID,
+      StudyDescription,
       StudyInstanceUID,
+      StudyTime,
       SOPClassHandlerId,
       SOPClassUID,
       referencedImages: null,
       measurements: null,
       renderedUrl: renderedUrl,
       instances: [instance],
-      thumbnailSrc: null,
+      thumbnailSrc: undefined,
+      thumbnailContentType: 'application/pdf',
+      getThumbnailSrc: () => getPdfThumbnailSrc(renderedUrl),
       isDerivedDisplaySet: true,
       isLoaded: false,
       sopClassUids,

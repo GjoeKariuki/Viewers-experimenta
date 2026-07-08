@@ -100,6 +100,7 @@ const makeDisplaySet = (instances, index) => {
     SeriesDate: instance.SeriesDate,
     SeriesTime: instance.SeriesTime,
     SeriesInstanceUID: instance.SeriesInstanceUID,
+    StudyDescription: instance.StudyDescription || '',
     StudyInstanceUID: instance.StudyInstanceUID,
     SeriesNumber: instance.SeriesNumber || 0,
     FrameRate: instance.FrameTime,

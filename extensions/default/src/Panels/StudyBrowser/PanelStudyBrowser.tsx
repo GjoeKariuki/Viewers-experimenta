@@ -136,9 +136,12 @@ function PanelStudyBrowser({
     ]
   );
 
-  const onClickThumbnailHandler = useCallback(() => {
-    // Loading a series is intentionally left to double-click/double-tap.
-  }, []);
+  const onClickThumbnailHandler = useCallback(
+    displaySetInstanceUID => {
+      onDoubleClickThumbnailHandler(displaySetInstanceUID);
+    },
+    [onDoubleClickThumbnailHandler]
+  );
 
   // ~~ studyDisplayList
   useEffect(() => {
@@ -213,9 +216,15 @@ function PanelStudyBrowser({
 
     let currentDisplaySets = displaySetService.activeDisplaySets;
     // filter non based on the list of modalities that are supported by cornerstone
-    currentDisplaySets = currentDisplaySets.filter(
-      ds => !thumbnailNoImageModalities.includes(ds.Modality) || ds.thumbnailSrc === null
-    );
+    currentDisplaySets = currentDisplaySets.filter(ds => {
+      const hasThumbnailProvider = ds.thumbnailSrc || typeof ds.getThumbnailSrc === 'function';
+
+      return (
+        !thumbnailNoImageModalities.includes(ds.Modality) ||
+        hasThumbnailProvider ||
+        ds.thumbnailSrc === null
+      );
+    });
 
     if (!currentDisplaySets.length) {
       return;
@@ -224,7 +233,7 @@ function PanelStudyBrowser({
     currentDisplaySets.forEach(async dSet => {
       const newImageSrcEntry = {};
       const displaySet = displaySetService.getDisplaySetByUID(dSet.displaySetInstanceUID);
-      const imageIds = dataSource.getImageIdsForDisplaySet(dSet);
+      const imageIds = getImageIdsForDisplaySet(dataSource, dSet);
 
       const imageId = getImageIdForThumbnail(displaySet, imageIds);
 
@@ -238,7 +247,7 @@ function PanelStudyBrowser({
         thumbnailSrc = await displaySet.getThumbnailSrc({ getImageSrc });
       }
       if (!thumbnailSrc && imageId) {
-        const thumbnailSrc = await getImageSrc(imageId);
+        thumbnailSrc = await getImageSrc(imageId);
         displaySet.thumbnailSrc = thumbnailSrc;
       }
       newImageSrcEntry[dSet.displaySetInstanceUID] = thumbnailSrc;
@@ -298,23 +307,23 @@ function PanelStudyBrowser({
             setJumpToDisplaySet(displaySetInstanceUID);
           }
 
-          const imageIds = dataSource.getImageIdsForDisplaySet(displaySet);
+          const imageIds = getImageIdsForDisplaySet(dataSource, displaySet);
           const imageId = getImageIdForThumbnail(displaySet, imageIds);
-
-          // TODO: Is it okay that imageIds are not returned here for SR displaysets?
-          if (!imageId) {
-            return;
-          }
 
           // When the image arrives, render it and store the result in the thumbnailImgSrcMap
           let { thumbnailSrc } = displaySet;
           if (!thumbnailSrc && displaySet.getThumbnailSrc) {
             thumbnailSrc = await displaySet.getThumbnailSrc({ getImageSrc });
           }
-          if (!thumbnailSrc) {
+          if (!thumbnailSrc && imageId) {
             thumbnailSrc = await getImageSrc(imageId);
             displaySet.thumbnailSrc = thumbnailSrc;
           }
+
+          if (!thumbnailSrc) {
+            return;
+          }
+
           newImageSrcEntry[displaySetInstanceUID] = thumbnailSrc;
 
           setThumbnailImageSrcMap(prevState => {
@@ -535,6 +544,7 @@ function _mapDisplaySets(displaySets, displaySetLoadingState, thumbnailImageSrcM
         StudyInstanceUID: ds.StudyInstanceUID,
         componentType,
         imageSrc: thumbnailSrc || thumbnailImageSrcMap[displaySetInstanceUID],
+        imageContentType: ds.thumbnailContentType,
         dragData: {
           type: 'displayset',
           displaySetInstanceUID,
@@ -548,8 +558,10 @@ function _mapDisplaySets(displaySets, displaySetLoadingState, thumbnailImageSrcM
 }
 
 function _getComponentType(ds) {
+  const hasRenderableThumbnail = ds.thumbnailSrc || typeof ds.getThumbnailSrc === 'function';
+
   if (
-    thumbnailNoImageModalities.includes(ds.Modality) ||
+    (thumbnailNoImageModalities.includes(ds.Modality) && !hasRenderableThumbnail) ||
     ds?.unsupported ||
     ds.thumbnailSrc === null
   ) {
@@ -559,7 +571,19 @@ function _getComponentType(ds) {
   return 'thumbnail';
 }
 
+function getImageIdsForDisplaySet(dataSource, displaySet) {
+  try {
+    return dataSource.getImageIdsForDisplaySet(displaySet) || [];
+  } catch {
+    return [];
+  }
+}
+
 function getImageIdForThumbnail(displaySet, imageIds) {
+  if (!imageIds?.length) {
+    return;
+  }
+
   let imageId;
   if (displaySet.isDynamicVolume) {
     const timePoints = displaySet.dynamicVolumeInfo.timePoints;

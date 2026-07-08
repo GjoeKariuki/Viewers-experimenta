@@ -215,7 +215,7 @@ export const toolbarSections = {
     'Zoom',
     'Pan',
     'TrackballRotate',
-    'WindowLevel',
+    'windowLevelMenuEmbedded',
     'Capture',
     'Layout',
     'ProjectionMIP',
@@ -242,7 +242,7 @@ export const toolbarSections = {
     'navigationComponent',
   ],
 
-  [TOOLBAR_SECTIONS.viewportActionMenu.bottomLeft]: ['windowLevelMenu'],
+  [TOOLBAR_SECTIONS.viewportActionMenu.bottomLeft]: [],
 
   MeasurementTools: [
     'Length',

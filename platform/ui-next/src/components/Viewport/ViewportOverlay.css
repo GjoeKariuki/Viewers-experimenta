@@ -15,6 +15,23 @@
 .overlay-bottom {
   bottom: 2.15rem;
 }
+.overlay-bottom-center {
+  right: 2rem;
+  bottom: 2.15rem;
+  left: 2rem;
+  text-align: center;
+}
+.overlay-bottom-center .overlay-item {
+  justify-content: center;
+  min-width: 0;
+}
+.overlay-bottom-center .overlay-item span {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* Base text styling without shadow */
 .overlay-text {

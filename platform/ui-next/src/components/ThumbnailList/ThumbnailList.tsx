@@ -95,6 +95,7 @@ ThumbnailList.propTypes = {
     PropTypes.shape({
       displaySetInstanceUID: PropTypes.string.isRequired,
       imageSrc: PropTypes.string,
+      imageContentType: PropTypes.string,
       imageAltText: PropTypes.string,
       seriesDate: PropTypes.string,
       seriesNumber: PropTypes.any,

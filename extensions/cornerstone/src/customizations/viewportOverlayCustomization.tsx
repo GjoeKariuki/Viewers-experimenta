@@ -38,13 +38,16 @@ export default {
         formatDate(referenceInstance.StudyDate),
     },
     {
-      id: 'StudyTime',
+      id: 'SeriesTime',
       inheritsFrom: 'ohif.overlayItem',
       label: '',
-      title: 'Study time',
-      condition: ({ referenceInstance }) => referenceInstance?.StudyTime,
-      contentF: ({ referenceInstance, formatters: { formatTime } }) =>
-        formatTime(referenceInstance.StudyTime),
+      title: 'Series time',
+      condition: ({ referenceInstance, displaySet }) =>
+        referenceInstance?.SeriesTime || displaySet?.SeriesTime || referenceInstance?.StudyTime,
+      contentF: ({ referenceInstance, displaySet, formatters: { formatTime } }) =>
+        formatTime(
+          referenceInstance?.SeriesTime || displaySet?.SeriesTime || referenceInstance?.StudyTime
+        ),
     },
     {
       id: 'SeriesDescription',
@@ -87,6 +90,18 @@ export default {
     {
       id: 'InstanceNumber',
       inheritsFrom: 'ohif.overlayItem.instanceNumber',
+    },
+  ],
+  'viewportOverlay.bottomCenter': [
+    {
+      id: 'StudyDescription',
+      inheritsFrom: 'ohif.overlayItem',
+      label: '',
+      title: 'Study description',
+      condition: ({ referenceInstance, displaySet }) =>
+        referenceInstance?.StudyDescription || displaySet?.StudyDescription,
+      contentF: ({ referenceInstance, displaySet }) =>
+        referenceInstance?.StudyDescription || displaySet?.StudyDescription,
     },
   ],
 };

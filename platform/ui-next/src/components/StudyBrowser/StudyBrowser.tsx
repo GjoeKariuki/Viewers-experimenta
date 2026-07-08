@@ -60,7 +60,11 @@ const StudyBrowser = ({
   };
 
   return (
-    <ScrollArea className="study-browser-scroll-area">
+    <ScrollArea
+      className="study-browser-scroll-area"
+      showTopHorizontalScrollbar
+      type="always"
+    >
       <div
         className="study-browser bg-background flex flex-1 flex-col gap-[4px]"
         data-cy={'studyBrowser-panel'}
@@ -109,6 +113,7 @@ StudyBrowser.propTypes = {
             PropTypes.shape({
               displaySetInstanceUID: PropTypes.string.isRequired,
               imageSrc: PropTypes.string,
+              imageContentType: PropTypes.string,
               imageAltText: PropTypes.string,
               seriesDate: PropTypes.string,
               seriesNumber: PropTypes.any,

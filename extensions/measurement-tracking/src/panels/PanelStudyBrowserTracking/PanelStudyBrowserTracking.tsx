@@ -102,6 +102,7 @@ export default function PanelStudyBrowserTracking({
           StudyInstanceUID: ds.StudyInstanceUID,
           componentType,
           imageSrc: thumbnailSrc || thumbnailImageSrcMap[displaySetInstanceUID],
+          imageContentType: ds.thumbnailContentType,
           dragData: {
             type: 'displayset',
             displaySetInstanceUID,
@@ -116,8 +117,10 @@ export default function PanelStudyBrowserTracking({
 
   // Override component type to use tracking specific components
   const getComponentType = ds => {
+    const hasRenderableThumbnail = ds.thumbnailSrc || typeof ds.getThumbnailSrc === 'function';
+
     if (
-      thumbnailNoImageModalities.includes(ds.Modality) ||
+      (thumbnailNoImageModalities.includes(ds.Modality) && !hasRenderableThumbnail) ||
       ds.unsupported ||
       ds.thumbnailSrc === null
     ) {

@@ -86,7 +86,7 @@
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
-    height: min(54dvh, 480px) !important;
+    height: clamp(360px, 62dvh, 620px) !important;
     min-height: 320px !important;
   }
 
@@ -139,20 +139,28 @@
     Left/series panel horizontal scroll.
   */
   .viewer-layout__left-panel {
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
+    overflow: hidden !important;
   }
 
   .viewer-layout__left-panel .study-browser-scroll-area {
+    box-sizing: border-box;
     height: calc(100% - 84px) !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
+    overflow: hidden !important;
+    padding-top: 22px;
   }
 
   .viewer-layout__left-panel .study-browser-scroll-area [data-radix-scroll-area-viewport] {
+    box-sizing: border-box;
     overflow-x: auto !important;
     overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .viewer-layout__left-panel
+    .study-browser-scroll-area
+    [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+    display: none;
   }
 
   .viewer-layout__left-panel .study-browser,

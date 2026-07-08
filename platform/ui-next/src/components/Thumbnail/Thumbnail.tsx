@@ -12,6 +12,7 @@ const Thumbnail = ({
   displaySetInstanceUID,
   className,
   imageSrc,
+  imageContentType,
   imageAltText,
   description,
   seriesNumber,
@@ -92,6 +93,8 @@ const Thumbnail = ({
   };
 
   const renderThumbnailPreset = () => {
+    const isPdfPreview = imageContentType === 'application/pdf';
+
     return (
       <div
         className={classnames(
@@ -101,7 +104,18 @@ const Thumbnail = ({
       >
         <div className="h-[142px] w-[160px]">
           <div className="bg-background relative">
-            {imageSrc ? (
+            {imageSrc && isPdfPreview ? (
+              <object
+                data={imageSrc}
+                type="application/pdf"
+                aria-label={imageAltText || description}
+                className="pointer-events-none h-[142px] w-[160px] rounded bg-white"
+              >
+                <div className="bg-background text-foreground flex h-[142px] w-[160px] items-center justify-center rounded text-[13px] font-semibold">
+                  PDF
+                </div>
+              </object>
+            ) : imageSrc ? (
               <img
                 src={imageSrc}
                 alt={imageAltText}
@@ -325,6 +339,7 @@ Thumbnail.propTypes = {
   displaySetInstanceUID: PropTypes.string.isRequired,
   className: PropTypes.string,
   imageSrc: PropTypes.string,
+  imageContentType: PropTypes.string,
   /**
    * Data the thumbnail should expose to a receiving drop target. Use a matching
    * `dragData.type` to identify which targets can receive this draggable item.

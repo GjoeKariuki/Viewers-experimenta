@@ -1,0 +1,68 @@
+.topHorizontalScrollbar {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  left: 4px;
+  z-index: 50;
+  width: calc(100% - 8px);
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.topHorizontalScrollbar:focus {
+  outline: none;
+}
+
+.topHorizontalScrollbar::-webkit-slider-runnable-track {
+  height: 8px;
+  cursor: pointer;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background: hsl(var(--muted));
+}
+
+.topHorizontalScrollbar::-webkit-slider-thumb {
+  width: clamp(36px, var(--top-horizontal-scrollbar-thumb-width, 44px), 100%);
+  height: 12px;
+  margin-top: -3px;
+  cursor: -webkit-grab;
+  border: 0;
+  border-radius: 999px;
+  background: hsl(var(--primary) / 0.75);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.topHorizontalScrollbar:active::-webkit-slider-thumb {
+  cursor: -webkit-grabbing;
+  background: hsl(var(--primary));
+}
+
+.topHorizontalScrollbar::-moz-range-track {
+  height: 8px;
+  cursor: pointer;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background: hsl(var(--muted));
+}
+
+.topHorizontalScrollbar::-moz-range-thumb {
+  width: clamp(36px, var(--top-horizontal-scrollbar-thumb-width, 44px), 100%);
+  height: 12px;
+  cursor: -moz-grab;
+  border: 0;
+  border-radius: 999px;
+  background: hsl(var(--primary) / 0.75);
+}
+
+.topHorizontalScrollbar:active::-moz-range-thumb {
+  cursor: -moz-grabbing;
+  background: hsl(var(--primary));
+}

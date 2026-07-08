@@ -15,9 +15,18 @@ const classes = {
   topRight: 'overlay-top right-viewport-scrollbar',
   bottomRight: 'overlay-bottom right-viewport-scrollbar',
   bottomLeft: 'overlay-bottom left-viewport',
+  bottomCenter: 'overlay-bottom-center',
 };
 
-function ViewportOverlay({ topLeft, topRight, bottomRight, bottomLeft, color = 'text-highlight', shadowClass = 'shadow-dark' }) {
+function ViewportOverlay({
+  topLeft,
+  topRight,
+  bottomRight,
+  bottomLeft,
+  bottomCenter,
+  color = 'text-highlight',
+  shadowClass = 'shadow-dark',
+}) {
   const overlay = 'absolute pointer-events-none viewport-overlay';
 
   return (
@@ -48,6 +57,12 @@ function ViewportOverlay({ topLeft, topRight, bottomRight, bottomLeft, color = '
       >
         {bottomLeft}
       </div>
+      <div
+        data-cy="viewport-overlay-bottom-center"
+        className={classNames(overlay, classes.bottomCenter)}
+      >
+        {bottomCenter}
+      </div>
     </div>
   );
 }
@@ -57,6 +72,7 @@ ViewportOverlay.propTypes = {
   topRight: PropTypes.node,
   bottomRight: PropTypes.node,
   bottomLeft: PropTypes.node,
+  bottomCenter: PropTypes.node,
   color: PropTypes.string,
   shadowClass: PropTypes.string,
 };

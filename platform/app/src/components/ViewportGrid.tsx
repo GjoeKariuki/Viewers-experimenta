@@ -5,6 +5,153 @@ import { useViewportGrid } from '@ohif/ui-next';
 import EmptyViewport from './EmptyViewport';
 import { useAppConfig } from '@state';
 
+const DEFAULT_PROTOCOL_ID = 'default';
+const SERIES_CHANGE_RESET_WAIT_FRAMES = 5;
+const RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES = ['volume', 'volume3d'];
+
+function buildFallbackViewportUpdate(viewportId, displaySetInstanceUID) {
+  if (!viewportId) {
+    return [];
+  }
+
+  return [
+    {
+      viewportId,
+      displaySetInstanceUIDs: [displaySetInstanceUID],
+    },
+  ];
+}
+
+function isReconstructibleViewport(viewport) {
+  return RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES.includes(viewport?.viewportOptions?.viewportType);
+}
+
+function normalizeViewportUpdates(
+  viewportsToUpdate,
+  viewportGridService,
+  fallbackViewportId,
+  displaySetInstanceUID
+) {
+  const { viewports } = viewportGridService.getState();
+
+  if (
+    Array.isArray(viewportsToUpdate) &&
+    viewportsToUpdate.length > 0 &&
+    viewportsToUpdate.every(viewport => viewport?.viewportId && viewports?.has(viewport.viewportId))
+  ) {
+    return viewportsToUpdate;
+  }
+
+  return buildFallbackViewportUpdate(fallbackViewportId, displaySetInstanceUID);
+}
+
+function getProtocolViewportIds(hangingProtocolService, protocolId = DEFAULT_PROTOCOL_ID) {
+  try {
+    const protocol = hangingProtocolService.getProtocolById(protocolId);
+    const stage = protocol?.stages?.[0];
+
+    return (stage?.viewports || [])
+      .map(viewport => viewport?.viewportOptions?.viewportId)
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function protocolUsesReconstructibleViewports(hangingProtocolService, protocolId) {
+  if (!protocolId || protocolId === DEFAULT_PROTOCOL_ID) {
+    return false;
+  }
+
+  try {
+    const protocol = hangingProtocolService.getProtocolById(protocolId);
+    const viewportOptions = [
+      protocol?.defaultViewport?.viewportOptions,
+      ...(protocol?.stages || []).flatMap(stage =>
+        (stage?.viewports || []).map(viewport => viewport?.viewportOptions)
+      ),
+    ];
+
+    return viewportOptions.some(viewportOptions =>
+      RESET_ON_SERIES_CHANGE_VIEWPORT_TYPES.includes(viewportOptions?.viewportType)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function getSafeViewportId(viewportGridService, preferredViewportId) {
+  const { activeViewportId, viewports } = viewportGridService.getState();
+
+  if (preferredViewportId && viewports?.has(preferredViewportId)) {
+    return preferredViewportId;
+  }
+
+  if (activeViewportId && viewports?.has(activeViewportId)) {
+    return activeViewportId;
+  }
+
+  return viewports?.keys?.().next?.().value;
+}
+
+function getViewportIdAfterReset(viewportGridService, targetViewportIds = []) {
+  const { activeViewportId, viewports } = viewportGridService.getState();
+  const viewportIds = Array.from(viewports?.keys?.() ?? []);
+
+  if (!viewportIds.length) {
+    return undefined;
+  }
+
+  const candidateViewportIds = (targetViewportIds.length ? targetViewportIds : viewportIds).filter(
+    viewportId => {
+      const viewport = viewports?.get(viewportId);
+
+      return viewport && !isReconstructibleViewport(viewport);
+    }
+  );
+
+  if (activeViewportId && candidateViewportIds.includes(activeViewportId)) {
+    return activeViewportId;
+  }
+
+  if (candidateViewportIds.length) {
+    return candidateViewportIds[0];
+  }
+
+  return viewportIds.find(viewportId => !isReconstructibleViewport(viewports?.get(viewportId)));
+}
+
+function waitForNextFrame() {
+  return new Promise(resolve => {
+    if (typeof window === 'undefined' || !window.requestAnimationFrame) {
+      resolve(undefined);
+      return;
+    }
+
+    window.requestAnimationFrame(() => resolve(undefined));
+  });
+}
+
+async function waitForViewportIdAfterReset(
+  viewportGridService,
+  hangingProtocolService,
+  targetProtocolId = DEFAULT_PROTOCOL_ID
+) {
+  const targetViewportIds = getProtocolViewportIds(hangingProtocolService, targetProtocolId);
+
+  for (let i = 0; i < SERIES_CHANGE_RESET_WAIT_FRAMES; i++) {
+    const viewportId = getViewportIdAfterReset(viewportGridService, targetViewportIds);
+
+    if (viewportId) {
+      return viewportId;
+    }
+
+    await waitForNextFrame();
+  }
+
+  return getViewportIdAfterReset(viewportGridService, targetViewportIds);
+}
+
 function ViewerViewportGrid(props: withAppTypes) {
   const { servicesManager, viewportComponents = [], dataSource, commandsManager } = props;
   const [viewportGrid, viewportGridService] = useViewportGrid();
@@ -97,32 +244,103 @@ function ViewerViewportGrid(props: withAppTypes) {
   };
 
   const _getUpdatedViewports = useCallback(
-    (viewportId, displaySetInstanceUID) => {
+    async (viewportId, displaySetInstanceUID) => {
       if (!displaySetInstanceUID) {
         return [];
       }
 
-      let updatedViewports = [];
-      try {
-        updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
-          viewportId,
+      const protocolId = hangingProtocolService.getState()?.protocolId;
+      let viewportIdToUse = getSafeViewportId(viewportGridService, viewportId);
+      const currentViewportDisplaySetInstanceUID = viewportGridService
+        .getState()
+        .viewports?.get(viewportIdToUse)?.displaySetInstanceUIDs?.[0];
+
+      const getRequiredViewports = () =>
+        hangingProtocolService.getViewportsRequireUpdate(
+          viewportIdToUse,
           displaySetInstanceUID,
-          isHangingProtocolLayout
+          viewportGridService.getState().isHangingProtocolLayout
+        );
+
+      const resetToDefaultProtocol = () => {
+        const studyInstanceUID =
+          displaySetService.getDisplaySetByUID(displaySetInstanceUID)?.StudyInstanceUID;
+
+        return commandsManager.run('setHangingProtocol', {
+          protocolId: DEFAULT_PROTOCOL_ID,
+          StudyInstanceUID: studyInstanceUID,
+          reset: true,
+        });
+      };
+
+      if (
+        protocolUsesReconstructibleViewports(hangingProtocolService, protocolId) &&
+        currentViewportDisplaySetInstanceUID !== displaySetInstanceUID
+      ) {
+        const didReset = resetToDefaultProtocol();
+
+        if (didReset !== false) {
+          viewportIdToUse = await waitForViewportIdAfterReset(
+            viewportGridService,
+            hangingProtocolService
+          );
+        }
+      }
+
+      try {
+        return normalizeViewportUpdates(
+          getRequiredViewports(),
+          viewportGridService,
+          viewportIdToUse,
+          displaySetInstanceUID
         );
       } catch (error) {
         console.warn(error);
-        uiNotificationService.show({
-          title: 'Drag and Drop',
-          message:
-            'The selected display sets could not be added to the viewport due to a mismatch in the Hanging Protocol rules.',
-          type: 'error',
-          duration: 3000,
-        });
-      }
 
-      return updatedViewports;
+        const didReset = resetToDefaultProtocol();
+
+        if (didReset !== false) {
+          viewportIdToUse = await waitForViewportIdAfterReset(
+            viewportGridService,
+            hangingProtocolService
+          );
+
+          try {
+            return normalizeViewportUpdates(
+              getRequiredViewports(),
+              viewportGridService,
+              viewportIdToUse,
+              displaySetInstanceUID
+            );
+          } catch (retryError) {
+            console.warn(retryError);
+          }
+        }
+
+        const fallbackViewports = buildFallbackViewportUpdate(
+          viewportIdToUse,
+          displaySetInstanceUID
+        );
+
+        if (!fallbackViewports.length) {
+          uiNotificationService.show({
+            title: 'Drag and Drop',
+            message: 'The selected series could not be added to the viewport.',
+            type: 'error',
+            duration: 3000,
+          });
+        }
+
+        return fallbackViewports;
+      }
     },
-    [hangingProtocolService, uiNotificationService, isHangingProtocolLayout]
+    [
+      commandsManager,
+      displaySetService,
+      hangingProtocolService,
+      uiNotificationService,
+      viewportGridService,
+    ]
   );
 
   // Using Hanging protocol engine to match the displaySets
@@ -158,9 +376,9 @@ function ViewerViewportGrid(props: withAppTypes) {
       displaySetInstanceUID,
       appConfig,
     });
-    dropHandlerPromise.then(({ handled }) => {
+    dropHandlerPromise.then(async ({ handled }) => {
       if (!handled) {
-        const updatedViewports = _getUpdatedViewports(viewportId, displaySetInstanceUID);
+        const updatedViewports = await _getUpdatedViewports(viewportId, displaySetInstanceUID);
 
         commandsManager.run('setDisplaySetsForViewports', { viewportsToUpdate: updatedViewports });
       }
