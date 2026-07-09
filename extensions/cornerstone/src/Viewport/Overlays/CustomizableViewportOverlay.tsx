@@ -88,6 +88,9 @@ function CustomizableViewportOverlay({
   const bottomCenterCustomization = customizationService.getCustomization(
     'viewportOverlay.bottomCenter'
   );
+  const bottomLeftActionCustomization = customizationService.getCustomization(
+    'viewportOverlay.bottomLeftAction'
+  );
 
   const instanceNumber = useMemo(
     () =>
@@ -267,6 +270,7 @@ function CustomizableViewportOverlay({
       bottomLeft={getContent(bottomLeftCustomization, 'bottomLeftOverlayItem')}
       bottomRight={getContent(bottomRightCustomization, 'bottomRightOverlayItem')}
       bottomCenter={getContent(bottomCenterCustomization, 'bottomCenterOverlayItem')}
+      bottomLeftAction={getContent(bottomLeftActionCustomization, 'bottomLeftActionOverlayItem')}
       color={isLight ? 'text-neutral-dark' : 'text-neutral-light'}
       shadowClass={isLight ? 'shadow-light' : 'shadow-dark'}
     />

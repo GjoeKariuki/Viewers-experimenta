@@ -32,6 +32,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.overlay-bottom-left-action {
+  bottom: 3px;
+  left: 0;
+  padding-left: 4px;
+}
+.overlay-bottom-left-action .overlay-item span {
+  flex-shrink: 1;
+  min-width: 0;
+}
 
 /* Base text styling without shadow */
 .overlay-text {

@@ -16,6 +16,7 @@ const classes = {
   bottomRight: 'overlay-bottom right-viewport-scrollbar',
   bottomLeft: 'overlay-bottom left-viewport',
   bottomCenter: 'overlay-bottom-center',
+  bottomLeftAction: 'overlay-bottom-left-action left-viewport',
 };
 
 function ViewportOverlay({
@@ -24,6 +25,7 @@ function ViewportOverlay({
   bottomRight,
   bottomLeft,
   bottomCenter,
+  bottomLeftAction,
   color = 'text-highlight',
   shadowClass = 'shadow-dark',
 }) {
@@ -63,6 +65,12 @@ function ViewportOverlay({
       >
         {bottomCenter}
       </div>
+      <div
+        data-cy="viewport-overlay-bottom-left-action"
+        className={classNames(overlay, classes.bottomLeftAction)}
+      >
+        {bottomLeftAction}
+      </div>
     </div>
   );
 }
@@ -73,6 +81,7 @@ ViewportOverlay.propTypes = {
   bottomRight: PropTypes.node,
   bottomLeft: PropTypes.node,
   bottomCenter: PropTypes.node,
+  bottomLeftAction: PropTypes.node,
   color: PropTypes.string,
   shadowClass: PropTypes.string,
 };

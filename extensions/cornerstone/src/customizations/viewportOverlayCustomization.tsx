@@ -92,7 +92,8 @@ export default {
       inheritsFrom: 'ohif.overlayItem.instanceNumber',
     },
   ],
-  'viewportOverlay.bottomCenter': [
+  'viewportOverlay.bottomCenter': [],
+  'viewportOverlay.bottomLeftAction': [
     {
       id: 'StudyDescription',
       inheritsFrom: 'ohif.overlayItem',
