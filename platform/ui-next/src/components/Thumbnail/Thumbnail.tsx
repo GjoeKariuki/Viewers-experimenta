@@ -102,16 +102,16 @@ const Thumbnail = ({
           isActive && 'bg-popover rounded'
         )}
       >
-        <div className="h-[142px] w-[160px]">
+        <div className="study-browser__thumbnail-preview h-[142px] w-[160px]">
           <div className="bg-background relative">
             {imageSrc && isPdfPreview ? (
               <object
                 data={imageSrc}
                 type="application/pdf"
                 aria-label={imageAltText || description}
-                className="pointer-events-none h-[142px] w-[160px] rounded bg-white"
+                className="study-browser__thumbnail-preview-media pointer-events-none h-[142px] w-[160px] rounded bg-white"
               >
-                <div className="bg-background text-foreground flex h-[142px] w-[160px] items-center justify-center rounded text-[13px] font-semibold">
+                <div className="study-browser__thumbnail-preview-media bg-background text-foreground flex h-[142px] w-[160px] items-center justify-center rounded text-[13px] font-semibold">
                   PDF
                 </div>
               </object>
@@ -119,11 +119,11 @@ const Thumbnail = ({
               <img
                 src={imageSrc}
                 alt={imageAltText}
-                className="h-[142px] w-[160px] rounded object-contain"
+                className="study-browser__thumbnail-preview-media h-[142px] w-[160px] rounded object-contain"
                 crossOrigin="anonymous"
               />
             ) : (
-              <div className="bg-background h-[142px] w-[160px] rounded"></div>
+              <div className="study-browser__thumbnail-preview-media bg-background h-[142px] w-[160px] rounded"></div>
             )}
 
             {/* bottom left */}
@@ -183,12 +183,12 @@ const Thumbnail = ({
             </div>
           </div>
         </div>
-        <div className="flex h-[54px] w-[160px] flex-col justify-start pt-px">
+        <div className="study-browser__thumbnail-details flex h-[54px] w-[160px] flex-col justify-start pt-px">
           <Tooltip>
             <TooltipContent>{description}</TooltipContent>
             <TooltipTrigger>
               <div
-                className="text-foreground min-h-[18px] w-[160px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4"
+                className="study-browser__thumbnail-description text-foreground min-h-[18px] w-[160px] overflow-hidden text-ellipsis whitespace-nowrap pb-0.5 pl-1 text-left text-[12px] font-normal leading-4"
                 data-cy="series-description-label"
               >
                 {description}

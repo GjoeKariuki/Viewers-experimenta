@@ -13,7 +13,7 @@ import { useSystem } from '@ohif/core';
  * @param {object} commandsManager
  * @param {object} extensionManager
  */
-function WrappedPanelStudyBrowser() {
+function WrappedPanelStudyBrowser(props) {
   const { extensionManager } = useSystem();
   // TODO: This should be made available a different way; route should have
   // already determined our datasource
@@ -30,6 +30,7 @@ function WrappedPanelStudyBrowser() {
 
   return (
     <PanelStudyBrowser
+      {...props}
       dataSource={dataSource}
       getImageSrc={_getImageSrcFromImageId}
       getStudiesForPatientByMRN={_getStudiesForPatientByMRN}

@@ -13,6 +13,7 @@ const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
 const thumbnailNoImageModalities = ['SR', 'SEG', 'RTSTRUCT', 'RTPLAN', 'RTDOSE', 'DOC', 'PMAP'];
 const mobileViewportRepaintMediaQuery = '(hover: none), (pointer: coarse), (max-width: 767px)';
+const mobilePanelLayoutMediaQuery = '(max-width: 767px)';
 
 function shouldRepaintViewportAfterThumbnailLoad() {
   return (
@@ -33,6 +34,7 @@ function PanelStudyBrowser({
   customMapDisplaySets,
   onClickUntrack,
   onDoubleClickThumbnailHandlerCallBack,
+  sidePanel,
 }) {
   const { servicesManager, commandsManager, extensionManager } = useSystem();
   const { displaySetService, customizationService } = servicesManager.services;
@@ -57,12 +59,36 @@ function PanelStudyBrowser({
   const [displaySetsLoadingState, setDisplaySetsLoadingState] = useState({});
   const [thumbnailImageSrcMap, setThumbnailImageSrcMap] = useState({});
   const [jumpToDisplaySet, setJumpToDisplaySet] = useState(null);
+  const [isMobilePanelLayout, setIsMobilePanelLayout] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(mobilePanelLayoutMediaQuery).matches
+  );
 
   const [viewPresets, setViewPresets] = useState(
     customizationService.getCustomization('studyBrowser.viewPresets')
   );
 
   const [actionIcons, setActionIcons] = useState(defaultActionIcons);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(mobilePanelLayoutMediaQuery);
+    const syncIsMobilePanelLayout = () => {
+      setIsMobilePanelLayout(mediaQuery.matches);
+    };
+
+    syncIsMobilePanelLayout();
+    mediaQuery.addEventListener?.('change', syncIsMobilePanelLayout);
+
+    return () => {
+      mediaQuery.removeEventListener?.('change', syncIsMobilePanelLayout);
+    };
+  }, []);
 
   // multiple can be true or false
   const updateActionIconValue = actionIcon => {
@@ -446,6 +472,8 @@ function PanelStudyBrowser({
   }, [expandedStudyInstanceUIDs, jumpToDisplaySet, tabs]);
 
   const activeDisplaySetInstanceUIDs = viewports.get(activeViewportId)?.displaySetInstanceUIDs;
+  const showSettings = actionIcons.find(icon => icon.id === 'settings')?.value;
+  const showCombinedMobileHeader = isMobilePanelLayout && sidePanel?.isSingleTab;
 
   return (
     <>
@@ -455,6 +483,13 @@ function PanelStudyBrowser({
           updateViewPresetValue={updateViewPresetValue}
           actionIcons={actionIcons}
           updateActionIconValue={updateActionIconValue}
+          tabs={tabs}
+          activeTabName={activeTabName}
+          onClickTab={setActiveTabName}
+          servicesManager={servicesManager}
+          showSettingsControls={isMobilePanelLayout && showSettings}
+          showSidePanelControls={showCombinedMobileHeader}
+          sidePanel={sidePanel}
         />
         <Separator
           orientation="horizontal"
@@ -476,7 +511,7 @@ function PanelStudyBrowser({
         onClickThumbnail={onClickThumbnailHandler}
         onDoubleClickThumbnail={onDoubleClickThumbnailHandler}
         activeDisplaySetInstanceUIDs={activeDisplaySetInstanceUIDs}
-        showSettings={actionIcons.find(icon => icon.id === 'settings')?.value}
+        showSettings={!isMobilePanelLayout && showSettings}
         viewPresets={viewPresets}
         ThumbnailMenuItems={MoreDropdownMenu({
           commandsManager,

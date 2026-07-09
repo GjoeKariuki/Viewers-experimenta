@@ -162,7 +162,9 @@ const getToolTipContent = (label: string, disabled: boolean) => {
   return (
     <>
       <div>{label}</div>
-      {disabled && <div className="text-foreground">{'Not available based on current context'}</div>}
+      {disabled && (
+        <div className="text-foreground">{'Not available based on current context'}</div>
+      )}
     </>
   );
 };
@@ -216,6 +218,16 @@ const SidePanel = ({
   const [gridWidth, setGridWidth] = useState(getGridWidth(tabs.length, gridAvailableWidth));
   const openStatus = panelOpen ? 'open' : 'closed';
   const style = Object.assign({}, styleMap[openStatus][side], baseStyle);
+  const activeTab = tabs[activeTabIndex] || tabs[0];
+  const activeTabName = activeTab?.name;
+  const activeTabRootClassName = activeTabName ? `side-panel--active-${activeTabName}` : undefined;
+  const activeTabHeaderClassName = activeTabName
+    ? `side-panel__header--${activeTabName}`
+    : undefined;
+  const activeTabSeparatorClassName = activeTabName
+    ? `side-panel__header-separator--${activeTabName}`
+    : undefined;
+  const isSingleTab = tabs.length === 1;
 
   const updatePanelOpen = useCallback(
     (isOpen: boolean) => {
@@ -373,7 +385,7 @@ const SidePanel = ({
                   {tabIndex % numCols !== 0 && (
                     <div
                       className={classnames(
-                        'flex h-[28px] w-[2px] items-center bg-background',
+                        'bg-background flex h-[28px] w-[2px] items-center',
                         tabSpacerWidth
                       )}
                     >
@@ -443,12 +455,22 @@ const SidePanel = ({
   const getOpenStateComponent = () => {
     return (
       <>
-        <div className="bg-muted flex h-[40px] flex-shrink-0 select-none rounded-t p-2">
+        <div
+          className={classnames(
+            'side-panel__header bg-muted flex h-[40px] flex-shrink-0 select-none rounded-t p-2',
+            activeTabHeaderClassName,
+            isSingleTab && 'side-panel__header--single-tab'
+          )}
+        >
           {tabs.length === 1 ? getOneTabComponent() : getTabGridComponent()}
         </div>
         <Separator
           orientation="horizontal"
-          className="bg-border"
+          className={classnames(
+            'side-panel__header-separator bg-border',
+            activeTabSeparatorClassName,
+            isSingleTab && 'side-panel__header-separator--single-tab'
+          )}
           thickness="2px"
         />
       </>
@@ -457,7 +479,12 @@ const SidePanel = ({
 
   return (
     <div
-      className={classnames(className, baseClasses)}
+      className={classnames(
+        className,
+        baseClasses,
+        activeTabRootClassName,
+        isSingleTab && 'side-panel--single-tab'
+      )}
       style={style}
     >
       {panelOpen ? (
@@ -465,7 +492,18 @@ const SidePanel = ({
           {getOpenStateComponent()}
           {tabs.map((tab, tabIndex) => {
             if (tabIndex === activeTabIndex) {
-              return <tab.content key={tabIndex} />;
+              return (
+                <tab.content
+                  key={tabIndex}
+                  sidePanel={{
+                    isSingleTab,
+                    label: tab.label,
+                    name: tab.name,
+                    onClose: () => updatePanelOpen(false),
+                    side,
+                  }}
+                />
+              );
             }
             return null;
           })}
