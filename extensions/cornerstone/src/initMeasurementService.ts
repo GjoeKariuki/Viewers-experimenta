@@ -252,7 +252,12 @@ const connectToolsToMeasurementService = ({
         // Todo: this should be changed when a measurement can include multiple annotations
         // in the future
         annotationAddedEventDetail.uid = annotationUID;
-        annotationToMeasurement(toolName, annotationAddedEventDetail);
+        annotationToMeasurement(
+          toolName,
+          annotationAddedEventDetail,
+          false,
+          csToolsEvent.type === completedEvt
+        );
       }
     } catch (error) {
       console.warn('Failed to add measurement:', error);

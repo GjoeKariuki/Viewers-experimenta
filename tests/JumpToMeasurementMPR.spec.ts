@@ -50,7 +50,7 @@ test('should hydrate in MPR correctly', async ({
 
   await page.waitForTimeout(2000);
 
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
   // scroll away
   await checkForScreenshot(page, page, screenShotPaths.jumpToMeasurementMPR.initialDraw);

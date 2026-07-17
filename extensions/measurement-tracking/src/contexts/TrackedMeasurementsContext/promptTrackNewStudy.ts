@@ -1,4 +1,3 @@
-import i18n from 'i18next';
 import { measurementTrackingMode } from './promptBeginTracking';
 
 const RESPONSE = {
@@ -19,19 +18,12 @@ function promptTrackNewStudy({ servicesManager, extensionManager }: withAppTypes
   return new Promise(async function (resolve, reject) {
     const appConfig = extensionManager._appConfig;
 
-    const standardMode = appConfig?.measurementTrackingMode === measurementTrackingMode.STANDARD;
-    const simplifiedMode =
-      appConfig?.measurementTrackingMode === measurementTrackingMode.SIMPLIFIED;
-    let promptResult = standardMode
-      ? await _askTrackMeasurements(uiViewportDialogService, customizationService, viewportId)
-      : RESPONSE.SET_STUDY_AND_SERIES;
-
-    if (promptResult === RESPONSE.SET_STUDY_AND_SERIES) {
-      promptResult =
-        ctx.isDirty && (standardMode || simplifiedMode)
-          ? await _askSaveDiscardOrCancel(uiViewportDialogService, customizationService, viewportId)
-          : RESPONSE.SET_STUDY_AND_SERIES;
-    }
+    const noTrackingMode = appConfig?.measurementTrackingMode === measurementTrackingMode.NONE;
+    const promptResult = noTrackingMode
+      ? RESPONSE.NO_NOT_FOR_SERIES
+      : ctx.isDirty
+        ? await _askSaveDiscardOrCancel(uiViewportDialogService, customizationService, viewportId)
+        : RESPONSE.SET_STUDY_AND_SERIES;
 
     resolve({
       userResponse: promptResult,
@@ -39,53 +31,6 @@ function promptTrackNewStudy({ servicesManager, extensionManager }: withAppTypes
       SeriesInstanceUID,
       viewportId,
       isBackupSave: false,
-    });
-  });
-}
-
-function _askTrackMeasurements(
-  UIViewportDialogService: AppTypes.UIViewportDialogService,
-  customizationService: AppTypes.CustomizationService,
-  viewportId
-) {
-  return new Promise(function (resolve, reject) {
-    const message = customizationService.getCustomization(
-      'viewportNotification.trackNewStudyMessage'
-    );
-    const actions = [
-      { type: 'cancel', text: i18n.t('MeasurementTable:No'), value: RESPONSE.CANCEL },
-      {
-        type: 'secondary',
-        text: i18n.t('MeasurementTable:No, do not ask again'),
-        value: RESPONSE.NO_NOT_FOR_SERIES,
-      },
-      {
-        type: 'primary',
-        text: i18n.t('MeasurementTable:Yes'),
-        value: RESPONSE.SET_STUDY_AND_SERIES,
-      },
-    ];
-    const onSubmit = result => {
-      UIViewportDialogService.hide();
-      resolve(result);
-    };
-
-    UIViewportDialogService.show({
-      viewportId,
-      type: 'info',
-      message,
-      actions,
-      onSubmit,
-      onOutsideClick: () => {
-        UIViewportDialogService.hide();
-        resolve(RESPONSE.CANCEL);
-      },
-      onKeyPress: event => {
-        if (event.key === 'Enter') {
-          const action = actions.find(action => action.value === RESPONSE.SET_STUDY_AND_SERIES);
-          onSubmit(action.value);
-        }
-      },
     });
   });
 }

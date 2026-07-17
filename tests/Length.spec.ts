@@ -17,6 +17,6 @@ test('should display the length tool', async ({
     { x: 364, y: 234 },
     { x: 544, y: 232 },
   ]);
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
   await checkForScreenshot(page, page, screenShotPaths.length.lengthDisplayedCorrectly);
 });

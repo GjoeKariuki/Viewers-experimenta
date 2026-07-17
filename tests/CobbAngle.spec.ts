@@ -19,6 +19,6 @@ test('should display the cobb angle tool', async ({
     { x: 527, y: 293 },
     { x: 625, y: 291 },
   ]);
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
   await checkForScreenshot(page, page, screenShotPaths.cobbangle.cobbangleDisplayedCorrectly);
 });

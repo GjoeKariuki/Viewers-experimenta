@@ -1,4 +1,4 @@
-import { Locator, Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
 
 export class DOMOverlayPageObject {
   readonly page: Page;
@@ -80,30 +80,11 @@ export class DOMOverlayPageObject {
         };
       },
       get measurementTracking() {
-        const cancelButton = page.getByTestId('prompt-begin-tracking-cancel-btn');
-        const noAndNotAskAgainButton = page.getByTestId(
-          'prompt-begin-tracking-no-do-not-ask-again-btn'
-        );
-        const confirmButton = page.getByTestId('prompt-begin-tracking-yes-btn');
+        const promptButtons = page.locator('[data-cy^="prompt-begin-tracking-"]');
         return {
-          locator: page.getByTestId('viewport-notification'),
-          cancel: {
-            button: cancelButton,
-            click: async () => {
-              await cancelButton.click();
-            },
-          },
-          noAndNotAskAgain: {
-            button: noAndNotAskAgainButton,
-            click: async () => {
-              await noAndNotAskAgainButton.click();
-            },
-          },
-          confirm: {
-            button: confirmButton,
-            click: async () => {
-              await confirmButton.click();
-            },
+          waitForAutoTracking: async () => {
+            await page.waitForTimeout(100);
+            await expect(promptButtons).toHaveCount(0);
           },
         };
       },

@@ -14,6 +14,6 @@ test('should display the probe tool', async ({
 }) => {
   await mainToolbarPageObject.moreTools.probe.click();
   await viewportPageObject.active.clickAt([{ x: 550, y: 200 }]);
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
   await checkForScreenshot(page, page, screenShotPaths.probe.probeDisplayedCorrectly);
 });

@@ -380,7 +380,7 @@ test.describe('MIP workflow', () => {
     ]);
 
     await page.waitForTimeout(1500);
-    await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+    await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
     await page.getByTestId('MIPLayout').click();
     await page.waitForTimeout(4000);

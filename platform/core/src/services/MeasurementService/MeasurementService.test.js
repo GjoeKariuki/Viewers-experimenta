@@ -386,6 +386,33 @@ describe('MeasurementService.js', () => {
       expect(addCallbackWasCalled).toBe(true);
     });
 
+    it('subscribers receive an add event when completion is the first mappable event', () => {
+      measurementService.addMapping(
+        source,
+        annotationType,
+        matchingCriteria,
+        toSourceSchema,
+        toMeasurement
+      );
+
+      const { MEASUREMENT_ADDED } = measurementService.EVENTS;
+      const addCallback = jest.fn();
+      const completedMeasurement = { uid: 'completed-measurement', ...measurement };
+
+      measurementService.subscribe(MEASUREMENT_ADDED, addCallback);
+
+      source.annotationToMeasurement(annotationType, completedMeasurement, false, true);
+
+      expect(addCallback).toHaveBeenCalledTimes(1);
+      expect(addCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          measurement: expect.objectContaining({
+            uid: completedMeasurement.uid,
+          }),
+        })
+      );
+    });
+
     it('subscribers receive broadcasted update event', () => {
       measurementService.addMapping(
         source,

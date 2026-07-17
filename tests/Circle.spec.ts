@@ -17,6 +17,6 @@ test('should display the circle tool', async ({
     { x: 480, y: 205 },
     { x: 488, y: 247 },
   ]);
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
   await checkForScreenshot(page, page, screenShotPaths.circle.circleDisplayedCorrectly);
 });

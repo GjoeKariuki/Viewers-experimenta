@@ -17,7 +17,7 @@ test('should display the bidirectional tool', async ({
     { x: 405, y: 277 },
     { x: 515, y: 339 },
   ]);
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
   await checkForScreenshot(
     page,
     page,

@@ -248,8 +248,19 @@ class MeasurementService extends PubSubService {
       version,
     };
 
-    source.annotationToMeasurement = (annotationType, annotation, isUpdate = false) => {
-      return this.annotationToMeasurement(source, annotationType, annotation, isUpdate);
+    source.annotationToMeasurement = (
+      annotationType,
+      annotation,
+      isUpdate = false,
+      isCompleted = false
+    ) => {
+      return this.annotationToMeasurement(
+        source,
+        annotationType,
+        annotation,
+        isUpdate,
+        isCompleted
+      );
     };
 
     source.remove = (measurementUID, eventDetails) => {
@@ -476,10 +487,17 @@ class MeasurementService extends PubSubService {
    * @param {MeasurementSource} source The measurement source instance
    * @param {string} annotationType The source annotationType
    * @param {EventDetail} sourceAnnotationDetail for the annotation event
-   * @param {boolean} isUpdate is this an update or an add/completed instead?
+   * @param {boolean} isUpdate is this an update instead of an add/completed event?
+   * @param {boolean} isCompleted did the source annotation finish drawing?
    * @return {string} A measurement uid
    */
-  annotationToMeasurement(source, annotationType, sourceAnnotationDetail, isUpdate = false) {
+  annotationToMeasurement(
+    source,
+    annotationType,
+    sourceAnnotationDetail,
+    isUpdate = false,
+    isCompleted = false
+  ) {
     if (!this._isValidSource(source)) {
       throw new Error('Invalid source.');
     }
@@ -499,7 +517,7 @@ class MeasurementService extends PubSubService {
         mapping => mapping.annotationType === annotationType
       );
       if (!sourceMapping) {
-        if (!sourceMissing.has(source.uid) ) {
+        if (!sourceMissing.has(source.uid)) {
           console.log('No source mapping', source.uid, annotationType, source);
           sourceMissing.add(source.uid);
         }
@@ -572,6 +590,12 @@ class MeasurementService extends PubSubService {
     } else {
       log.info('Measurement started.', newMeasurement);
       this.measurements.set(internalUID, newMeasurement);
+      if (isCompleted) {
+        this._broadcastEvent(this.EVENTS.MEASUREMENT_ADDED, {
+          source,
+          measurement: newMeasurement,
+        });
+      }
     }
 
     return newMeasurement.uid;

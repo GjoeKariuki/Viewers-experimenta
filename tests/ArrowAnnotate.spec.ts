@@ -26,7 +26,7 @@ test('should display the arrow tool and allow free-form text to be entered', asy
     'Ringo Starr was the drummer for The Beatles'
   );
 
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
   await page.waitForTimeout(2000);
 

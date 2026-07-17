@@ -54,10 +54,7 @@ test('checks if measurement item can be relabeled under Measurements panel', asy
   // Add measurement
   await addLengthMeasurement(page);
 
-  const viewportNotification = DOMOverlayPageObject.viewport.measurementTracking.locator;
-  await expect(viewportNotification).toBeVisible();
-
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
   // Open measurement panel confirm default empty
   await rightPanelPageObject.measurementsPanel.select();
@@ -83,10 +80,7 @@ test('checks if measurement item can be relabeled through the context menu on th
   // Add measurement
   await addLengthMeasurement(page);
 
-  const viewportNotification = DOMOverlayPageObject.viewport.measurementTracking.locator;
-  await expect(viewportNotification).toBeVisible();
-
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
   // Open measurement panel confirm default empty
   await rightPanelPageObject.measurementsPanel.select();
@@ -123,8 +117,7 @@ test('checks if image would jump when clicked on a measurement item', async ({
   await expect(viewportInfoBottomRight).toContainText('1/', { timeout: 10000 });
   await addLengthMeasurement(page);
 
-  await expect(DOMOverlayPageObject.viewport.measurementTracking.locator).toBeVisible();
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
   // Change to slice 2
   await scrollVolumeViewport(page, 'default', 1);
@@ -150,8 +143,7 @@ test('checks if measurement item can be deleted under Measurements panel', async
   // Add 3 measurements
   await addLengthMeasurement(page);
 
-  await expect(DOMOverlayPageObject.viewport.measurementTracking.locator).toBeVisible();
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
   await addLengthMeasurement(page, { firstClick: [170, 100], secondClick: [150, 170] });
   await addLengthMeasurement(page, { firstClick: [190, 100], secondClick: [170, 170] });
@@ -193,8 +185,7 @@ test('checks if measurement item can be deleted through the context menu on the 
 }) => {
   // Add measurement
   await addLengthMeasurement(page);
-  await expect(DOMOverlayPageObject.viewport.measurementTracking.locator).toBeVisible();
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
   // Right click and click rename
   await page.waitForTimeout(200); // small delay for context menu

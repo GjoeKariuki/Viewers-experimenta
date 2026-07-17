@@ -18,7 +18,7 @@ test('should the context menu completely on screen and is not clipped for a poin
     { x: 0.55, y: 0.98 },
   ]);
 
-  await DOMOverlayPageObject.viewport.measurementTracking.confirm.click();
+  await DOMOverlayPageObject.viewport.measurementTracking.waitForAutoTracking();
 
   await checkForScreenshot(page, page, screenShotPaths.contextMenu.preContextMenuNearBottomEdge);
 

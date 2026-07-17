@@ -109,10 +109,8 @@ describe('OHIF Cornerstone Toolbar', () => {
   it('checks if Length annotation can be added to viewport and shows up in the measurements panel', () => {
     //Click on button and verify if icon is active on toolbar
     cy.addLengthMeasurement();
-    cy.get('[data-cy="viewport-notification"]').as('notif').should('exist');
-    // cy.get('[data-cy="viewport-notification"]').as('notif').should('be.visible');
-
-    cy.get('[data-cy="prompt-begin-tracking-yes-btn"]').as('yesBtn').click();
+    cy.wait(250);
+    cy.get('[data-cy="prompt-begin-tracking-yes-btn"]').should('not.exist');
 
     //Verify the measurement exists in the table
     cy.get('@measurementsPanel').should('be.visible');

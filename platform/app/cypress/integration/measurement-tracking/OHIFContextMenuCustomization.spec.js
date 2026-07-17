@@ -11,7 +11,8 @@ describe('OHIF Context Menu', function () {
   it('checks context menu customization', function () {
     // Add length measurement
     cy.addLengthMeasurement();
-    cy.get('[data-cy="prompt-begin-tracking-yes-btn"]').as('yesBtn').click();
+    cy.wait(250);
+    cy.get('[data-cy="prompt-begin-tracking-yes-btn"]').should('not.exist');
     cy.get('[data-cy="data-row"]').as('measurementItem').click();
 
     const [x1, y1] = [150, 100];

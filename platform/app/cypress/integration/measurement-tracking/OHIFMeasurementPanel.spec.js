@@ -29,10 +29,8 @@ describe('OHIF Measurement Panel', function () {
     // Add length measurement
     cy.addLengthMeasurement();
 
-    cy.get('[data-cy="viewport-notification"]').as('viewportNotification').should('exist');
-    cy.get('[data-cy="viewport-notification"]').as('viewportNotification').should('be.visible');
-
-    cy.get('[data-cy="prompt-begin-tracking-yes-btn"]').as('yesBtn').click();
+    cy.wait(250);
+    cy.get('[data-cy="prompt-begin-tracking-yes-btn"]').should('not.exist');
 
     cy.get('[data-cy="data-row"]').as('measurementItem').click();
 
@@ -54,7 +52,7 @@ describe('OHIF Measurement Panel', function () {
 
     // Add length measurement
     cy.addLengthMeasurement().wait(250);
-    cy.get('[data-cy="prompt-begin-tracking-yes-btn"]').as('yesBtn').click();
+    cy.get('[data-cy="prompt-begin-tracking-yes-btn"]').should('not.exist');
 
     cy.scrollToIndex(13);
 
