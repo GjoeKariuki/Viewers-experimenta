@@ -109,7 +109,7 @@ function ViewerLayout({
     const { cornerstoneViewportService } = servicesManager.services;
 
     const resizeAndRender = () => {
-      cornerstoneViewportService?.resize?.();
+      cornerstoneViewportService?.resize?.(true);
       cornerstoneViewportService?.getRenderingEngineIfExists?.()?.render?.();
     };
 

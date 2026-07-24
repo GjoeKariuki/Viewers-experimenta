@@ -1,7 +1,10 @@
 const autoprefixer = require('autoprefixer');
 const path = require('path');
 const tailwindcss = require('tailwindcss');
-const tailwindConfigPath = path.resolve('../../platform/app/tailwind.config.js');
+// Resolve from this rule file rather than from the command's current working
+// directory. Workspace commands run from platform/app, which otherwise points
+// outside this repository and prevents the application from building.
+const tailwindConfigPath = path.resolve(__dirname, '../../platform/app/tailwind.config.js');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const devMode = process.env.NODE_ENV !== 'production';
 

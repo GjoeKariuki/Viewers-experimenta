@@ -14,6 +14,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const SRC_DIR = path.join(__dirname, '../src');
 const DIST_DIR = path.join(__dirname, '../dist');
 const PUBLIC_DIR = path.join(__dirname, '../public');
+const PDFJS_DIST_DIR = path.join(__dirname, '../../../node_modules/pdfjs-dist');
 // ~~ Env Vars
 const HTML_TEMPLATE = process.env.HTML_TEMPLATE || 'index.html';
 const PUBLIC_URL = process.env.PUBLIC_URL || '/';
@@ -103,6 +104,16 @@ module.exports = (env, argv) => {
               // Ignore our HtmlWebpackPlugin template file
               // Ignore our configuration files
               ignore: ['**/config/**', '**/html-templates/**', '.DS_Store'],
+            },
+          },
+          // The full PDF.js viewer is kept in public/pdfjs. Its matching engine,
+          // worker, and scripting bundle must be copied from the installed package.
+          // Without these files viewer.html loads but cannot render any document.
+          {
+            from: path.join(PDFJS_DIST_DIR, 'build'),
+            to: path.join(DIST_DIR, 'pdfjs/build'),
+            globOptions: {
+              ignore: ['**/*.map'],
             },
           },
           {

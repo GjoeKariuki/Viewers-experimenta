@@ -57,7 +57,7 @@ const MIN_STACK_VIEWPORTS_TO_ENQUEUE_RESIZE = 12;
 const MIN_VOLUME_VIEWPORTS_TO_ENQUEUE_RESIZE = 6;
 const DEFAULT_INITIAL_VIEWPORT_ZOOM_SCALE = 1.13;
 const RENDERING_ENGINE_DESTROY_DELAY_MS = 1000;
-const MOBILE_CPU_STACK_MODALITIES = new Set(['CR', 'DX', 'MG']);
+const MOBILE_CPU_STACK_MODALITIES = new Set(['CR', 'DX', 'MG', 'RF', 'XA']);
 
 export const WITH_NAVIGATION = { withNavigation: true, withOrientation: false };
 export const WITH_ORIENTATION = { withNavigation: true, withOrientation: true };
@@ -168,7 +168,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
    * It triggers the resize on the rendering engine, and renders the viewports
    *
    */
-  public resize() {
+  public resize(immediate = false) {
     // https://stackoverflow.com/a/26279685
     // This resize() call, among other things, rerenders the viewports. But when the entire viewer is
     // display: none'd, it makes the size of all hidden elements 0, including the viewport canvas and its containers.
@@ -202,7 +202,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     // we don't double resize the viewports when viewports in the grid are
     // resized individually
     if (isEasyResize) {
-      this.performResize();
+      this.performResize(immediate);
       this.resetGridResizeTimeout();
       this.resizeQueue = [];
       clearTimeout(this.viewportResizeTimer);
@@ -963,7 +963,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     }
 
     const [primaryStackData] = (viewportData as StackViewportData).data;
-    if (primaryStackData?.imageIds?.length !== 1) {
+    if (!primaryStackData?.imageIds?.length) {
       return false;
     }
 
@@ -1755,9 +1755,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     this.resizeQueue = [];
   }
 
-  private performResize() {
-    const isImmediate = false;
-
+  private performResize(isImmediate = false) {
     try {
       const renderingEngine = this.getRenderingEngineIfExists();
 

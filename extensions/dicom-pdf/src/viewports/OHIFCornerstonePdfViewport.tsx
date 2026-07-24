@@ -3,12 +3,36 @@ import PropTypes from 'prop-types';
 import { useViewportRef } from '@ohif/core';
 import './OHIFCornerstonePdfViewport.css';
 
-function getPdfUrlWithFragment(url: string, fragment: string) {
-  return `${url.split('#')[0]}#${fragment}`;
+const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d]; // %PDF-
+
+function hasPdfSignature(data: Uint8Array) {
+  const headerLength = Math.min(data.length - PDF_SIGNATURE.length + 1, 1024);
+
+  for (let offset = 0; offset < headerLength; offset++) {
+    if (PDF_SIGNATURE.every((byte, index) => data[offset + index] === byte)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getPdfJsViewerUrl(pdfObjectUrl: string) {
+  const publicUrl = (window as typeof window & { PUBLIC_URL?: string }).PUBLIC_URL || '/';
+  const publicBaseUrl = new URL(
+    publicUrl.endsWith('/') ? publicUrl : `${publicUrl}/`,
+    window.location.origin
+  );
+  const viewerUrl = new URL('pdfjs/web/viewer.html', publicBaseUrl);
+
+  viewerUrl.searchParams.set('file', pdfObjectUrl);
+
+  return viewerUrl.toString();
 }
 
 function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }) {
-  const [url, setUrl] = useState(null);
+  const [pdfJsViewerUrl, setPdfJsViewerUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const viewportRef = useViewportRef(viewportId);
 
   useEffect(() => {
@@ -27,14 +51,47 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
 
   useEffect(() => {
     let cancelled = false;
+    let pdfObjectUrl: string | null = null;
+    const controller = new AbortController();
 
-    setUrl(null);
+    setPdfJsViewerUrl(null);
+    setError(null);
 
     const load = async () => {
-      const nextUrl = await renderedUrl;
+      try {
+        const url = await renderedUrl;
+        const response = await fetch(url, {
+          credentials: 'include',
+          headers: {
+            Accept: 'application/pdf',
+          },
+          signal: controller.signal,
+        });
 
-      if (!cancelled) {
-        setUrl(nextUrl);
+        if (!response.ok) {
+          throw new Error(`The PDF request failed with HTTP ${response.status}.`);
+        }
+
+        const bytes = new Uint8Array(await response.arrayBuffer());
+
+        if (!hasPdfSignature(bytes)) {
+          throw new Error(
+            'The document server did not return a PDF. Please sign in again and try reopening the document.'
+          );
+        }
+
+        pdfObjectUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+
+        if (!cancelled) {
+          setPdfJsViewerUrl(getPdfJsViewerUrl(pdfObjectUrl));
+        }
+      } catch (error) {
+        if (controller.signal.aborted || cancelled) {
+          return;
+        }
+
+        console.warn('Unable to load DICOM PDF into PDF.js', error);
+        setError(error instanceof Error ? error.message : 'Unable to load this PDF document.');
       }
     };
 
@@ -42,12 +99,12 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
 
     return () => {
       cancelled = true;
+      controller.abort();
+      if (pdfObjectUrl) {
+        URL.revokeObjectURL(pdfObjectUrl);
+      }
     };
   }, [renderedUrl]);
-
-  const embeddedUrl = url
-    ? getPdfUrlWithFragment(url, 'toolbar=1&navpanes=0&scrollbar=1&view=FitH')
-    : undefined;
 
   return (
     <div
@@ -58,25 +115,20 @@ function OHIFCornerstonePdfViewport({ displaySets, viewportId = 'pdf-viewport' }
       data-viewport-id={viewportId}
     >
       <div className="pdf-viewport-inner">
-        {embeddedUrl ? (
-          <object
-            data={embeddedUrl}
-            type="application/pdf"
-            aria-label="DICOM PDF document"
-            className="pdf-browser-preview"
+        {pdfJsViewerUrl ? (
+          <iframe
+            src={pdfJsViewerUrl}
+            title="DICOM PDF document"
+            className="pdfjs-viewer"
+            allow="fullscreen"
+          />
+        ) : error ? (
+          <div
+            className="pdf-status"
+            role="alert"
           >
-            <div className="pdf-status">
-              <div>PDF preview is not available in this browser.</div>
-              <a
-                className="pdf-open-link"
-                href={url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Open PDF
-              </a>
-            </div>
-          </object>
+            {error}
+          </div>
         ) : (
           <div className="pdf-status">Loading PDF...</div>
         )}

@@ -19,9 +19,18 @@ import ActiveViewportBehavior from '../utils/ActiveViewportBehavior';
 import { WITH_NAVIGATION } from '../services/ViewportService/CornerstoneViewportService';
 
 const STACK = 'stack';
+const mobileStackViewportMediaQuery = '(hover: none), (pointer: coarse), (max-width: 767px)';
 
 // Cache for viewport dimensions, persists across component remounts
 const viewportDimensions = new Map<string, { width: number; height: number }>();
+
+function shouldRecoverMobileStackViewport() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(mobileStackViewportMediaQuery).matches
+  );
+}
 
 // Todo: This should be done with expose of internal API similar to react-vtkjs-viewport
 // Then we don't need to worry about the re-renders if the props change.
@@ -81,6 +90,7 @@ const OHIFCornerstoneViewport = React.memo(
     const [scrollbarHeight, setScrollbarHeight] = useState('100px');
     const [enabledVPElement, setEnabledVPElement] = useState(null);
     const elementRef = useRef() as React.MutableRefObject<HTMLDivElement>;
+    const mobileStackRenderRequestRef = useRef(0);
     const viewportRef = useViewportRef(viewportId);
 
     const {
@@ -174,6 +184,56 @@ const OHIFCornerstoneViewport = React.memo(
       return () => {
         element.removeEventListener('webglcontextlost', handleContextLost, true);
         element.removeEventListener('webglcontextrestored', handleContextRestored, true);
+      };
+    }, [cornerstoneViewportService, viewportId]);
+
+    useEffect(() => {
+      const { unsubscribe } = cornerstoneViewportService.subscribe(
+        cornerstoneViewportService.EVENTS.VIEWPORT_DATA_CHANGED,
+        ({ viewportId: changedViewportId, viewportData }) => {
+          if (
+            changedViewportId !== viewportId ||
+            viewportData?.viewportType !== STACK ||
+            !shouldRecoverMobileStackViewport()
+          ) {
+            return;
+          }
+
+          const renderRequestId = ++mobileStackRenderRequestRef.current;
+          let hasResetCamera = false;
+
+          const resizeAndRenderWhenVisible = () => {
+            const element = elementRef.current;
+
+            if (
+              mobileStackRenderRequestRef.current !== renderRequestId ||
+              !element?.isConnected ||
+              element.clientWidth === 0 ||
+              element.clientHeight === 0
+            ) {
+              return;
+            }
+
+            cornerstoneViewportService.resize(true);
+
+            if (!hasResetCamera) {
+              cornerstoneViewportService.getCornerstoneViewport(viewportId)?.resetCamera?.();
+              hasResetCamera = true;
+            }
+
+            cornerstoneViewportService.getRenderingEngineIfExists()?.render?.();
+          };
+
+          resizeAndRenderWhenVisible();
+          window.requestAnimationFrame(resizeAndRenderWhenVisible);
+          window.setTimeout(resizeAndRenderWhenVisible, 120);
+          window.setTimeout(resizeAndRenderWhenVisible, 360);
+        }
+      );
+
+      return () => {
+        mobileStackRenderRequestRef.current++;
+        unsubscribe();
       };
     }, [cornerstoneViewportService, viewportId]);
 
