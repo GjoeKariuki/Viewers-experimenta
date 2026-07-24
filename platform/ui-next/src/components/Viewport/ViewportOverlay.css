@@ -12,6 +12,9 @@
 .overlay-top {
   top: 2.15rem;
 }
+.viewport-overlay.overlay-top.right-viewport-scrollbar {
+  top: 0.65rem;
+}
 .overlay-bottom {
   bottom: 2.15rem;
 }
