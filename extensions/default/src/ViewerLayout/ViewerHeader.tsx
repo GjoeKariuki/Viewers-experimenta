@@ -2,20 +2,26 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { Header, Icons, ThemeSelector, useModal } from '@ohif/ui-next';
+import { Header, ThemeSelector, useModal } from '@ohif/ui-next';
 import { useSystem } from '@ohif/core';
 import { Toolbar } from '../Toolbar/Toolbar';
-import HeaderPatientInfo from './HeaderPatientInfo';
-import { PatientInfoVisibility } from './HeaderPatientInfo/HeaderPatientInfo';
 import { preserveQueryParameters } from '@ohif/app';
 import { Types } from '@ohif/core';
-import PanelStudyReports from '../Panels/StudyReports/PanelStudyReports';
+import ToolbarPanelButtons from './ToolbarPanelButtons';
 
-const MOBILE_STUDY_REPORTS_DIALOG_ID = 'mobile-study-reports-dialog';
-
-function ViewerHeader({ appConfig }: withAppTypes<{ appConfig: AppTypes.Config }>) {
+function ViewerHeader({
+  appConfig,
+  rightPanelsOnToolbar = false,
+  activeToolbarPanelId,
+  onToolbarPanelSelect,
+}: withAppTypes<{
+  appConfig: AppTypes.Config;
+  rightPanelsOnToolbar?: boolean;
+  activeToolbarPanelId?: string;
+  onToolbarPanelSelect?: (panel) => void;
+}>) {
   const { servicesManager, extensionManager } = useSystem();
-  const { customizationService, uiDialogService } = servicesManager.services;
+  const { customizationService } = servicesManager.services;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,23 +90,6 @@ function ViewerHeader({ appConfig }: withAppTypes<{ appConfig: AppTypes.Config }
     });
   }
 
-  const showMobileStudyReports = React.useCallback(() => {
-    uiDialogService?.show({
-      id: MOBILE_STUDY_REPORTS_DIALOG_ID,
-      title: t('SidePanel:Reports', 'Reports'),
-      content: PanelStudyReports,
-      contentProps: {
-        servicesManager,
-      },
-      isDraggable: true,
-      shouldCloseOnEsc: true,
-      shouldCloseOnOverlayClick: false,
-      showOverlay: false,
-      containerClassName:
-        'mobile-study-reports-dialog h-[min(82dvh,720px)] max-h-[calc(100dvh-20px)] w-[calc(100vw-20px)] max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-0',
-    });
-  }, [servicesManager, t, uiDialogService]);
-
   return (
     <Header
       menuOptions={menuOptions}
@@ -109,27 +98,16 @@ function ViewerHeader({ appConfig }: withAppTypes<{ appConfig: AppTypes.Config }
       WhiteLabeling={appConfig.whiteLabeling}
       Branding={<ThemeSelector />}
       Secondary={<Toolbar buttonSection="secondary" />}
-      PatientInfo={
-        appConfig.showPatientInfo !== PatientInfoVisibility.DISABLED && (
-          <HeaderPatientInfo
-            servicesManager={servicesManager}
-            appConfig={appConfig}
-          />
-        )
-      }
     >
-      <div className="relative flex justify-center gap-[4px]">
-        <button
-          type="button"
-          className="viewer-layout__mobile-report-action"
-          onClick={showMobileStudyReports}
-          aria-label={t('SidePanel:Reports', 'Reports')}
-          data-cy="mobile-study-reports-button"
-        >
-          <Icons.Clipboard className="h-4 w-4" />
-          <span>{t('SidePanel:Reports', 'Reports')}</span>
-        </button>
+      <div className="relative flex items-center justify-center gap-[4px]">
         <Toolbar buttonSection="primary" />
+        {rightPanelsOnToolbar && onToolbarPanelSelect && (
+          <ToolbarPanelButtons
+            servicesManager={servicesManager}
+            activePanelId={activeToolbarPanelId}
+            onPanelSelect={onToolbarPanelSelect}
+          />
+        )}
       </div>
     </Header>
   );

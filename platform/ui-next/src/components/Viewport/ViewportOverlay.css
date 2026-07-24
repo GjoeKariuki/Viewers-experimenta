@@ -35,11 +35,21 @@
 .overlay-bottom-left-action {
   bottom: 3px;
   left: 0;
+  max-width: calc(100% - 11rem);
   padding-left: 4px;
+}
+.overlay-bottom-left-action .overlay-item {
+  max-width: 100%;
 }
 .overlay-bottom-left-action .overlay-item span {
   flex-shrink: 1;
   min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 /* Base text styling without shadow */

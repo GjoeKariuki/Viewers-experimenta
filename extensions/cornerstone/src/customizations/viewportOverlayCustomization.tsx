@@ -62,6 +62,33 @@ export default {
   ],
   'viewportOverlay.topRight': [
     {
+      id: 'PatientName',
+      inheritsFrom: 'ohif.overlayItem',
+      className: 'patient-info-overlay',
+      label: '',
+      title: 'Patient name',
+      condition: ({ referenceInstance, displaySet }) =>
+        referenceInstance?.PatientName || displaySet?.PatientName,
+      contentF: ({ referenceInstance, displaySet, formatters: { formatPN } }) =>
+        formatPN(referenceInstance?.PatientName || displaySet?.PatientName),
+    },
+    {
+      id: 'PatientDetails',
+      inheritsFrom: 'ohif.overlayItem',
+      className: 'patient-info-overlay',
+      label: '',
+      title: 'Patient details',
+      condition: ({ referenceInstance, displaySet }) =>
+        referenceInstance?.PatientID || displaySet?.PatientID,
+      contentF: ({ referenceInstance, displaySet, formatters: { formatDate } }) => {
+        const patient = referenceInstance || displaySet;
+        const birthDate = patient?.PatientBirthDate ? formatDate(patient.PatientBirthDate) : null;
+        const details = [patient?.PatientID, patient?.PatientSex, birthDate || patient?.PatientAge];
+
+        return details.filter(Boolean).join(' · ');
+      },
+    },
+    {
       id: 'ProjectionMode',
       inheritsFrom: 'ohif.overlayItem',
       label: '',

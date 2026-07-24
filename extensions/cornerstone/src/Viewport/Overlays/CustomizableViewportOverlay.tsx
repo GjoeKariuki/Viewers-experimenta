@@ -388,14 +388,14 @@ function _getInstanceNumberFromVolume(
 
 function OverlayItem(props) {
   const { instance, customization = {} } = props;
-  const { color, attribute, title, label, background } = customization;
+  const { color, attribute, title, label, background, className } = customization;
   const value = customization.contentF?.(props, customization) ?? instance?.[attribute];
   if (value === undefined || value === null) {
     return null;
   }
   return (
     <div
-      className="overlay-item flex flex-row"
+      className={`overlay-item flex flex-row ${className || ''}`}
       style={{ color, background }}
       title={title}
     >
