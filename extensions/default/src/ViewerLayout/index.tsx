@@ -6,6 +6,7 @@ import { HangingProtocolService, CommandsManager } from '@ohif/core';
 import { useAppConfig } from '@state';
 import ViewerHeader from './ViewerHeader';
 import SidePanelWithServices from '../Components/SidePanelWithServices';
+import PanelStudyReports from '../Panels/StudyReports/PanelStudyReports';
 import { Onboarding, ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@ohif/ui-next';
 import useResizablePanels from './ResizablePanelsHook';
 import './ViewerLayout.css';
@@ -80,9 +81,29 @@ function ViewerLayout({
     (document.activeElement as HTMLElement)?.blur();
   };
 
-  const handleToolbarPanelSelect = useCallback(panel => {
-    setActiveToolbarPanel(activePanel => (activePanel?.id === panel.id ? null : panel));
-  }, []);
+  const handleToolbarPanelSelect = useCallback(
+    panel => {
+      if (isMobile && panel.name === 'studyReports') {
+        setActiveToolbarPanel(null);
+        uiDialogService?.show({
+          id: MOBILE_STUDY_REPORTS_DIALOG_ID,
+          title: panel.label,
+          content: PanelStudyReports,
+          contentProps: { servicesManager },
+          isDraggable: true,
+          shouldCloseOnEsc: true,
+          shouldCloseOnOverlayClick: false,
+          showOverlay: false,
+          containerClassName:
+            'mobile-study-reports-dialog h-[min(82dvh,720px)] max-h-[calc(100dvh-20px)] w-[calc(100vw-20px)] max-w-4xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden p-0',
+        });
+        return;
+      }
+
+      setActiveToolbarPanel(activePanel => (activePanel?.id === panel.id ? null : panel));
+    },
+    [isMobile, servicesManager, uiDialogService]
+  );
 
   const scheduleViewportResize = useCallback(() => {
     const { cornerstoneViewportService } = servicesManager.services;

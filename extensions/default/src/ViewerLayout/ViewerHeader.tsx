@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { Header, ThemeSelector, useModal } from '@ohif/ui-next';
+import { Header, Icons, ThemeSelector, useModal } from '@ohif/ui-next';
 import { useSystem } from '@ohif/core';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { preserveQueryParameters } from '@ohif/app';
@@ -21,7 +21,7 @@ function ViewerHeader({
   onToolbarPanelSelect?: (panel) => void;
 }>) {
   const { servicesManager, extensionManager } = useSystem();
-  const { customizationService } = servicesManager.services;
+  const { customizationService, panelService } = servicesManager.services;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -90,6 +90,16 @@ function ViewerHeader({
     });
   }
 
+  const showMobileStudyReports = () => {
+    const reportsPanel = panelService
+      .getPanels(panelService.PanelPosition.Right)
+      .find(panel => panel.name === 'studyReports');
+
+    if (reportsPanel) {
+      onToolbarPanelSelect?.(reportsPanel);
+    }
+  };
+
   return (
     <Header
       menuOptions={menuOptions}
@@ -100,6 +110,18 @@ function ViewerHeader({
       Secondary={<Toolbar buttonSection="secondary" />}
     >
       <div className="relative flex items-center justify-center gap-[4px]">
+        {rightPanelsOnToolbar && onToolbarPanelSelect && (
+          <button
+            type="button"
+            className="viewer-layout__mobile-report-action"
+            onClick={showMobileStudyReports}
+            aria-label={t('SidePanel:Reports', 'Reports')}
+            data-cy="mobile-study-reports-button"
+          >
+            <Icons.Clipboard className="h-4 w-4" />
+            <span>{t('SidePanel:Reports', 'Reports')}</span>
+          </button>
+        )}
         <Toolbar buttonSection="primary" />
         {rightPanelsOnToolbar && onToolbarPanelSelect && (
           <ToolbarPanelButtons

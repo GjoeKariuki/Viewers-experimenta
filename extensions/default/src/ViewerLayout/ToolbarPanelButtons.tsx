@@ -33,7 +33,7 @@ function ToolbarPanelButtons({
 
   return (
     <div
-      className="viewer-layout__toolbar-panel-buttons flex items-center gap-1"
+      className="viewer-layout__toolbar-panel-buttons border-border ml-3 flex shrink-0 items-center gap-2 border-l pl-3"
       aria-label="Viewer panels"
     >
       {panels.map(panel => (
@@ -42,9 +42,9 @@ function ToolbarPanelButtons({
           type="button"
           variant="ghost"
           size="icon"
-          className={`text-primary hover:bg-primary/25 ${
-            activePanelId === panel.id ? 'bg-primary/25' : ''
-          }`}
+          className={`viewer-layout__toolbar-panel-button text-primary hover:bg-primary/25 ${
+            panel.name === 'studyReports' ? 'viewer-layout__toolbar-panel-button--reports' : ''
+          } ${activePanelId === panel.id ? 'bg-primary/25' : ''}`}
           title={panel.label}
           aria-label={panel.label}
           onClick={() => onPanelSelect(panel)}
