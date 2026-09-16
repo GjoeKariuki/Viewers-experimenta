@@ -1,6 +1,7 @@
 import React from 'react';
 import { WrappedPanelStudyBrowser } from './Panels';
 import PanelStudyReports from './Panels/StudyReports/PanelStudyReports';
+import PanelStudyTools from './Panels/StudyTools/PanelStudyTools';
 import i18n from 'i18next';
 
 // TODO:
@@ -35,6 +36,13 @@ function getPanelModule({ commandsManager, extensionManager, servicesManager }) 
           servicesManager={servicesManager}
         />
       ),
+    },
+    {
+      name: 'studyTools',
+      iconName: 'Download',
+      iconLabel: 'Study tools',
+      label: 'Study tools',
+      component: () => <PanelStudyTools extensionManager={extensionManager} />,
     },
   ];
 }

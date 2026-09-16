@@ -21,6 +21,7 @@ export const ohif = {
   layout: '@ohif/extension-default.layoutTemplateModule.viewerLayout',
   sopClassHandler: '@ohif/extension-default.sopClassHandlerModule.stack',
   thumbnailList: '@ohif/extension-default.panelModule.seriesList',
+  studyTools: '@ohif/extension-default.panelModule.studyTools',
   studyReports: '@ohif/extension-default.panelModule.studyReports',
   hangingProtocol: '@ohif/extension-default.hangingProtocolModule.default',
   wsiSopClassHandler:
@@ -288,7 +289,7 @@ export const basicLayout = {
   props: {
     leftPanels: [ohif.thumbnailList],
     leftPanelResizable: true,
-    rightPanels: [cornerstone.segmentation, cornerstone.measurements, ohif.studyReports],
+    rightPanels: [cornerstone.segmentation, cornerstone.measurements, ohif.studyReports, ohif.studyTools],
     rightPanelsOnToolbar: true,
     rightPanelClosed: true,
     rightPanelResizable: true,

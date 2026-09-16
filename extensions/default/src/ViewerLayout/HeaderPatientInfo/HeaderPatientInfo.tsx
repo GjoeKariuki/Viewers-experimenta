@@ -1,3 +1,4 @@
+import { useViewerPrivacy } from '@ohif/core';
 import React, { useState, useEffect } from 'react';
 import usePatientInfo from '../../hooks/usePatientInfo';
 import { Icons } from '@ohif/ui-next';
@@ -17,6 +18,7 @@ const formatWithEllipsis = (str, maxLength) => {
 };
 
 function HeaderPatientInfo({ servicesManager, appConfig }: withAppTypes) {
+  const privacy = useViewerPrivacy();
   const initialExpandedState = (() => {
     switch (appConfig.showPatientInfo) {
       case PatientInfoVisibility.VISIBLE:
@@ -34,6 +36,10 @@ function HeaderPatientInfo({ servicesManager, appConfig }: withAppTypes) {
       setExpanded(false);
     }
   }, [isMixedPatients, expanded]);
+
+  if (privacy) {
+    return <span className="text-muted-foreground text-sm">Patient information hidden</span>;
+  }
 
   const handleOnClick = () => {
     if (isMixedPatients || appConfig.showPatientInfo === PatientInfoVisibility.VISIBLE_READONLY) {
@@ -64,7 +70,7 @@ function HeaderPatientInfo({ servicesManager, appConfig }: withAppTypes) {
       <div className="flex flex-col justify-center">
         {expanded ? (
           <>
-            <div className="self-start text-[13px] font-bold text-foreground">
+            <div className="text-foreground self-start text-[13px] font-bold">
               {formattedPatientName}
             </div>
             <div className="text-muted-foreground flex gap-2 text-[11px]">

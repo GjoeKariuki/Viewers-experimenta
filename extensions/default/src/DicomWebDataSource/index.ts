@@ -1,3 +1,4 @@
+import retrieveCompleteStudy from './retrieveCompleteStudy';
 import { api } from 'dicomweb-client';
 import { DicomMetadataStore, IWebApiDataSource, utils, errorHandler, classes } from '@ohif/core';
 
@@ -31,6 +32,9 @@ const metadataProvider = classes.MetadataProvider;
 export type DicomWebConfig = {
   /** Data source name */
   name: string;
+  /** Disable for sources that do not expose original DICOM instances. */
+  supportsStudyDownload?: boolean;
+  studyDownloadUnavailableReason?: string;
   //  wadoUriRoot - Legacy? (potentially unused/replaced)
   /** Base URL to use for QIDO requests */
   qidoRoot?: string;
@@ -249,6 +253,14 @@ function createDicomWebApi(dicomWebConfig: DicomWebConfig, servicesManager) {
       },
     },
     retrieve: {
+      study: async ({ studyInstanceUID }) => {
+        if (dicomWebConfig.supportsStudyDownload === false) {
+          throw new Error(dicomWebConfig.studyDownloadUnavailableReason || 'Study download is unavailable for this data source.');
+        }
+        wadoDicomWebClient.headers = getAuthorizationHeader();
+        qidoDicomWebClient.headers = getAuthorizationHeader();
+        return retrieveCompleteStudy(qidoDicomWebClient, wadoDicomWebClient, studyInstanceUID);
+      },
       /**
        * Generates a URL that can be used for direct retrieve of the bulkdata
        *

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useActiveViewportDisplaySets } from '@ohif/core';
+import { useActiveViewportDisplaySets, useViewerPrivacy } from '@ohif/core';
 
 type ReportAuthor = {
   name?: string | null;
@@ -502,6 +502,7 @@ async function fetchReportDetail(
 }
 
 function PanelStudyReports({ servicesManager }: withAppTypes) {
+  const privacy = useViewerPrivacy();
   const panelRootRef = useRef<HTMLDivElement | null>(null);
   const [isFloatingDialog, setIsFloatingDialog] = useState(false);
   const activeDisplaySets = useActiveViewportDisplaySets();
@@ -739,6 +740,10 @@ function PanelStudyReports({ servicesManager }: withAppTypes) {
     window.addEventListener('pointerup', stopResize);
     window.addEventListener('pointercancel', stopResize);
   };
+
+  if (privacy) {
+    return <div className="text-muted-foreground p-3 text-sm">Reports are hidden while patient information is hidden.</div>;
+  }
 
   return (
     <div

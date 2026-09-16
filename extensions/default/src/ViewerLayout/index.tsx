@@ -6,6 +6,7 @@ import { HangingProtocolService, CommandsManager } from '@ohif/core';
 import { useAppConfig } from '@state';
 import ViewerHeader from './ViewerHeader';
 import SidePanelWithServices from '../Components/SidePanelWithServices';
+import PanelStudyTools from '../Panels/StudyTools/PanelStudyTools';
 import PanelStudyReports from '../Panels/StudyReports/PanelStudyReports';
 import { Onboarding, ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@ohif/ui-next';
 import useResizablePanels from './ResizablePanelsHook';
@@ -77,12 +78,29 @@ function ViewerLayout({
     rightPanelMinimumExpandedWidth
   );
 
+  useEffect(() => () => uiDialogService?.hide?.('study-tools-card'), [uiDialogService]);
+
   const handleMouseEnter = () => {
     (document.activeElement as HTMLElement)?.blur();
   };
 
   const handleToolbarPanelSelect = useCallback(
     panel => {
+      if (panel.name === 'studyTools') {
+        setActiveToolbarPanel(null);
+        uiDialogService?.show({
+          id: 'study-tools-card',
+          title: 'Study tools',
+          content: PanelStudyTools,
+          contentProps: { extensionManager },
+          isDraggable: true,
+          shouldCloseOnEsc: true,
+          shouldCloseOnOverlayClick: false,
+          showOverlay: false,
+          containerClassName: 'w-[300px] max-w-[calc(100vw-24px)] gap-2 p-4',
+        });
+        return;
+      }
       if (isMobile && panel.name === 'studyReports') {
         setActiveToolbarPanel(null);
         uiDialogService?.show({
@@ -102,7 +120,7 @@ function ViewerLayout({
 
       setActiveToolbarPanel(activePanel => (activePanel?.id === panel.id ? null : panel));
     },
-    [isMobile, servicesManager, uiDialogService]
+    [isMobile, servicesManager, uiDialogService, extensionManager]
   );
 
   const scheduleViewportResize = useCallback(() => {

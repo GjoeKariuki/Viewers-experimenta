@@ -147,3 +147,5 @@ export { OHIF };
 export type { Types };
 
 export default OHIF;
+
+export { default as useViewerPrivacy, setViewerPrivacy } from './hooks/useViewerPrivacy';

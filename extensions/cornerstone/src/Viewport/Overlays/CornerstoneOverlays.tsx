@@ -1,3 +1,4 @@
+import { useViewerPrivacy } from '@ohif/core';
 import React, { useEffect, useState } from 'react';
 
 import ViewportImageScrollbar from './ViewportImageScrollbar';
@@ -6,6 +7,7 @@ import ViewportOrientationMarkers from './ViewportOrientationMarkers';
 import ViewportImageSliceLoadingIndicator from './ViewportImageSliceLoadingIndicator';
 
 function CornerstoneOverlays(props: withAppTypes) {
+  const privacy = useViewerPrivacy();
   const { viewportId, element, scrollbarHeight, servicesManager } = props;
   const { cornerstoneViewportService } = servicesManager.services;
   const [imageSliceData, setImageSliceData] = useState({
@@ -55,13 +57,15 @@ function CornerstoneOverlays(props: withAppTypes) {
         servicesManager={servicesManager}
       />
 
-      <CustomizableViewportOverlay
-        imageSliceData={imageSliceData}
-        viewportData={viewportData}
-        viewportId={viewportId}
-        servicesManager={servicesManager}
-        element={element}
-      />
+      {!privacy && (
+        <CustomizableViewportOverlay
+          imageSliceData={imageSliceData}
+          viewportData={viewportData}
+          viewportId={viewportId}
+          servicesManager={servicesManager}
+          element={element}
+        />
+      )}
 
       <ViewportImageSliceLoadingIndicator
         viewportData={viewportData}
