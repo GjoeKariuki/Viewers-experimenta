@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import classnames from 'classnames';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { DicomMetadataStore, MODULE_TYPES, useSystem } from '@ohif/core';
 
 import Dropzone from 'react-dropzone';
@@ -10,18 +9,19 @@ import { extensionManager } from '../../App';
 
 import { Button, Icons } from '@ohif/ui-next';
 
-const getLoadButton = (onDrop, text, isDir) => {
+const getLoadButton = (onDrop, text, isDir, disabled) => {
   return (
     <Dropzone
       onDrop={onDrop}
       noDrag
+      disabled={disabled}
     >
       {({ getRootProps, getInputProps }) => (
         <div {...getRootProps()}>
           <Button
             variant="default"
-            className="w-28"
-            disabled={false}
+            className="min-w-28"
+            disabled={disabled}
             onClick={() => {}}
           >
             {text}
@@ -53,8 +53,23 @@ function Local({ modePath }: LocalProps) {
   const { servicesManager } = useSystem();
   const { customizationService } = servicesManager.services;
   const navigate = useNavigate();
+  const location = useLocation();
+  const loadController = useRef<AbortController | null>(null);
+
+  const closeLoader = () => {
+    loadController.current?.abort();
+    const returnTo = location.state?.returnTo;
+    navigate(
+      typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')
+        ? returnTo
+        : '/',
+      { replace: true }
+    );
+  };
   const dropzoneRef = useRef();
   const [dropInitiated, setDropInitiated] = React.useState(false);
+  const [loadError, setLoadError] = React.useState('');
+  const loadingRef = useRef(false);
 
   const LoadingIndicatorProgress = customizationService.getCustomization(
     'ui.loadingIndicatorProgress'
@@ -73,14 +88,22 @@ function Local({ modePath }: LocalProps) {
   }, []);
 
   const firstLocalDataSource = localDataSources[0];
-  const dataSource = firstLocalDataSource.createDataSource({});
+  firstLocalDataSource.createDataSource({});
 
   const microscopyExtensionLoaded = extensionManager.registeredExtensionIds.includes(
     '@ohif/extension-dicom-microscopy'
   );
 
-  const onDrop = async acceptedFiles => {
-    const studies = await filesToStudies(acceptedFiles, dataSource);
+  const openStudies = async (acceptedFiles, signal: AbortSignal) => {
+    const studies = await filesToStudies(acceptedFiles, signal);
+    if (signal.aborted) {
+      return;
+    }
+    if (!studies.length) {
+      throw new Error(
+        'No readable DICOM studies found. Select the disc’s root folder, including its subfolders. DICOMDIR alone does not contain the study images.'
+      );
+    }
 
     const query = new URLSearchParams();
 
@@ -109,10 +132,36 @@ function Local({ modePath }: LocalProps) {
     navigate(`/${modePath}?${decodeURIComponent(query.toString())}`);
   };
 
+  const onDrop = async acceptedFiles => {
+    if (loadingRef.current || !acceptedFiles.length) {
+      return;
+    }
+    const controller = new AbortController();
+    loadController.current = controller;
+    loadingRef.current = true;
+    setDropInitiated(true);
+    setLoadError('');
+    try {
+      await openStudies(acceptedFiles, controller.signal);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setLoadError(
+          error instanceof Error ? error.message : 'Unable to read the selected studies.'
+        );
+      }
+    } finally {
+      loadingRef.current = false;
+      if (!controller.signal.aborted) {
+        setDropInitiated(false);
+      }
+    }
+  };
+
   // Set body style
   useEffect(() => {
     document.body.classList.add('bg-black');
     return () => {
+      loadController.current?.abort();
       document.body.classList.remove('bg-black');
     };
   }, []);
@@ -120,10 +169,8 @@ function Local({ modePath }: LocalProps) {
   return (
     <Dropzone
       ref={dropzoneRef}
-      onDrop={acceptedFiles => {
-        setDropInitiated(true);
-        onDrop(acceptedFiles);
-      }}
+      onDrop={onDrop}
+      disabled={dropInitiated}
       noClick
     >
       {({ getRootProps }) => (
@@ -132,10 +179,18 @@ function Local({ modePath }: LocalProps) {
           style={{ width: '100%', height: '100%' }}
         >
           <div className="flex h-screen w-screen items-center justify-center">
-            <div className="bg-muted border-primary/60 mx-auto space-y-2 rounded-xl border border-dashed py-12 px-12 drop-shadow-md">
-              <div className="flex items-center justify-center">
-                <Icons.OHIFLogoColorDarkBackground className="h-18" />
-              </div>
+            <div className="bg-muted border-primary/60 relative mx-auto space-y-2 rounded-xl border border-dashed py-12 px-12 drop-shadow-md">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-3 top-3"
+                aria-label="Close disc loader"
+                title="Close disc loader"
+                onClick={closeLoader}
+              >
+                <Icons.Close aria-hidden="true" />
+              </Button>
               <div className="space-y-2 py-6 text-center">
                 {dropInitiated ? (
                   <div className="flex flex-col items-center justify-center pt-12">
@@ -154,10 +209,29 @@ function Local({ modePath }: LocalProps) {
                   </div>
                 )}
               </div>
-              <div className="flex justify-center gap-2 pt-4">
-                {getLoadButton(onDrop, 'Load files', false)}
-                {getLoadButton(onDrop, 'Load folders', true)}
+              {loadError && (
+                <p
+                  role="alert"
+                  className="text-destructive max-w-xl text-center"
+                >
+                  {loadError}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-center gap-2 pt-4">
+                {getLoadButton(onDrop, 'Open CD/DVD', true, dropInitiated)}
+                {getLoadButton(onDrop, 'Load files', false, dropInitiated)}
+                {getLoadButton(onDrop, 'Load folders', true, dropInitiated)}
+                <Button
+                  variant="ghost"
+                  onClick={closeLoader}
+                >
+                  {dropInitiated ? 'Cancel loading' : 'Cancel'}
+                </Button>
               </div>
+              <p className="text-muted-foreground max-w-xl pt-2 text-center text-sm">
+                For CD/DVD studies, insert the disc and select its root folder in the folder picker.
+                All subfolders are included. Keep the disc inserted while viewing.
+              </p>
             </div>
           </div>
         </div>

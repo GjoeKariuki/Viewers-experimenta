@@ -157,6 +157,7 @@ import ContentNext from './Sources/ContentNext';
 import CheckBoxChecked from './Sources/CheckBoxChecked';
 import CheckBoxUnchecked from './Sources/CheckBoxUnChecked';
 import Close from './Sources/Close';
+import Disc from './Sources/Disc';
 import Pause from './Sources/Pause';
 import Play from './Sources/Play';
 import ViewportWindowLevel from './Sources/ViewportWindowLevel';
@@ -564,6 +565,7 @@ export const Icons = {
   CheckBoxChecked,
   CheckBoxUnchecked,
   Close,
+  Disc,
   Pause,
   Play,
   Link,
