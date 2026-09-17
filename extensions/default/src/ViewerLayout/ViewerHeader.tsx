@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { Header, Icons, ThemeSelector, useModal } from '@ohif/ui-next';
+import { Button, Header, Icons, ThemeSelector, useModal } from '@ohif/ui-next';
 import { useSystem } from '@ohif/core';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { preserveQueryParameters } from '@ohif/app';
@@ -130,6 +130,25 @@ function ViewerHeader({
             onPanelSelect={onToolbarPanelSelect}
           />
         )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="text-primary hover:bg-primary/25 ml-2 h-8 w-8 shrink-0"
+          title={t('StudyList:Open CD/DVD', 'Open CD/DVD')}
+          aria-label={t('StudyList:Open CD/DVD', 'Open CD/DVD')}
+          data-cy="open-cd-dvd"
+          onClick={() =>
+            navigate('/local', {
+              state: { returnTo: location.pathname + location.search + location.hash },
+            })
+          }
+        >
+          <Icons.Disc
+            className="h-8 w-8"
+            aria-hidden="true"
+          />
+        </Button>
       </div>
     </Header>
   );
