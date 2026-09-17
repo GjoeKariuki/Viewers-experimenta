@@ -134,7 +134,7 @@ function ViewerHeader({
           type="button"
           variant="ghost"
           size="icon"
-          className="text-primary hover:bg-primary/25 shrink-0"
+          className="text-primary hover:bg-primary/25 ml-2 h-8 w-8 shrink-0"
           title={t('StudyList:Open CD/DVD', 'Open CD/DVD')}
           aria-label={t('StudyList:Open CD/DVD', 'Open CD/DVD')}
           data-cy="open-cd-dvd"
@@ -144,7 +144,10 @@ function ViewerHeader({
             })
           }
         >
-          <Icons.Disc aria-hidden="true" />
+          <Icons.Disc
+            className="h-8 w-8"
+            aria-hidden="true"
+          />
         </Button>
       </div>
     </Header>
